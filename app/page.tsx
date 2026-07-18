@@ -13,12 +13,14 @@ export default async function Home() {
     return <LandingGate />;
   }
 
-  const [moduleCurriculum, achievements, jobs, initialStats] = await Promise.all([
-    getModuleCurriculum(),
-    getAchievements(),
-    getJobs(),
-    getUserStats(user.id, user.email!),
-  ]);
+  const [moduleCurriculum, achievements, jobs, initialStats, { data: profile }] =
+    await Promise.all([
+      getModuleCurriculum(),
+      getAchievements(),
+      getJobs(),
+      getUserStats(user.id, user.email!),
+      supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle(),
+    ]);
 
   return (
     <App
@@ -27,6 +29,7 @@ export default async function Home() {
       achievements={achievements}
       jobs={jobs}
       initialStats={initialStats}
+      isAdmin={profile?.is_admin ?? false}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   BookOpen,
   Award,
@@ -33,6 +34,7 @@ import {
   Lock,
   MessageSquare,
   Shield,
+  Wrench,
 } from "lucide-react";
 
 import { UserStats, Rank, Module, Lesson, Achievement } from "./types";
@@ -66,6 +68,7 @@ interface AppProps {
   achievements: Achievement[];
   jobs: JobOpportunity[];
   initialStats: UserStats;
+  isAdmin: boolean;
 }
 
 export default function App({
@@ -74,6 +77,7 @@ export default function App({
   achievements,
   jobs,
   initialStats,
+  isAdmin,
 }: AppProps) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
@@ -880,6 +884,16 @@ export default function App({
           id="sidebar-bottom-block"
           className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2"
         >
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer text-slate-650 hover:text-indigo-650 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+            >
+              <Wrench className="w-4 h-4" />
+              Admin Dashboard
+            </Link>
+          )}
+
           {/* Relocated Notification Button */}
           <button
             id="sidebar-notifications-btn"
