@@ -1,8 +1,65 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4 defaults `dark:` to the OS-level prefers-color-scheme media
+ * query. This app has its own light/dark toggle (App.tsx sets/removes a
+ * `.dark` class on <html>), so tell Tailwind to key off that class instead
+ * — otherwise the in-app toggle has no visual effect at all.
+ */
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  /*
+   * The UI throughout this app uses odd intermediate shade numbers
+   * (e.g. slate-850, indigo-655) that don't exist in Tailwind's default
+   * scale (50/100/.../900/950). Without these defined, those utilities
+   * silently produce no CSS at all, which breaks dark-mode contrast
+   * wherever they're used. Define them here as an interpolation between
+   * their two neighboring real stops, in the same color space Tailwind's
+   * default palette uses, so every existing class just works.
+   */
+  --color-amber-250: color-mix(in oklch, var(--color-amber-200) 50%, var(--color-amber-300) 50%);
+  --color-amber-450: color-mix(in oklch, var(--color-amber-400) 50%, var(--color-amber-500) 50%);
+
+  --color-emerald-350: color-mix(in oklch, var(--color-emerald-300) 50%, var(--color-emerald-400) 50%);
+  --color-emerald-450: color-mix(in oklch, var(--color-emerald-400) 50%, var(--color-emerald-500) 50%);
+
+  --color-indigo-450: color-mix(in oklch, var(--color-indigo-400) 50%, var(--color-indigo-500) 50%);
+  --color-indigo-455: color-mix(in oklch, var(--color-indigo-400) 45%, var(--color-indigo-500) 55%);
+  --color-indigo-550: color-mix(in oklch, var(--color-indigo-500) 50%, var(--color-indigo-600) 50%);
+  --color-indigo-650: color-mix(in oklch, var(--color-indigo-600) 50%, var(--color-indigo-700) 50%);
+  --color-indigo-655: color-mix(in oklch, var(--color-indigo-600) 45%, var(--color-indigo-700) 55%);
+  --color-indigo-705: color-mix(in oklch, var(--color-indigo-700) 95%, var(--color-indigo-800) 5%);
+
+  --color-rose-250: color-mix(in oklch, var(--color-rose-200) 50%, var(--color-rose-300) 50%);
+  --color-rose-405: color-mix(in oklch, var(--color-rose-400) 95%, var(--color-rose-500) 5%);
+  --color-rose-450: color-mix(in oklch, var(--color-rose-400) 50%, var(--color-rose-500) 50%);
+  --color-rose-650: color-mix(in oklch, var(--color-rose-600) 50%, var(--color-rose-700) 50%);
+
+  --color-slate-105: color-mix(in oklch, var(--color-slate-100) 95%, var(--color-slate-200) 5%);
+  --color-slate-150: color-mix(in oklch, var(--color-slate-100) 50%, var(--color-slate-200) 50%);
+  --color-slate-155: color-mix(in oklch, var(--color-slate-100) 45%, var(--color-slate-200) 55%);
+  --color-slate-205: color-mix(in oklch, var(--color-slate-200) 95%, var(--color-slate-300) 5%);
+  --color-slate-250: color-mix(in oklch, var(--color-slate-200) 50%, var(--color-slate-300) 50%);
+  --color-slate-305: color-mix(in oklch, var(--color-slate-300) 95%, var(--color-slate-400) 5%);
+  --color-slate-350: color-mix(in oklch, var(--color-slate-300) 50%, var(--color-slate-400) 50%);
+  --color-slate-405: color-mix(in oklch, var(--color-slate-400) 95%, var(--color-slate-500) 5%);
+  --color-slate-450: color-mix(in oklch, var(--color-slate-400) 50%, var(--color-slate-500) 50%);
+  --color-slate-455: color-mix(in oklch, var(--color-slate-400) 45%, var(--color-slate-500) 55%);
+  --color-slate-550: color-mix(in oklch, var(--color-slate-500) 50%, var(--color-slate-600) 50%);
+  --color-slate-650: color-mix(in oklch, var(--color-slate-600) 50%, var(--color-slate-700) 50%);
+  --color-slate-705: color-mix(in oklch, var(--color-slate-700) 95%, var(--color-slate-800) 5%);
+  --color-slate-750: color-mix(in oklch, var(--color-slate-700) 50%, var(--color-slate-800) 50%);
+  --color-slate-805: color-mix(in oklch, var(--color-slate-800) 95%, var(--color-slate-900) 5%);
+  --color-slate-850: color-mix(in oklch, var(--color-slate-800) 50%, var(--color-slate-900) 50%);
+  --color-slate-855: color-mix(in oklch, var(--color-slate-800) 45%, var(--color-slate-900) 55%);
+  --color-slate-880: color-mix(in oklch, var(--color-slate-800) 20%, var(--color-slate-900) 80%);
+  --color-slate-905: color-mix(in oklch, var(--color-slate-900) 90%, var(--color-slate-950) 10%);
+
+  --color-yellow-450: color-mix(in oklch, var(--color-yellow-400) 50%, var(--color-yellow-500) 50%);
 }
 
 @layer base {

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { 
-  User, Check, Trash2, 
+import { useRouter } from "next/navigation";
+import {
+  User, Check, Trash2, LogOut,
   Trophy, Clock, Globe, ShieldAlert, Award, Camera, RefreshCw,
   Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, MapPin, Briefcase
 } from "lucide-react";
-import { UserStats } from "../types";
-import { ALL_ACHIEVEMENTS, MODULE_CURRICULUM } from "../data/modules";
+import { UserStats, Module } from "../types";
+import { createClient } from "../lib/supabase/client";
 
 interface ProfileViewProps {
   stats: UserStats;
@@ -13,7 +14,7 @@ interface ProfileViewProps {
   activeRank: string;
   overallReadiness: number;
   setActiveTab: (tab: string) => void;
-  onResetData: () => void;
+  moduleCurriculum: Module[];
   isDarkMode: boolean;
   setIsDarkMode: (value: boolean) => void;
 }
@@ -33,16 +34,17 @@ export default function ProfileView({
   activeRank,
   overallReadiness,
   setActiveTab,
-  onResetData,
+  moduleCurriculum,
   isDarkMode,
   setIsDarkMode
  }: ProfileViewProps) {
+  const router = useRouter();
+
   // Local state for editing form
-  const [nameInput, setNameInput] = useState(stats.displayName || "Alex Johnson");
-  const [emailInput, setEmailInput] = useState(stats.email || "chiatiibimi@gmail.com");
-  const [roleInput, setRoleInput] = useState(stats.role || "Senior RLHF Prompt Analyst");
-  const [locationInput, setLocationInput] = useState(stats.location || "United States");
-  const [timezoneInput, setTimezoneInput] = useState(stats.timezone || "GMT-7 (Pacific Time)");
+  const [nameInput, setNameInput] = useState(stats.displayName || "");
+  const [roleInput, setRoleInput] = useState(stats.role || "");
+  const [locationInput, setLocationInput] = useState(stats.location || "");
+  const [timezoneInput, setTimezoneInput] = useState(stats.timezone || "");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Password fields
@@ -54,12 +56,14 @@ export default function ProfileView({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Delete account confirmation
   const [deleteEmailConfirm, setDeleteEmailConfirm] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Default selected avatar or preset
   const selectedAvatar = PRESET_AVATARS.find(a => a.id === stats.avatarUrl) || PRESET_AVATARS[0];
@@ -69,7 +73,6 @@ export default function ProfileView({
     setStats(prev => ({
       ...prev,
       displayName: nameInput,
-      email: emailInput,
       role: roleInput,
       location: locationInput,
       timezone: timezoneInput
@@ -78,8 +81,10 @@ export default function ProfileView({
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError("");
+
     if (!currentPassword) {
       setPasswordError("Please enter your current password.");
       return;
@@ -92,13 +97,32 @@ export default function ProfileView({
       setPasswordError("Passwords do not match.");
       return;
     }
-    
-    // Success flow
-    setStats(prev => ({
-      ...prev,
-      password: newPassword
-    }));
-    setPasswordError("");
+
+    setIsChangingPassword(true);
+    const supabase = createClient();
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: stats.email!,
+      password: currentPassword,
+    });
+
+    if (verifyError) {
+      setIsChangingPassword(false);
+      setPasswordError("Current password is incorrect.");
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    setIsChangingPassword(false);
+
+    if (updateError) {
+      setPasswordError(updateError.message);
+      return;
+    }
+
     setPasswordSuccess(true);
     setCurrentPassword("");
     setNewPassword("");
@@ -113,32 +137,39 @@ export default function ProfileView({
     }));
   };
 
-  const handleDeleteAccount = () => {
-    if (deleteEmailConfirm !== emailInput) {
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteEmailConfirm !== stats.email) {
       alert("Email address does not match your active account.");
       return;
     }
     setIsDeleting(true);
-    setTimeout(() => {
+
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to delete account");
+      }
       setIsDeleting(false);
       setDeleteSuccess(true);
       setTimeout(() => {
-        onResetData();
-        // Reset local form states
-        setNameInput("Alex Johnson");
-        setEmailInput("chiatiibimi@gmail.com");
-        setRoleInput("Senior RLHF Prompt Analyst");
-        setLocationInput("United States");
-        setTimezoneInput("GMT-7 (Pacific Time)");
-        setDeleteEmailConfirm("");
-        setShowConfirmReset(false);
-        setDeleteSuccess(false);
-      }, 1500);
-    }, 2000);
+        router.push("/login");
+      }, 1200);
+    } catch (err: any) {
+      setIsDeleting(false);
+      alert(err.message || "Failed to delete account");
+    }
   };
 
   // Calculate completed stats
-  const totalSyllabusLessons = MODULE_CURRICULUM.flatMap(m => m.lessons).length;
+  const totalSyllabusLessons = moduleCurriculum.flatMap(m => m.lessons).length;
   const completedCount = stats.completedLessons.length;
   
   return (
@@ -235,7 +266,7 @@ export default function ProfileView({
                   </div>
                 </div>
 
-                {/* Email */}
+                {/* Email (read-only: this is your real login identity) */}
                 <div className="space-y-1.5">
                   <label className="text-xs text-slate-455 font-bold uppercase tracking-wider block" htmlFor="profile-email">
                     Email Address
@@ -247,11 +278,10 @@ export default function ProfileView({
                     <input
                       id="profile-email"
                       type="email"
-                      value={emailInput}
-                      onChange={(e) => setEmailInput(e.target.value)}
-                      placeholder="Enter email..."
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                      required
+                      value={stats.email || ""}
+                      disabled
+                      readOnly
+                      className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -322,7 +352,7 @@ export default function ProfileView({
 
               <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-850">
                 <p className="text-[10px] text-slate-400 leading-normal">
-                  All changes synchronize instantly to local browser cache memory.
+                  Changes save to your account and sync across devices.
                 </p>
                 <button
                   type="submit"
@@ -457,9 +487,10 @@ export default function ProfileView({
               <div className="pt-2 flex justify-end">
                 <button
                   type="submit"
-                  className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                  disabled={isChangingPassword}
+                  className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-60"
                 >
-                  Change Password
+                  {isChangingPassword ? "Changing..." : "Change Password"}
                 </button>
               </div>
             </form>
@@ -501,6 +532,18 @@ export default function ProfileView({
             </div>
           </div>
 
+          {/* Sign Out */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+            <button
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              <LogOut className="w-4 h-4" />
+              {isSigningOut ? "Signing out..." : "Sign Out"}
+            </button>
+          </div>
+
           {/* Dangerous Operations Zone */}
           <div className="bg-rose-50/30 dark:bg-rose-950/5 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-6 space-y-4">
             <div className="space-y-1">
@@ -509,7 +552,7 @@ export default function ProfileView({
                 Destructive Account Area
               </h3>
               <p className="text-[11px] text-rose-700/80 dark:text-rose-400/80 leading-relaxed">
-                Permanently delete your profile account, wipe your completed syllabus achievements, and log out of the trainer simulator. This action is final and irreversible.
+                Permanently delete your account and wipe your completed syllabus achievements. This action is final and irreversible.
               </p>
             </div>
 
@@ -517,7 +560,7 @@ export default function ProfileView({
               <div className="space-y-3 animate-fade-in">
                 <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-lg border border-rose-200 dark:border-rose-900/50 space-y-2">
                   <p className="text-[11px] text-rose-900 dark:text-rose-250 font-bold">
-                    To authorize complete deletion of your account and files, type your active email address <span className="underline select-all">{emailInput}</span> below:
+                    To authorize complete deletion of your account and files, type your active email address <span className="underline select-all">{stats.email}</span> below:
                   </p>
                   <input
                     type="email"
@@ -527,14 +570,14 @@ export default function ProfileView({
                     className="w-full bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-900/60 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-1 focus:ring-rose-500"
                   />
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     onClick={handleDeleteAccount}
-                    disabled={deleteEmailConfirm !== emailInput || isDeleting || deleteSuccess}
+                    disabled={deleteEmailConfirm !== stats.email || isDeleting || deleteSuccess}
                     className={`flex-1 text-white font-bold p-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                      deleteEmailConfirm === emailInput && !isDeleting && !deleteSuccess
-                        ? "bg-rose-600 hover:bg-rose-700" 
+                      deleteEmailConfirm === stats.email && !isDeleting && !deleteSuccess
+                        ? "bg-rose-600 hover:bg-rose-700"
                         : "bg-slate-300 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
                     }`}
                   >

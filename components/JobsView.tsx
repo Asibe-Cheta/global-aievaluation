@@ -10,12 +10,15 @@ import { JobOpportunity, DEFAULT_JOBS } from "../data/jobs";
 
 interface JobsViewProps {
   stats: UserStats;
+  jobs?: JobOpportunity[];
   onBack: () => void;
   setActiveTab?: (tab: string) => void;
   setSimSubMode?: (mode: "sandbox" | "exam") => void;
 }
 
-export default function JobsView({ stats, onBack, setActiveTab, setSimSubMode }: JobsViewProps) {
+export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubMode }: JobsViewProps) {
+  const jobsList = jobs && jobs.length > 0 ? jobs : DEFAULT_JOBS;
+
   // Active Tab: project-based, one-time, talent-network
   const [activeSubTab, setActiveSubTab] = useState<"project-based" | "one-time" | "talent-network">("project-based");
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,7 +99,7 @@ export default function JobsView({ stats, onBack, setActiveTab, setSimSubMode }:
   };
 
   // Filter and sort logic
-  const filteredJobs = DEFAULT_JOBS.filter(job => {
+  const filteredJobs = jobsList.filter(job => {
     const matchesTab = job.category === activeSubTab;
     const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           job.field.toLowerCase().includes(searchQuery.toLowerCase()) ||

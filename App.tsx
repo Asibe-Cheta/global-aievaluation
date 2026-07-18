@@ -35,8 +35,9 @@ import {
   Shield,
 } from "lucide-react";
 
-import { UserStats, Rank, Module, Lesson } from "./types";
-import { MODULE_CURRICULUM, ALL_ACHIEVEMENTS } from "./data/modules";
+import { UserStats, Rank, Module, Lesson, Achievement } from "./types";
+import type { JobOpportunity } from "./data/jobs";
+import { syncUserProgress } from "./lib/actions/user-progress";
 
 // Subcomponents
 import DashboardView from "./components/DashboardView";
@@ -46,7 +47,6 @@ import ReadinessView from "./components/ReadinessView";
 import FailReasonsView from "./components/FailReasonsView";
 import ProfileView from "./components/ProfileView";
 import JobsView from "./components/JobsView";
-import LandingView from "./components/LandingView";
 import InterviewSimulator from "./components/InterviewSimulator";
 import Part2IntroView from "./components/Part2IntroView";
 import Part2IntroLessonView from "./components/Part2IntroLessonView";
@@ -60,37 +60,22 @@ import Part2Lesson7View from "./components/Part2Lesson7View";
 import MembershipView from "./components/MembershipView";
 import AcceleratorHubView from "./components/AcceleratorHubView";
 
-// Default Profile State if no LocalStorage is present
-const DEFAULT_USER_STATE: UserStats = {
-  displayName: "Alex Johnson",
-  email: "chiatiibimi@gmail.com",
-  role: "Senior RLHF Prompt Analyst",
-  location: "United States",
-  timezone: "GMT-7 (Pacific Time)",
-  password: "Password123!",
-  completedLessons: [],
-  completedSimulations: [],
-  passedExams: [],
-  activeRank: "Trainee Evaluator",
-  streakCount: 3, // start with a small realistic value to make streak feel alive instantly!
-  skills: {
-    promptEvaluation: 60,
-    responseRanking: 55,
-    factChecking: 50,
-    safetyReview: 65,
-    annotation: 45,
-    reasoning: 50,
-    reasoningEvaluation: 50,
-    instructionFollowing: 55,
-  },
-  xp: 150, // initial onboarding bonus points
-  practiceSubmissions: {},
-  membershipTier: "starter",
-  lastActiveDate: new Date().toISOString(),
-};
+interface AppProps {
+  userId: string;
+  moduleCurriculum: Module[];
+  achievements: Achievement[];
+  jobs: JobOpportunity[];
+  initialStats: UserStats;
+}
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<string>("landing");
+export default function App({
+  userId,
+  moduleCurriculum,
+  achievements,
+  jobs,
+  initialStats,
+}: AppProps) {
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeModuleId, setActiveModuleId] = useState<string>("m1");
   const [activePartId, setActivePartId] = useState<string | null>(null);
@@ -100,10 +85,10 @@ export default function App() {
 
   const activeModule = useMemo(() => {
     return (
-      MODULE_CURRICULUM.find((m) => m.id === activeModuleId) ||
-      MODULE_CURRICULUM[0]
+      moduleCurriculum.find((m) => m.id === activeModuleId) ||
+      moduleCurriculum[0]
     );
-  }, [activeModuleId]);
+  }, [activeModuleId, moduleCurriculum]);
 
   const activeModuleDuration = useMemo(() => {
     let totalMin = 0;
@@ -136,22 +121,7 @@ export default function App() {
   });
 
   // Master local persistence state
-  const [stats, setStats] = useState<UserStats>(() => {
-    if (typeof window === "undefined") return DEFAULT_USER_STATE;
-    try {
-      const saved = localStorage.getItem("ae-academy-user-stats-v2");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Fallback checks for missing keys
-        if (!parsed.skills) parsed.skills = DEFAULT_USER_STATE.skills;
-        if (!parsed.membershipTier) parsed.membershipTier = "starter";
-        return parsed;
-      }
-    } catch (e) {
-      console.error("Failed loading local persisted states", e);
-    }
-    return DEFAULT_USER_STATE;
-  });
+  const [stats, setStats] = useState<UserStats>(initialStats);
 
   // Lock bypass option for review testing
   const [bypassLocks, setBypassLocks] = useState(false);
@@ -168,9 +138,11 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // Persist state updates to local Storage automatically
+  // Persist progress/profile updates to Supabase automatically
   useEffect(() => {
-    localStorage.setItem("ae-academy-user-stats-v2", JSON.stringify(stats));
+    syncUserProgress(stats).catch((err) => {
+      console.error("Failed to sync progress", err);
+    });
   }, [stats]);
 
   // Dynamically compute average readiness score index
@@ -629,13 +601,6 @@ export default function App() {
               stats.completedSimulations.includes("sim_m4_qual")
             : false);
 
-  const handleResetAllData = () => {
-    setStats(DEFAULT_USER_STATE);
-    setActiveTab("dashboard");
-    setActiveLessonId(null);
-    localStorage.removeItem("ae-academy-user-stats-v2");
-  };
-
   const getAvatarConfig = (avatarId?: string) => {
     const PRESET_AVATARS = [
       {
@@ -688,17 +653,6 @@ export default function App() {
     }
   }, [stats.settings?.pacingMode]);
 
-  if (activeTab === "landing") {
-    return (
-      <LandingView
-        onEnterPlatform={() => {
-          setActiveTab("dashboard");
-          setActiveLessonId(null);
-        }}
-      />
-    );
-  }
-
   return (
     <div
       id="app-root-container"
@@ -742,23 +696,6 @@ export default function App() {
 
           {/* Tab Navigation links */}
           <nav className="space-y-1">
-            <button
-              id="tab-btn-landing"
-              onClick={() => {
-                setActiveTab("landing");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer ${
-                activeTab === "landing"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                  : "text-slate-600 hover:text-indigo-650 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-indigo-500" />
-              Welcome Center
-            </button>
-
             <button
               id="tab-btn-dashboard"
               onClick={() => {
@@ -1065,7 +1002,11 @@ export default function App() {
                                 ? "Readiness Scores"
                                 : activeTab === "fail_reasons"
                                   ? "Why Evaluators Fail"
-                                  : "Explore Opportunities"}
+                                  : activeTab === "jobs"
+                                    ? "Explore Opportunities"
+                                    : activeTab === "profile"
+                                      ? "Account Settings"
+                                      : "Global Ready AIEval"}
               </h1>
             </div>
           </div>
@@ -1126,7 +1067,7 @@ export default function App() {
                       "Compare multiple outputs objectively, resolve close-tie decisions, and draft calibration-quality justifications.";
                   }
                 } else {
-                  const p1Lesson = MODULE_CURRICULUM[0].lessons.find(
+                  const p1Lesson = moduleCurriculum[0].lessons.find(
                     (l) => l.id === activeLessonId,
                   );
                   if (p1Lesson) {
@@ -1278,7 +1219,7 @@ export default function App() {
                 );
               }
 
-              const activeLesson = MODULE_CURRICULUM.flatMap(
+              const activeLesson = moduleCurriculum.flatMap(
                 (m) => m.lessons,
               ).find((l) => l.id === activeLessonId);
               if (!activeLesson) return <p>Selected Lesson is missing.</p>;
@@ -1311,7 +1252,7 @@ export default function App() {
 
               {activeTab === "modules" &&
                 (() => {
-                  const part1Lessons = MODULE_CURRICULUM.flatMap(
+                  const part1Lessons = moduleCurriculum.flatMap(
                     (m) => m.lessons,
                   ).map((l) => l.id);
                   const part1CompletedCount = stats.completedLessons.filter(
@@ -1427,11 +1368,11 @@ export default function App() {
                             let nextLessonId = "";
                             if (isPart1) {
                               const nextPart1Lesson =
-                                MODULE_CURRICULUM.flatMap(
+                                moduleCurriculum.flatMap(
                                   (m) => m.lessons,
                                 ).find(
                                   (l) => !stats.completedLessons.includes(l.id),
-                                ) || MODULE_CURRICULUM[0].lessons[0];
+                                ) || moduleCurriculum[0].lessons[0];
                               nextLessonId = nextPart1Lesson.id;
                             } else if (isPart2) {
                               nextLessonId = !stats.completedLessons.includes(
@@ -1627,7 +1568,7 @@ export default function App() {
                         </button>
                         {/* Track Switcher */}
                         <div className="flex bg-slate-100 dark:bg-slate-850 p-1 rounded-xl w-full md:max-w-md gap-1 border border-slate-200 dark:border-slate-800 overflow-x-auto">
-                          {MODULE_CURRICULUM.map((m) => (
+                          {moduleCurriculum.map((m) => (
                             <button
                               key={m.id}
                               onClick={() => setActiveModuleId(m.id)}
@@ -1881,6 +1822,7 @@ export default function App() {
               {activeTab === "jobs" && (
                 <JobsView
                   stats={stats}
+                  jobs={jobs}
                   onBack={() => setActiveTab("dashboard")}
                   setActiveTab={setActiveTab}
                   setSimSubMode={setSimViewInitialMode}
@@ -1902,7 +1844,7 @@ export default function App() {
                     activeRank={activeRank}
                     overallReadiness={overallReadinessScore}
                     setActiveTab={setActiveTab}
-                    onResetData={handleResetAllData}
+                    moduleCurriculum={moduleCurriculum}
                     isDarkMode={isDarkMode}
                     setIsDarkMode={setIsDarkMode}
                   />

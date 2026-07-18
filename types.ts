@@ -45,7 +45,6 @@ export interface UserStats {
   role?: string;
   location?: string;
   timezone?: string;
-  password?: string;
   membershipTier?: "starter" | "professional" | "career_accelerator";
   settings?: {
     notificationsEnabled?: boolean;
