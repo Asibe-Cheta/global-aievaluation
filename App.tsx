@@ -164,6 +164,23 @@ export default function App({
     });
   }, [stats]);
 
+  // After redirecting back from Stripe Checkout/Billing Portal, land on the
+  // Membership tab and surface the result instead of the default dashboard.
+  const [checkoutResult, setCheckoutResult] = useState<
+    "success" | "cancelled" | null
+  >(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    if (checkout) {
+      setActiveTab("membership");
+      if (checkout === "success" || checkout === "cancelled") {
+        setCheckoutResult(checkout);
+      }
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
   // Dynamically compute average readiness score index
   const overallReadinessScore = useMemo(() => {
     const values = Object.values(stats.skills) as number[];
@@ -1603,7 +1620,8 @@ export default function App({
               {activeTab === "membership" && (
                 <MembershipView
                   stats={stats}
-                  setStats={setStats}
+                  checkoutResult={checkoutResult}
+                  onDismissCheckoutResult={() => setCheckoutResult(null)}
                   onBack={() => setActiveTab("dashboard")}
                   onNavigateToTab={(tabId) => setActiveTab(tabId)}
                 />

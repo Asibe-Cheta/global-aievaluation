@@ -23,7 +23,9 @@ export async function syncUserProgress(stats: UserStats) {
         location: stats.location ?? null,
         timezone: stats.timezone ?? null,
         avatar_url: stats.avatarUrl ?? null,
-        membership_tier: stats.membershipTier ?? "starter",
+        // membership_tier is intentionally omitted — it's only ever set by
+        // the Stripe webhook (see app/api/stripe/webhook/route.ts) after a
+        // real payment, and a DB trigger reverts any other attempt to change it.
         settings: stats.settings ?? {},
       })
       .eq("id", user.id),

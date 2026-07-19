@@ -1,44 +1,73 @@
 import React, { useState } from "react";
-import { 
-  Check, Lock, Sparkles, Shield, Users, Briefcase, Award, 
+import {
+  Check, Lock, Sparkles, Shield, Users, Briefcase, Award,
   Zap, BookOpen, ChevronRight, HelpCircle, AlertCircle, ArrowLeft,
-  MessageSquare, Star, Gift, CheckCircle2, ChevronDown, ChevronUp
+  MessageSquare, Star, Gift, CheckCircle2, ChevronDown, ChevronUp, Loader2
 } from "lucide-react";
 import { UserStats } from "../types";
+import { createCheckoutSession, createPortalSession } from "../lib/actions/billing";
 
 interface MembershipViewProps {
   stats: UserStats;
-  setStats: React.Dispatch<React.SetStateAction<UserStats>>;
+  checkoutResult?: "success" | "cancelled" | null;
+  onDismissCheckoutResult?: () => void;
   onBack?: () => void;
   onNavigateToTab?: (tabId: string) => void;
 }
 
-export default function MembershipView({ stats, setStats, onBack, onNavigateToTab }: MembershipViewProps) {
+function isRedirectError(err: unknown): boolean {
+  return typeof err === "object" && err !== null && "digest" in err &&
+    typeof (err as { digest?: unknown }).digest === "string" &&
+    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT");
+}
+
+export default function MembershipView({ stats, checkoutResult, onDismissCheckoutResult, onBack, onNavigateToTab }: MembershipViewProps) {
   const currentTier = stats.membershipTier || "starter";
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annually">("monthly");
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
+  const [pendingTier, setPendingTier] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSelectTier = (tier: "starter" | "professional" | "career_accelerator") => {
-    setStats(prev => ({
-      ...prev,
-      membershipTier: tier
-    }));
+  const successMessage =
+    checkoutResult === "success"
+      ? "🎉 Payment successful! Your plan updates as soon as Stripe confirms the subscription — refresh in a few seconds if it isn't reflected yet."
+      : null;
 
-    let message = "";
-    if (tier === "starter") {
-      message = "You have switched to the Starter Plan. Some premium features are now locked.";
-    } else if (tier === "professional") {
-      message = "🎉 Awesome! You have upgraded to the Professional Tier. AI Interview Simulator is now fully unlocked!";
-    } else {
-      message = "🚀 Incredible! Welcome to the Career Accelerator. Premium Community & Expert Career Support are now fully unlocked!";
+  const handleSelectTier = async (tier: "starter" | "professional" | "career_accelerator") => {
+    setErrorMessage(null);
+    setPendingTier(tier);
+    try {
+      if (tier === "starter" || currentTier !== "starter") {
+        // Cancelling, or switching between two paid tiers, both go through
+        // the Stripe portal so it updates the existing subscription instead
+        // of starting a second, parallel one via Checkout.
+        await createPortalSession();
+      } else {
+        await createCheckoutSession(tier, billingPeriod);
+      }
+    } catch (err) {
+      if (isRedirectError(err)) throw err;
+      console.error(err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      );
+      setPendingTier(null);
     }
+  };
 
-    setSuccessMessage(message);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setTimeout(() => {
-      setSuccessMessage(null);
-    }, 5000);
+  const handleManageBilling = async () => {
+    setErrorMessage(null);
+    setPendingTier("manage");
+    try {
+      await createPortalSession();
+    } catch (err) {
+      if (isRedirectError(err)) throw err;
+      console.error(err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "Something went wrong opening billing management.",
+      );
+      setPendingTier(null);
+    }
   };
 
   const starterFeatures = [
@@ -101,20 +130,68 @@ export default function MembershipView({ stats, setStats, onBack, onNavigateToTa
           Back to Dashboard
         </button>
         
-        <span className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-          <Shield className="w-3.5 h-3.5 text-indigo-500" />
-          Billing & Subscription management
-        </span>
+        <div className="flex items-center gap-3">
+          {currentTier !== "starter" && (
+            <button
+              onClick={handleManageBilling}
+              disabled={pendingTier !== null}
+              className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {pendingTier === "manage" ? (
+                <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+              ) : (
+                <Shield className="w-3.5 h-3.5 text-indigo-500" />
+              )}
+              Manage Billing
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Success Notification Banner */}
+      {/* Success / Cancelled Notification Banner */}
       {successMessage && (
         <div className="mb-8 p-4 bg-emerald-500/10 border-2 border-emerald-500/20 text-emerald-800 dark:text-emerald-400 rounded-2xl flex items-start gap-3 shadow-md animate-fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-bold my-0 leading-tight">Plan Updated Successfully</p>
+          <div className="flex-1">
+            <p className="text-sm font-bold my-0 leading-tight">Payment Successful</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 leading-relaxed">{successMessage}</p>
           </div>
+          <button
+            onClick={onDismissCheckoutResult}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {checkoutResult === "cancelled" && (
+        <div className="mb-8 p-4 bg-slate-500/10 border-2 border-slate-500/20 text-slate-700 dark:text-slate-300 rounded-2xl flex items-start gap-3 shadow-md animate-fade-in">
+          <AlertCircle className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-bold my-0 leading-tight">Checkout Cancelled</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 leading-relaxed">No charge was made. You can try again anytime.</p>
+          </div>
+          <button
+            onClick={onDismissCheckoutResult}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {errorMessage && (
+        <div className="mb-8 p-4 bg-rose-500/10 border-2 border-rose-500/20 text-rose-700 dark:text-rose-400 rounded-2xl flex items-start gap-3 shadow-md animate-fade-in">
+          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-bold my-0 leading-tight">Something Went Wrong</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 leading-relaxed">{errorMessage}</p>
+          </div>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -198,13 +275,14 @@ export default function MembershipView({ stats, setStats, onBack, onNavigateToTa
 
             <button
               onClick={() => handleSelectTier("starter")}
-              disabled={currentTier === "starter"}
-              className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              disabled={currentTier === "starter" || pendingTier !== null}
+              className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:cursor-default flex items-center justify-center gap-2 ${
                 currentTier === "starter"
                   ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-550 border border-slate-200/50 dark:border-slate-800 cursor-default"
-                  : "bg-slate-950 hover:bg-slate-850 text-white dark:bg-slate-800 dark:hover:bg-slate-750"
+                  : "bg-slate-950 hover:bg-slate-850 text-white dark:bg-slate-800 dark:hover:bg-slate-750 disabled:opacity-60"
               }`}
             >
+              {pendingTier === "starter" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {currentTier === "starter" ? "Active Plan" : "Downgrade to Starter"}
             </button>
 
@@ -266,13 +344,14 @@ export default function MembershipView({ stats, setStats, onBack, onNavigateToTa
 
             <button
               onClick={() => handleSelectTier("professional")}
-              disabled={currentTier === "professional"}
-              className={`w-full py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              disabled={currentTier === "professional" || pendingTier !== null}
+              className={`w-full py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer disabled:cursor-default flex items-center justify-center gap-2 ${
                 currentTier === "professional"
                   ? "bg-indigo-50 text-indigo-400 dark:bg-indigo-950/20 dark:text-indigo-550 border border-indigo-100 dark:border-indigo-900 cursor-default"
-                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:shadow-md"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:shadow-md disabled:opacity-60"
               }`}
             >
+              {pendingTier === "professional" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {currentTier === "professional" ? "Active Plan" : currentTier === "starter" ? "Upgrade to Professional" : "Downgrade to Professional"}
             </button>
 
@@ -348,13 +427,14 @@ export default function MembershipView({ stats, setStats, onBack, onNavigateToTa
 
             <button
               onClick={() => handleSelectTier("career_accelerator")}
-              disabled={currentTier === "career_accelerator"}
-              className={`w-full py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              disabled={currentTier === "career_accelerator" || pendingTier !== null}
+              className={`w-full py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer disabled:cursor-default flex items-center justify-center gap-2 ${
                 currentTier === "career_accelerator"
                   ? "bg-amber-50 text-amber-500 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-100 dark:border-amber-900 cursor-default"
-                  : "bg-amber-500 hover:bg-amber-600 text-white shadow-xs hover:shadow-md"
+                  : "bg-amber-500 hover:bg-amber-600 text-white shadow-xs hover:shadow-md disabled:opacity-60"
               }`}
             >
+              {pendingTier === "career_accelerator" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {currentTier === "career_accelerator" ? "Active Plan" : "Upgrade to Career Accelerator"}
             </button>
 
