@@ -44,6 +44,12 @@ export default async function AdminModulesPage() {
                 </td>
                 <td className="px-4 py-3 space-x-3">
                   <Link
+                    href={`/admin/modules/${m.id}/lessons`}
+                    className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                  >
+                    Lessons
+                  </Link>
+                  <Link
                     href={`/admin/modules/${m.id}/simulation-tasks`}
                     className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
                   >
