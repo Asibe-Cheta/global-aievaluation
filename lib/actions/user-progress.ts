@@ -46,6 +46,7 @@ export async function syncUserProgress(stats: UserStats) {
         quiz_scores: stats.quizScores ?? {},
         simulation_scores: stats.simulationScores ?? {},
         exam_scores: stats.examScores ?? {},
+        annotation_submissions: stats.annotationSubmissions ?? {},
         current_module_id: stats.currentModuleId ?? null,
         current_lesson_id: stats.currentLessonId ?? null,
       })

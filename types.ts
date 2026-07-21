@@ -37,6 +37,7 @@ export interface UserStats {
   quizScores?: Record<string, number>;
   simulationScores?: Record<string, any>;
   examScores?: Record<string, any>;
+  annotationSubmissions?: Record<string, AnnotationSubmission>;
   currentModuleId?: string;
   currentLessonId?: string;
   displayName?: string;
@@ -134,6 +135,30 @@ export interface SimulationTask {
   category?: string;
 }
 
+export interface AnnotationMediaItem {
+  path: string;
+  url: string;
+  durationSeconds?: number;
+}
+
+export interface AnnotationTask {
+  id: string;
+  moduleId: string;
+  type: "image_pair" | "video";
+  title: string;
+  instructions?: string;
+  media: AnnotationMediaItem[];
+  labelOptions: string[];
+  rubric?: string;
+}
+
+export interface AnnotationSubmission {
+  // one entry per media item, in the same order as task.media
+  labelsPerItem: string[][];
+  notes: string;
+  submittedAt: string;
+}
+
 export interface ExamQuestion {
   id: string;
   type: "mcq" | "tf" | "scenario";
@@ -157,5 +182,6 @@ export interface Module {
   };
   simulationTasks: SimulationTask[];
   examQuestions: ExamQuestion[];
+  annotationTasks?: AnnotationTask[];
   simSkillBoosts?: Partial<UserStats["skills"]>;
 }

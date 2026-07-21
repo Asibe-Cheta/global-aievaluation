@@ -224,6 +224,11 @@ export default function InterviewSimulator({ stats, onComplete, onBack }: Interv
   const [analysisText, setAnalysisText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Interview questions: default to the static bank, replaced with
+  // AI-generated, domain/platform-tailored questions once the profile
+  // analysis step resolves (see handleRunProfileAnalysis).
+  const [interviewQuestions, setInterviewQuestions] = useState<InterviewQuestion[]>(INTERVIEW_QUESTIONS);
+
   // CV / Resume File Upload States
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -723,18 +728,58 @@ export default function InterviewSimulator({ stats, onComplete, onBack }: Interv
   const handleRunProfileAnalysis = () => {
     setIsAnalyzing(true);
     setInterviewStep("analysis");
-    
-    setTimeout(() => {
-      const platformName = PLATFORMS.find(p => p.id === selectedPlatform)?.name || "AI Platforms";
-      const roleName = ROLES.find(r => r.id === selectedRole)?.name || "AI Trainer";
-      
+
+    const platform = PLATFORMS.find(p => p.id === selectedPlatform);
+    const role = ROLES.find(r => r.id === selectedRole);
+    const platformName = platform?.name || "AI Platforms";
+    const roleName = role?.name || "AI Trainer";
+
+    // Keep the "processing profile" animation feeling substantial while the
+    // real Gemini call for domain-specific questions runs behind it.
+    const minDelay = new Promise((resolve) => setTimeout(resolve, 2500));
+    const questionsFetch = fetch("/api/interview-questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        platformName,
+        platformStyle: platform?.style,
+        roleName,
+        roleDescription: role?.description,
+      }),
+    })
+      .then((res) => res.json())
+      .catch(() => ({ success: false }));
+
+    Promise.all([minDelay, questionsFetch]).then(([, result]: [unknown, any]) => {
+      if (result?.success && Array.isArray(result.questions) && result.questions.length === 4) {
+        // Phases 0,1,2 -> generated 0,1,2 (Resume/Knowledge/Scenario).
+        // Phase 3 (index 3) stays the bespoke live pairwise translation task.
+        // Phase 4 -> generated 3 (Behavioural).
+        const merged: InterviewQuestion[] = INTERVIEW_QUESTIONS.map((staticQ, idx) => {
+          if (idx === 3) return staticQ;
+          const gen = result.questions[idx < 3 ? idx : idx - 1];
+          return {
+            ...staticQ,
+            question: gen.question,
+            idealKeywords: gen.idealKeywords,
+            sampleExcellentAnswer: gen.sampleExcellentAnswer,
+            challengeQuestion: gen.challengeQuestion,
+            challengeKeywords: gen.challengeKeywords,
+            sampleExcellentChallengeAnswer: gen.sampleExcellentChallengeAnswer,
+          };
+        });
+        setInterviewQuestions(merged);
+      } else {
+        setInterviewQuestions(INTERVIEW_QUESTIONS);
+      }
+
       const summary = `I have parsed your candidate profile, ${profile.name}. Given your background as a "${profile.workExperience}" combined with your "${profile.aiExperience}" and "${profile.programmingKnowledge}" skills, you present a highly strategic profile for alignment work.
 
 I have fully calibrated our virtual assessment loop to test your specific transition capabilities. This session will validate your motivation, technical RLHF foundations, pairwise scenario judgement, and safety red-teaming compliance. You will be evaluated against ${platformName}'s strict "${roleName}" criteria, with our live Adaptive Challenge Engine active. Ready? Let's enter the virtual boardroom.`;
-      
+
       setAnalysisText(summary);
       setIsAnalyzing(false);
-    }, 2500);
+    });
   };
 
   // Helper: Start the actual Interview Live Loop
@@ -747,7 +792,7 @@ I have fully calibrated our virtual assessment loop to test your specific transi
     // Welcome message
     setIsInterviewerTyping(true);
     setTimeout(() => {
-      const firstQ = INTERVIEW_QUESTIONS[0];
+      const firstQ = interviewQuestions[0];
       const initialGreeting = `Welcome to the virtual assessment board, ${profile.name}. I am your automated lead interviewer for today. I will guide you through five phases of progressive assessment to test your suitability for ${PLATFORMS.find(p => p.id === selectedPlatform)?.name} as a ${ROLES.find(r => r.id === selectedRole)?.name}.
 
 We will begin with Phase 1: ${firstQ.phaseName} (Weight: ${firstQ.weight}). 
@@ -775,7 +820,7 @@ Here is your first prompt:
     setIsInterviewerTyping(true);
     
     setTimeout(() => {
-      const currentQ = INTERVIEW_QUESTIONS[activePhaseIndex];
+      const currentQ = interviewQuestions[activePhaseIndex];
       const lowerText = typedText.toLowerCase();
       const words = typedText.trim().split(/\s+/).filter(Boolean);
 
@@ -862,11 +907,11 @@ ${pushbackIntro}${customChallenge}`,
         });
 
         const nextIndex = activePhaseIndex + 1;
-        if (nextIndex < INTERVIEW_QUESTIONS.length) {
+        if (nextIndex < interviewQuestions.length) {
           setActivePhaseIndex(nextIndex);
           setHasRespondedToMainQuestion(false);
           
-          const nextQ = INTERVIEW_QUESTIONS[nextIndex];
+          const nextQ = interviewQuestions[nextIndex];
           let intro = `Excellent defense. Let's move to Phase ${nextQ.phase}: ${nextQ.phaseName} (Weight: ${nextQ.weight}).\n\n`;
           
           if (nextQ.phase === 4) {
@@ -917,7 +962,7 @@ Click the button below to generate your report.`
     
     setIsInterviewerTyping(true);
     setTimeout(() => {
-      const currentQ = INTERVIEW_QUESTIONS[3]; // Phase 4
+      const currentQ = interviewQuestions[3]; // Phase 4
       setUserAnswers(prev => ({
         ...prev,
         [currentQ.id]: {
@@ -1601,7 +1646,7 @@ ${p4ChallengeIntro}`,
 
   // --- RENDER RUNNING ACTIVE INTERVIEW CONSOLE ---
   if (interviewStep === "interviewing") {
-    const currentQ = INTERVIEW_QUESTIONS[activePhaseIndex];
+    const currentQ = interviewQuestions[activePhaseIndex];
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fade-in pl-1">
@@ -1622,7 +1667,7 @@ ${p4ChallengeIntro}`,
             <span className="text-[10px] font-mono font-bold uppercase text-slate-450 block">Assessment Timeline</span>
             
             <div className="space-y-3 font-sans">
-              {INTERVIEW_QUESTIONS.map((q, idx) => {
+              {interviewQuestions.map((q, idx) => {
                 const isActive = activePhaseIndex === idx;
                 const isCompleted = activePhaseIndex > idx;
                 
@@ -1638,7 +1683,7 @@ ${p4ChallengeIntro}`,
                       }`}>
                         {isCompleted ? <Check className="w-3 h-3" /> : idx + 1}
                       </span>
-                      {idx < INTERVIEW_QUESTIONS.length - 1 && (
+                      {idx < interviewQuestions.length - 1 && (
                         <div className={`w-0.5 h-6 mt-1.5 ${isCompleted ? "bg-emerald-500" : "bg-slate-100 dark:bg-slate-850"}`}></div>
                       )}
                     </div>
@@ -2258,7 +2303,7 @@ ${p4ChallengeIntro}`,
           </div>
 
           <div className="space-y-3 pt-1">
-            {INTERVIEW_QUESTIONS.map((q, idx) => {
+            {interviewQuestions.map((q, idx) => {
               const answers = userAnswers[q.id] || { mainAnswer: "N/A", challengeAnswer: "N/A" };
               const isExpanded = expandedReplayIndex === idx;
               

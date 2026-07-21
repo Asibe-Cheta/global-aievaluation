@@ -287,3 +287,49 @@ export async function getAdminLesson(
   if (error) throw new Error(`getAdminLesson: ${error.message}`);
   return data;
 }
+
+export interface AdminAnnotationMediaItem {
+  path: string;
+  url: string;
+  durationSeconds?: number;
+}
+
+export interface AdminAnnotationTaskRow {
+  id: string;
+  module_id: string;
+  type: "image_pair" | "video";
+  title: string;
+  instructions: string | null;
+  media: AdminAnnotationMediaItem[];
+  label_options: string[];
+  rubric: string | null;
+  sort_order: number;
+}
+
+export async function getAdminAnnotationTasks(
+  moduleId: string,
+): Promise<AdminAnnotationTaskRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("annotation_tasks")
+    .select("*")
+    .eq("module_id", moduleId)
+    .order("sort_order");
+
+  if (error) throw new Error(`getAdminAnnotationTasks: ${error.message}`);
+  return data ?? [];
+}
+
+export async function getAdminAnnotationTask(
+  id: string,
+): Promise<AdminAnnotationTaskRow | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("annotation_tasks")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`getAdminAnnotationTask: ${error.message}`);
+  return data;
+}

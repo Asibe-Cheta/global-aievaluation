@@ -35,9 +35,10 @@ import {
   MessageSquare,
   Shield,
   Wrench,
+  Tags,
 } from "lucide-react";
 
-import { UserStats, Rank, Module, Lesson, Achievement } from "./types";
+import { UserStats, Rank, Module, Lesson, Achievement, AnnotationSubmission } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
@@ -61,6 +62,7 @@ import Part2Lesson5View from "./components/Part2Lesson5View";
 import Part2Lesson6View from "./components/Part2Lesson6View";
 import Part2Lesson7View from "./components/Part2Lesson7View";
 import MembershipView from "./components/MembershipView";
+import AnnotationView from "./components/AnnotationView";
 import AcceleratorHubView from "./components/AcceleratorHubView";
 
 function applySkillBoosts(
@@ -331,6 +333,27 @@ export default function App({
     );
   };
 
+  const handleAnnotationSubmit = (
+    taskId: string,
+    submission: AnnotationSubmission,
+  ) => {
+    setStats((prev) => {
+      const isFirstTime = !prev.annotationSubmissions?.[taskId];
+      return {
+        ...prev,
+        annotationSubmissions: {
+          ...(prev.annotationSubmissions ?? {}),
+          [taskId]: submission,
+        },
+        xp: prev.xp + (isFirstTime ? 40 : 5),
+        skills: isFirstTime
+          ? { ...prev.skills, annotation: Math.min(100, prev.skills.annotation + 4) }
+          : prev.skills,
+        lastActiveDate: new Date().toISOString(),
+      };
+    });
+  };
+
   const handleExamComplete = (score: number) => {
     const passed = score >= 80;
 
@@ -572,6 +595,25 @@ export default function App({
               {!isSimUnlocked && (
                 <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
               )}
+            </button>
+
+            <button
+              id="tab-btn-annotation"
+              onClick={() => {
+                setActiveTab("annotation");
+                setActiveLessonId(null);
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                activeTab === "annotation"
+                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Tags className="w-4 h-4" />
+                Data Annotation
+              </div>
             </button>
 
             <button
@@ -822,6 +864,8 @@ export default function App({
                       ? "Learning Syllabus"
                       : activeTab === "simulations"
                         ? "Real World Practice Tests"
+                        : activeTab === "annotation"
+                        ? "Data Annotation"
                         : activeTab === "interview"
                           ? "AI Interview Simulator"
                           : activeTab === "membership"
@@ -1558,6 +1602,15 @@ export default function App({
                   examQuestions={activeModule.examQuestions}
                   onExamComplete={handleExamComplete}
                   initialMode={simViewInitialMode}
+                />
+              )}
+
+              {activeTab === "annotation" && (
+                <AnnotationView
+                  moduleCurriculum={moduleCurriculum}
+                  stats={stats}
+                  onSubmit={handleAnnotationSubmit}
+                  onBack={() => setActiveTab("dashboard")}
                 />
               )}
 

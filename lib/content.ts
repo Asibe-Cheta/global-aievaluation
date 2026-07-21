@@ -14,17 +14,20 @@ export async function getModuleCurriculum(): Promise<Module[]> {
     { data: lessons, error: lessonsError },
     { data: simulationTasks, error: simError },
     { data: examQuestions, error: examError },
+    { data: annotationTasks, error: annotationError },
   ] = await Promise.all([
     supabase.from("modules").select("*").order("sort_order"),
     supabase.from("lessons").select("*").order("sort_order"),
     supabase.from("simulation_tasks").select("*").order("sort_order"),
     supabase.from("exam_questions").select("*").order("sort_order"),
+    supabase.from("annotation_tasks").select("*").order("sort_order"),
   ]);
 
   if (modulesError) throw new Error(`getModuleCurriculum/modules: ${modulesError.message}`);
   if (lessonsError) throw new Error(`getModuleCurriculum/lessons: ${lessonsError.message}`);
   if (simError) throw new Error(`getModuleCurriculum/simulation_tasks: ${simError.message}`);
   if (examError) throw new Error(`getModuleCurriculum/exam_questions: ${examError.message}`);
+  if (annotationError) throw new Error(`getModuleCurriculum/annotation_tasks: ${annotationError.message}`);
 
   return (modules ?? []).map((m) => ({
     id: m.id,
@@ -81,6 +84,18 @@ export async function getModuleCurriculum(): Promise<Module[]> {
         explanation: q.explanation,
         part: q.part ?? undefined,
         scenario: q.scenario ?? undefined,
+      })),
+    annotationTasks: (annotationTasks ?? [])
+      .filter((t) => t.module_id === m.id)
+      .map((t) => ({
+        id: t.id,
+        moduleId: t.module_id,
+        type: t.type,
+        title: t.title,
+        instructions: t.instructions ?? undefined,
+        media: t.media ?? [],
+        labelOptions: t.label_options ?? [],
+        rubric: t.rubric ?? undefined,
       })),
   })) as Module[];
 }
@@ -170,6 +185,7 @@ export async function getUserStats(
     quizScores: progress.quiz_scores ?? {},
     simulationScores: progress.simulation_scores ?? {},
     examScores: progress.exam_scores ?? {},
+    annotationSubmissions: progress.annotation_submissions ?? {},
     currentModuleId: progress.current_module_id ?? undefined,
     currentLessonId: progress.current_lesson_id ?? undefined,
     displayName: profile.display_name ?? undefined,
