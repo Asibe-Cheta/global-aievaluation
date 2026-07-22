@@ -1,15 +1,15 @@
 import React from "react";
-import { 
-  BookOpen, Play, BadgeCheck, Zap, Target, Lock, Clock, ChevronRight, ArrowRight
+import {
+  BookOpen, Play, BadgeCheck, Zap, Target, Lock, Clock, ChevronRight, ArrowRight, Gauge, ShieldAlert
 } from "lucide-react";
 import { UserStats, Rank, Module } from "../types";
-import { MODULE_CURRICULUM } from "../data/modules";
 
 interface DashboardViewProps {
   stats: UserStats;
   currentRank: Rank;
   overallReadiness: number;
   activeModule: Module;
+  moduleCurriculum: Module[];
   setActiveTab: (tab: string) => void;
   startLesson: (lessonId: string) => void;
   activeModuleId: string;
@@ -22,17 +22,27 @@ export default function DashboardView({
   currentRank,
   overallReadiness,
   activeModule,
+  moduleCurriculum,
   setActiveTab,
   startLesson,
   activeModuleId,
   setActiveModuleId,
   setActivePartId
 }: DashboardViewProps) {
-  
+
   // Calculate completed metrics for overall curriculum
   const completedCount = stats.completedLessons.length;
-  const totalLessons = MODULE_CURRICULUM.flatMap(m => m.lessons).length;
-  const overallProgressPercent = Math.min(100, Math.round((completedCount / totalLessons) * 100));
+  const totalLessons = moduleCurriculum.flatMap(m => m.lessons).length;
+  const overallProgressPercent = totalLessons > 0
+    ? Math.min(100, Math.round((completedCount / totalLessons) * 100))
+    : 0;
+
+  // A brand-new profile's display_name defaults to the email's local part
+  // (see handle_new_user() in supabase/migrations/0001_init.sql) — that's not
+  // a real name, so don't greet the user with their raw email handle.
+  const emailLocalPart = stats.email?.split("@")[0];
+  const hasRealName = !!stats.displayName && stats.displayName !== emailLocalPart;
+  const firstName = hasRealName ? stats.displayName!.split(" ")[0] : null;
 
   // Part 2 Metrics
   const part2Lessons = ["p2_intro", "p2_m1_l1", "p2_m1_l2", "p2_m1_l3", "p2_m1_l4", "p2_m1_l5", "p2_m1_l6", "p2_m1_l7"];
@@ -114,13 +124,31 @@ export default function DashboardView({
     <div id="dashboard-view" className="space-y-6 animate-fade-in pl-1">
       
       {/* 1. Minimalist Welcoming Greeting Header */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Welcome back, {stats.displayName ? stats.displayName.split(" ")[0] : "Alex"}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Here is your training progress for today.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Welcome back{firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Here is your training progress for today.
+          </p>
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+          <button
+            onClick={() => setActiveTab("readiness")}
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+          >
+            <Gauge className="w-3.5 h-3.5" />
+            Readiness Scores
+          </button>
+          <button
+            onClick={() => setActiveTab("fail_reasons")}
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            Why Evaluators Fail
+          </button>
+        </div>
       </div>
 
       {/* 2. Dual Metrics Grid Rows */}
@@ -197,81 +225,33 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* Subscription Tier Upgrade Teaser banner */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 md:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
-        {/* Abstract background graphics */}
-        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-50/10 dark:bg-indigo-950/5 rounded-full blur-3xl pointer-events-none"></div>
-        
-        <div className="flex items-center gap-3.5">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+      {/* Subscription Tier — slim status banner, not competing with the learning CTA above */}
+      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-150 dark:border-slate-850 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shrink-0 ${
             stats.membershipTier === "career_accelerator"
-              ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+              ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
               : stats.membershipTier === "professional"
-                ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
-                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400"
+                : "bg-slate-150 text-slate-700 dark:bg-slate-800 dark:text-slate-350"
           }`}>
-            {stats.membershipTier === "career_accelerator" ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
-            ) : stats.membershipTier === "professional" ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            )}
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider font-mono">
-                Current Membership Tier
-              </span>
-              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider ${
-                stats.membershipTier === "career_accelerator"
-                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-                  : stats.membershipTier === "professional"
-                    ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400"
-                    : "bg-slate-150 text-slate-700 dark:bg-slate-800 dark:text-slate-350"
-              }`}>
-                {stats.membershipTier ? stats.membershipTier.replace("_", " ") : "starter"}
-              </span>
-            </div>
-            <h4 className="text-sm font-bold text-slate-850 dark:text-white my-0">
-              {stats.membershipTier === "career_accelerator"
-                ? "Unlocked: Career Accelerator Hub & Expert Reviews"
-                : stats.membershipTier === "professional"
-                  ? "Unlocked: AI Interview Simulator with Voice AI Practice"
-                  : "Independent Starter Plan"}
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 my-0 max-w-xl leading-relaxed">
-              {stats.membershipTier === "career_accelerator"
-                ? "You have full access to private mastermind classes, resume markup, LinkedIn SEO, and expert consulting."
-                : stats.membershipTier === "professional"
-                  ? "Unlimited platform practice available. Upgrade to Career Accelerator to lock in human expert coaching."
-                  : "Upgrade to Professional to unlock platform interview simulators (Outlier, Scale AI, Alignerr, Mercor, etc.)."}
-            </p>
-          </div>
+            {stats.membershipTier ? stats.membershipTier.replace("_", " ") : "starter"} plan
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+            {stats.membershipTier === "career_accelerator"
+              ? "Full access unlocked, including the Career Accelerator Hub."
+              : stats.membershipTier === "professional"
+                ? "Upgrade to Career Accelerator for human expert coaching."
+                : "Upgrade to unlock the AI Interview Simulator and practice platforms."}
+          </span>
         </div>
 
         <button
-          onClick={() => setActiveTab("membership")}
-          className={`shrink-0 py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-            stats.membershipTier === "career_accelerator"
-              ? "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-350"
-              : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:shadow-md"
-          }`}
+          onClick={() => setActiveTab(stats.membershipTier === "career_accelerator" ? "accelerator" : "membership")}
+          className="shrink-0 py-1.5 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
         >
-          {stats.membershipTier === "career_accelerator" ? (
-            <span>Manage Subscription</span>
-          ) : (
-            <>
-              <span>Upgrade Plan</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </>
-          )}
+          <span>{stats.membershipTier === "career_accelerator" ? "Open Accelerator Hub" : "Upgrade Plan"}</span>
+          <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
@@ -320,50 +300,17 @@ export default function DashboardView({
               </p>
             </div>
 
-            {/* Progress and Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center lg:justify-end gap-4 shrink-0 w-full sm:w-auto lg:w-[350px]">
-              <div className="space-y-1 flex-1 sm:max-w-[150px] w-full">
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-slate-450 dark:text-slate-500 font-semibold">
-                    Overall Progress
-                  </span>
-                  <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
-                    {overallProgressPercent}%
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-indigo-600 dark:bg-indigo-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${overallProgressPercent}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setActivePartId?.("part1");
-                    setActiveTab("modules");
-                  }}
-                  className="w-full sm:w-auto py-2 px-3 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850 shrink-0 whitespace-nowrap"
-                >
-                  View Track
-                </button>
-                <button
-                  onClick={() => {
-                    if (stats.membershipTier === "starter" && nextLesson.id !== "l1") {
-                      setActivePartId?.("part1");
-                      setActiveTab("modules");
-                    } else {
-                      startLesson(nextLesson.id);
-                    }
-                  }}
-                  className="w-full sm:w-auto py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:shadow-sm shrink-0 whitespace-nowrap"
-                >
-                  <span>Go to Lesson</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            {/* Browse action — the quick-continue path already lives in the Resume Learning card above */}
+            <div className="flex items-center lg:justify-end shrink-0 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  setActivePartId?.("part1");
+                  setActiveTab("modules");
+                }}
+                className="w-full sm:w-auto py-2 px-4 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850 shrink-0 whitespace-nowrap"
+              >
+                View Track
+              </button>
             </div>
           </div>
 

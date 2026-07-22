@@ -11,7 +11,6 @@ import {
   Trophy,
   TrendingUp,
   User,
-  Gauge,
   Zap,
   Play,
   ArrowRight,
@@ -27,7 +26,6 @@ import {
   Briefcase,
   Sparkles,
   BookCheck,
-  ShieldAlert as FailWarning,
   ArrowLeft,
   Settings,
   LayoutGrid,
@@ -36,6 +34,8 @@ import {
   Shield,
   Wrench,
   Tags,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 import { UserStats, Rank, Module, Lesson, Achievement, AnnotationSubmission } from "./types";
@@ -96,7 +96,9 @@ export default function App({
   initialStats,
   isAdmin,
 }: AppProps) {
+  const practiceTabs = ["simulations", "annotation", "interview"];
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [practiceGroupOpen, setPracticeGroupOpen] = useState(false);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeModuleId, setActiveModuleId] = useState<string>("m1");
   const [activePartId, setActivePartId] = useState<string | null>(null);
@@ -146,6 +148,13 @@ export default function App({
 
   // Lock bypass option for review testing
   const [bypassLocks, setBypassLocks] = useState(false);
+
+  // Keep the sidebar's collapsible Practice group expanded whenever one of
+  // its sub-tabs is active, even if it was reached by a route other than
+  // clicking the group itself.
+  useEffect(() => {
+    if (practiceTabs.includes(activeTab)) setPracticeGroupOpen(true);
+  }, [activeTab]);
 
   // Apply dark class to body
   useEffect(() => {
@@ -574,100 +583,82 @@ export default function App({
               Learn
             </button>
 
+            {/* Practice group: collapsible parent, expands to the 3 hands-on practice modes */}
             <button
-              id="tab-btn-simulations"
-              onClick={() => {
-                setActiveTab("simulations");
-                setSimViewInitialMode("sandbox");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
+              id="tab-btn-practice-group"
+              onClick={() => setPracticeGroupOpen((v) => !v)}
               className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                activeTab === "simulations"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                practiceTabs.includes(activeTab)
+                  ? "text-indigo-650 dark:text-indigo-400"
                   : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
               }`}
             >
               <div className="flex items-center gap-3">
                 <Briefcase className="w-4 h-4" />
-                Real World Practice Tests
+                Practice
               </div>
-              {!isSimUnlocked && (
-                <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+              {practiceGroupOpen ? (
+                <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
               )}
             </button>
 
-            <button
-              id="tab-btn-annotation"
-              onClick={() => {
-                setActiveTab("annotation");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                activeTab === "annotation"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Tags className="w-4 h-4" />
-                Data Annotation
+            {practiceGroupOpen && (
+              <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-slate-850 ml-4">
+                <button
+                  id="tab-btn-simulations"
+                  onClick={() => {
+                    setActiveTab("simulations");
+                    setSimViewInitialMode("sandbox");
+                    setActiveLessonId(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                    activeTab === "simulations"
+                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+                  }`}
+                >
+                  <span>Real World Practice Tests</span>
+                  {!isSimUnlocked && (
+                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                  )}
+                </button>
+
+                <button
+                  id="tab-btn-annotation"
+                  onClick={() => {
+                    setActiveTab("annotation");
+                    setActiveLessonId(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                    activeTab === "annotation"
+                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+                  }`}
+                >
+                  Data Annotation
+                </button>
+
+                <button
+                  id="tab-btn-interview"
+                  onClick={() => {
+                    setActiveTab("interview");
+                    setActiveLessonId(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                    activeTab === "interview"
+                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+                  }`}
+                >
+                  AI Interview Simulator
+                </button>
               </div>
-            </button>
-
-            <button
-              id="tab-btn-interview"
-              onClick={() => {
-                setActiveTab("interview");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                activeTab === "interview"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-4 h-4 text-indigo-500 dark:text-indigo-455" />
-                AI Interview Simulator
-              </div>
-            </button>
-
-            <button
-              id="tab-btn-readiness"
-              onClick={() => {
-                setActiveTab("readiness");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer ${
-                activeTab === "readiness"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-              }`}
-            >
-              <Gauge className="w-4 h-4" />
-              Readiness Scores
-            </button>
-
-            <button
-              id="tab-btn-fail-reasons"
-              onClick={() => {
-                setActiveTab("fail_reasons");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer relative ${
-                activeTab === "fail_reasons"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-              }`}
-            >
-              <FailWarning className="w-4 h-4 shrink-0" />
-              Why Evaluators Fail
-            </button>
+            )}
 
             <button
               id="tab-btn-jobs"
@@ -713,27 +704,6 @@ export default function App({
               </span>
             </button>
 
-            <button
-              id="tab-btn-accelerator"
-              onClick={() => {
-                setActiveTab("accelerator");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                activeTab === "accelerator"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Award className="w-4 h-4 text-amber-500 shrink-0" />
-                Career Accelerator Hub
-              </div>
-              {stats.membershipTier !== "career_accelerator" && (
-                <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-              )}
-            </button>
           </nav>
         </div>
 
@@ -1116,6 +1086,7 @@ export default function App({
                   currentRank={activeRank as any}
                   overallReadiness={overallReadinessScore}
                   activeModule={activeModule}
+                  moduleCurriculum={moduleCurriculum}
                   setActiveTab={setActiveTab}
                   startLesson={handleStartLesson}
                   activeModuleId={activeModuleId}
