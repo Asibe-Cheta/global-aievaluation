@@ -55,12 +55,6 @@ export default async function AdminModulesPage() {
                   >
                     Simulation Tasks
                   </Link>
-                  <Link
-                    href={`/admin/modules/${m.id}/annotation-tasks`}
-                    className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-                  >
-                    Annotation Tasks
-                  </Link>
                 </td>
                 <td className="px-4 py-3 text-right space-x-3">
                   <Link

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Briefcase, Award, ArrowLeft, BookOpen, ClipboardCheck, Quote } from "lucide-react";
+import { Briefcase, Award, ArrowLeft, BookOpen, ClipboardCheck, Quote, Tags } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({
@@ -53,6 +53,13 @@ export default async function AdminLayout({
           >
             <ClipboardCheck className="w-4 h-4" />
             Real World Practice
+          </Link>
+          <Link
+            href="/admin/annotation-tasks"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850 transition-colors"
+          >
+            <Tags className="w-4 h-4" />
+            Annotation Tasks
           </Link>
           <Link
             href="/admin/jobs"

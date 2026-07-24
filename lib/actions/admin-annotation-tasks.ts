@@ -167,9 +167,9 @@ export async function createAnnotationTask(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/modules/${fields.moduleId}/annotation-tasks`);
+  revalidatePath("/admin/annotation-tasks");
   revalidatePath("/");
-  redirect(`/admin/modules/${fields.moduleId}/annotation-tasks`);
+  redirect("/admin/annotation-tasks");
 }
 
 export async function updateAnnotationTask(
@@ -249,14 +249,13 @@ export async function updateAnnotationTask(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/modules/${fields.moduleId}/annotation-tasks`);
+  revalidatePath("/admin/annotation-tasks");
   revalidatePath("/");
-  redirect(`/admin/modules/${fields.moduleId}/annotation-tasks`);
+  redirect("/admin/annotation-tasks");
 }
 
 export async function deleteAnnotationTask(
   id: string,
-  moduleId: string,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
 
@@ -276,7 +275,7 @@ export async function deleteAnnotationTask(
     await supabase.storage.from(BUCKET).remove(paths);
   }
 
-  revalidatePath(`/admin/modules/${moduleId}/annotation-tasks`);
+  revalidatePath("/admin/annotation-tasks");
   revalidatePath("/");
   return {};
 }

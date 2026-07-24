@@ -350,6 +350,18 @@ export async function getAdminAnnotationTask(
   return data;
 }
 
+export async function getAllAdminAnnotationTasks(): Promise<AdminAnnotationTaskRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("annotation_tasks")
+    .select("*")
+    .order("module_id")
+    .order("sort_order");
+
+  if (error) throw new Error(`getAllAdminAnnotationTasks: ${error.message}`);
+  return data ?? [];
+}
+
 export interface AdminTestimonialRow {
   id: string;
   name: string;

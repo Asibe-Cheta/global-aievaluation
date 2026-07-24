@@ -7,8 +7,8 @@ import {
   createAnnotationTask,
   updateAnnotationTask,
 } from "@/lib/actions/admin-annotation-tasks";
-import type { AdminAnnotationTaskRow } from "@/lib/admin/queries";
-import OptionsEditor from "../../../OptionsEditor";
+import type { AdminAnnotationTaskRow, AdminModuleRow } from "@/lib/admin/queries";
+import OptionsEditor from "../OptionsEditor";
 
 const MAX_VIDEO_SECONDS = 10;
 
@@ -36,16 +36,17 @@ function readVideoDuration(file: File): Promise<number> {
 }
 
 export default function AnnotationTaskForm({
-  moduleId,
+  modules,
   task,
 }: {
-  moduleId: string;
+  modules: AdminModuleRow[];
   task?: AdminAnnotationTaskRow;
 }) {
   const router = useRouter();
   const isEdit = !!task;
 
   const [id, setId] = useState(task?.id ?? "");
+  const [moduleId, setModuleId] = useState(task?.module_id ?? modules[0]?.id ?? "");
   const [type, setType] = useState<"image_pair" | "video" | "audio">(
     task?.type ?? "image_pair",
   );
@@ -176,6 +177,21 @@ export default function AnnotationTaskForm({
             onChange={(e) => setTitle(e.target.value)}
             required
           />
+        </div>
+        <div>
+          <label className={labelClass}>Module (which pool this task belongs to)</label>
+          <select
+            className={inputClass}
+            value={moduleId}
+            onChange={(e) => setModuleId(e.target.value)}
+            required
+          >
+            {modules.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={labelClass}>Type</label>
@@ -388,7 +404,7 @@ export default function AnnotationTaskForm({
         </button>
         <button
           type="button"
-          onClick={() => router.push(`/admin/modules/${moduleId}/annotation-tasks`)}
+          onClick={() => router.push("/admin/annotation-tasks")}
           className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors"
         >
           Cancel
