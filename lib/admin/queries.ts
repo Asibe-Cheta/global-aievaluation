@@ -246,6 +246,18 @@ export async function getAdminExamQuestions(
   return data ?? [];
 }
 
+export async function getAllAdminExamQuestions(): Promise<AdminExamQuestionRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("exam_questions")
+    .select("*")
+    .order("module_id")
+    .order("sort_order");
+
+  if (error) throw new Error(`getAllAdminExamQuestions: ${error.message}`);
+  return data ?? [];
+}
+
 export async function getAdminExamQuestion(
   id: string,
 ): Promise<AdminExamQuestionRow | null> {

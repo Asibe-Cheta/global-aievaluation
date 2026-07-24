@@ -43,9 +43,9 @@ export async function createExamQuestion(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/modules/${input.moduleId}/exam-questions`);
+  revalidatePath("/admin/exam-questions");
   revalidatePath("/");
-  redirect(`/admin/modules/${input.moduleId}/exam-questions`);
+  redirect("/admin/exam-questions");
 }
 
 export async function updateExamQuestion(
@@ -60,14 +60,13 @@ export async function updateExamQuestion(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/modules/${input.moduleId}/exam-questions`);
+  revalidatePath("/admin/exam-questions");
   revalidatePath("/");
-  redirect(`/admin/modules/${input.moduleId}/exam-questions`);
+  redirect("/admin/exam-questions");
 }
 
 export async function deleteExamQuestion(
   id: string,
-  moduleId: string,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { error } = await supabase
@@ -77,7 +76,7 @@ export async function deleteExamQuestion(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/modules/${moduleId}/exam-questions`);
+  revalidatePath("/admin/exam-questions");
   revalidatePath("/");
   return {};
 }

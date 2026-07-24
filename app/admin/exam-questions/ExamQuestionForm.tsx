@@ -8,8 +8,8 @@ import {
   updateExamQuestion,
   type ExamQuestionFormInput,
 } from "@/lib/actions/admin-exam-questions";
-import type { AdminExamQuestionRow } from "@/lib/admin/queries";
-import OptionsEditor from "../../../OptionsEditor";
+import type { AdminExamQuestionRow, AdminModuleRow } from "@/lib/admin/queries";
+import OptionsEditor from "../OptionsEditor";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -28,16 +28,17 @@ const SKILL_CATEGORIES = [
 ];
 
 export default function ExamQuestionForm({
-  moduleId,
+  modules,
   question,
 }: {
-  moduleId: string;
+  modules: AdminModuleRow[];
   question?: AdminExamQuestionRow;
 }) {
   const router = useRouter();
   const isEdit = !!question;
 
   const [id, setId] = useState(question?.id ?? "");
+  const [moduleId, setModuleId] = useState(question?.module_id ?? modules[0]?.id ?? "");
   const [type, setType] = useState<ExamQuestionFormInput["type"]>(
     (question?.type as ExamQuestionFormInput["type"]) ?? "mcq",
   );
@@ -101,6 +102,22 @@ export default function ExamQuestionForm({
           />
         </div>
         <div>
+          <label className={labelClass}>Module (which pool this question is drawn from)</label>
+          <select
+            className={inputClass}
+            value={moduleId}
+            onChange={(e) => setModuleId(e.target.value)}
+            required
+          >
+            {modules.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
           <label className={labelClass}>Type</label>
           <select
             className={inputClass}
@@ -112,8 +129,7 @@ export default function ExamQuestionForm({
             <option value="scenario">scenario</option>
           </select>
         </div>
-
-        <div className="sm:col-span-2">
+        <div>
           <label className={labelClass}>Category (skill it tests)</label>
           <select
             className={inputClass}
@@ -202,7 +218,7 @@ export default function ExamQuestionForm({
         </button>
         <button
           type="button"
-          onClick={() => router.push(`/admin/modules/${moduleId}/exam-questions`)}
+          onClick={() => router.push("/admin/exam-questions")}
           className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors"
         >
           Cancel

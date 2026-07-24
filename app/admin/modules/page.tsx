@@ -56,12 +56,6 @@ export default async function AdminModulesPage() {
                     Simulation Tasks
                   </Link>
                   <Link
-                    href={`/admin/modules/${m.id}/exam-questions`}
-                    className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-                  >
-                    Exam Questions
-                  </Link>
-                  <Link
                     href={`/admin/modules/${m.id}/annotation-tasks`}
                     className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
                   >

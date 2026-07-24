@@ -97,7 +97,7 @@ export default function App({
   initialStats,
   isAdmin,
 }: AppProps) {
-  const practiceTabs = ["simulations", "annotation", "interview"];
+  const practiceTabs = ["simulations", "annotation", "exam_practice"];
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [practiceGroupOpen, setPracticeGroupOpen] = useState(false);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
@@ -444,23 +444,17 @@ export default function App({
             ? stats.completedLessons.includes("m4_l1")
             : false);
 
-  const isExamUnlocked =
-    bypassLocks ||
-    (activeModuleId === "m1"
-      ? stats.completedLessons.filter(
-          (id) => id.startsWith("l") && !id.includes("_"),
-        ).length >= 5 &&
-        stats.completedSimulations.includes("sim_workspace_foundations")
-      : activeModuleId === "m2"
-        ? stats.completedLessons.includes("m2_l1") &&
-          stats.completedSimulations.includes("sim_m2_qual")
-        : activeModuleId === "m3"
-          ? stats.completedLessons.includes("m3_l2") &&
-            stats.completedSimulations.includes("sim_m3_qual")
-          : activeModuleId === "m4"
-            ? stats.completedLessons.includes("m4_l1") &&
-              stats.completedSimulations.includes("sim_m4_qual")
-            : false);
+  // Exam Practice now pulls random questions across every module rather than
+  // gating per-module progress — the paid-tier check on the Real World
+  // Practice nav group is the only gate it needs.
+  const isExamUnlocked = true;
+
+  // Random cross-module question bank for the standalone Exam Practice mode.
+  // Shuffled once per session (moduleCurriculum is stable for the session).
+  const examPracticeQuestions = useMemo(() => {
+    const all = moduleCurriculum.flatMap((m) => m.examQuestions);
+    return [...all].sort(() => Math.random() - 0.5).slice(0, 15);
+  }, [moduleCurriculum]);
 
   const getAvatarConfig = (avatarId?: string) => {
     const PRESET_AVATARS = [
@@ -658,6 +652,22 @@ export default function App({
                   }`}
                 >
                   Data Annotation
+                </button>
+
+                <button
+                  id="tab-btn-exam-practice"
+                  onClick={() => {
+                    setActiveTab("exam_practice");
+                    setActiveLessonId(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                    activeTab === "exam_practice"
+                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+                  }`}
+                >
+                  Exam Practice
                 </button>
               </div>
             )}
@@ -862,8 +872,10 @@ export default function App({
                     : activeTab === "modules"
                       ? "Learning Syllabus"
                       : activeTab === "simulations"
-                        ? "Real World Practice Tests"
-                        : activeTab === "annotation"
+                        ? "Real World Practice"
+                        : activeTab === "exam_practice"
+                          ? "Exam Practice"
+                          : activeTab === "annotation"
                         ? "Data Annotation"
                         : activeTab === "interview"
                           ? "AI Interview Simulator"
@@ -1459,7 +1471,7 @@ export default function App({
                   );
                 })()}
 
-              {activeTab === "simulations" && (
+              {(activeTab === "simulations" || activeTab === "exam_practice") && (
                 <SimulationView
                   stats={stats}
                   onComplete={handleSimulationComplete}
@@ -1468,9 +1480,9 @@ export default function App({
                   onBack={() => setActiveTab("dashboard")}
                   simulationTasks={activeModule.simulationTasks}
                   isExamUnlocked={isExamUnlocked}
-                  examQuestions={activeModule.examQuestions}
+                  examQuestions={examPracticeQuestions}
                   onExamComplete={handleExamComplete}
-                  initialMode={simViewInitialMode}
+                  initialMode={activeTab === "exam_practice" ? "exam" : simViewInitialMode}
                 />
               )}
 

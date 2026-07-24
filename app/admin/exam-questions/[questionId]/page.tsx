@@ -1,14 +1,17 @@
 import { notFound } from "next/navigation";
-import { getAdminExamQuestion } from "@/lib/admin/queries";
+import { getAdminExamQuestion, getAdminModules } from "@/lib/admin/queries";
 import ExamQuestionForm from "../ExamQuestionForm";
 
 export default async function EditExamQuestionPage({
   params,
 }: {
-  params: Promise<{ moduleId: string; questionId: string }>;
+  params: Promise<{ questionId: string }>;
 }) {
-  const { moduleId, questionId } = await params;
-  const question = await getAdminExamQuestion(questionId);
+  const { questionId } = await params;
+  const [question, modules] = await Promise.all([
+    getAdminExamQuestion(questionId),
+    getAdminModules(),
+  ]);
 
   if (!question) notFound();
 
@@ -18,7 +21,7 @@ export default async function EditExamQuestionPage({
         Edit Exam Question
       </h2>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-        <ExamQuestionForm moduleId={moduleId} question={question} />
+        <ExamQuestionForm modules={modules} question={question} />
       </div>
     </div>
   );
