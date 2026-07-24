@@ -184,4 +184,5 @@ export interface Module {
   examQuestions: ExamQuestion[];
   annotationTasks?: AnnotationTask[];
   simSkillBoosts?: Partial<UserStats["skills"]>;
+  locked?: boolean;
 }

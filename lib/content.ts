@@ -5,9 +5,13 @@ import type {
   UserStats,
 } from "@/types";
 import type { JobOpportunity } from "@/data/jobs";
+import { isModuleAccessible, isPaidTier, type MembershipTier } from "@/lib/access";
 
-export async function getModuleCurriculum(): Promise<Module[]> {
+export async function getModuleCurriculum(
+  membershipTier: MembershipTier,
+): Promise<Module[]> {
   const supabase = await createClient();
+  const canPractice = isPaidTier(membershipTier);
 
   const [
     { data: modules, error: modulesError },
@@ -29,75 +33,110 @@ export async function getModuleCurriculum(): Promise<Module[]> {
   if (examError) throw new Error(`getModuleCurriculum/exam_questions: ${examError.message}`);
   if (annotationError) throw new Error(`getModuleCurriculum/annotation_tasks: ${annotationError.message}`);
 
-  return (modules ?? []).map((m) => ({
-    id: m.id,
-    title: m.title,
-    description: m.description ?? "",
-    simulationIntro: m.simulation_intro ?? { scenario: "", objective: "" },
-    simSkillBoosts: m.sim_skill_boosts ?? {},
-    lessons: (lessons ?? [])
-      .filter((l) => l.module_id === m.id)
-      .map((l) => ({
-        id: l.id,
-        moduleId: l.module_id,
-        title: l.title,
-        description: l.description ?? undefined,
-        duration: l.duration ?? "",
-        objectives: l.objectives ?? [],
-        content: l.content ?? [],
-        examples: l.examples ?? [],
-        miniCaseStudies: l.mini_case_studies ?? [],
-        reflectionQuestions: l.reflection_questions ?? [],
-        keyTakeaways: l.key_takeaways ?? [],
-        practiceLab: l.practice_lab ?? [],
-        quiz: l.quiz ?? [],
-        skillBoosts: l.skill_boosts ?? {},
-      })),
-    simulationTasks: (simulationTasks ?? [])
-      .filter((t) => t.module_id === m.id)
-      .map((t) => ({
-        id: t.id,
-        type: t.type,
-        title: t.title,
-        prompt: t.prompt,
-        responses: t.responses ?? undefined,
-        responseSingle: t.response_single ?? undefined,
-        response: t.response ?? undefined,
-        options: t.options ?? [],
-        correctOptionIndex: t.correct_option_index,
-        idealJustificationKeywords: t.ideal_justification_keywords ?? [],
-        rubric: t.rubric,
-        explanation: t.explanation,
-        idealRating: t.ideal_rating ?? undefined,
-        idealFlags: t.ideal_flags ?? undefined,
-        category: t.category ?? undefined,
-      })),
-    examQuestions: (examQuestions ?? [])
-      .filter((q) => q.module_id === m.id)
-      .map((q) => ({
-        id: q.id,
-        type: q.type,
-        category: q.category,
-        question: q.question,
-        options: q.options ?? [],
-        correctOptionIndex: q.correct_option_index,
-        explanation: q.explanation,
-        part: q.part ?? undefined,
-        scenario: q.scenario ?? undefined,
-      })),
-    annotationTasks: (annotationTasks ?? [])
-      .filter((t) => t.module_id === m.id)
-      .map((t) => ({
-        id: t.id,
-        moduleId: t.module_id,
-        type: t.type,
-        title: t.title,
-        instructions: t.instructions ?? undefined,
-        media: t.media ?? [],
-        labelOptions: t.label_options ?? [],
-        rubric: t.rubric ?? undefined,
-      })),
-  })) as Module[];
+  return (modules ?? []).map((m, index) => {
+    const locked = !isModuleAccessible(membershipTier, index);
+
+    return {
+      id: m.id,
+      title: m.title,
+      description: m.description ?? "",
+      simulationIntro: m.simulation_intro ?? { scenario: "", objective: "" },
+      simSkillBoosts: m.sim_skill_boosts ?? {},
+      locked,
+      // Locked modules keep just enough metadata (title/duration/count) to
+      // render a "here's what you're missing" preview card — the actual
+      // teaching content is stripped so it's never sent to the client.
+      lessons: (lessons ?? [])
+        .filter((l) => l.module_id === m.id)
+        .map((l) =>
+          locked
+            ? {
+                id: l.id,
+                moduleId: l.module_id,
+                title: l.title,
+                description: undefined,
+                duration: l.duration ?? "",
+                objectives: [],
+                content: [],
+                examples: [],
+                miniCaseStudies: [],
+                reflectionQuestions: [],
+                keyTakeaways: [],
+                practiceLab: [],
+                quiz: [],
+                skillBoosts: {},
+              }
+            : {
+                id: l.id,
+                moduleId: l.module_id,
+                title: l.title,
+                description: l.description ?? undefined,
+                duration: l.duration ?? "",
+                objectives: l.objectives ?? [],
+                content: l.content ?? [],
+                examples: l.examples ?? [],
+                miniCaseStudies: l.mini_case_studies ?? [],
+                reflectionQuestions: l.reflection_questions ?? [],
+                keyTakeaways: l.key_takeaways ?? [],
+                practiceLab: l.practice_lab ?? [],
+                quiz: l.quiz ?? [],
+                skillBoosts: l.skill_boosts ?? {},
+              },
+        ),
+      // Real World Practice (simulations/exam/annotation) is a paid-only
+      // feature regardless of which module it belongs to.
+      simulationTasks: !canPractice
+        ? []
+        : (simulationTasks ?? [])
+            .filter((t) => t.module_id === m.id)
+            .map((t) => ({
+              id: t.id,
+              type: t.type,
+              title: t.title,
+              prompt: t.prompt,
+              responses: t.responses ?? undefined,
+              responseSingle: t.response_single ?? undefined,
+              response: t.response ?? undefined,
+              options: t.options ?? [],
+              correctOptionIndex: t.correct_option_index,
+              idealJustificationKeywords: t.ideal_justification_keywords ?? [],
+              rubric: t.rubric,
+              explanation: t.explanation,
+              idealRating: t.ideal_rating ?? undefined,
+              idealFlags: t.ideal_flags ?? undefined,
+              category: t.category ?? undefined,
+            })),
+      examQuestions: !canPractice
+        ? []
+        : (examQuestions ?? [])
+            .filter((q) => q.module_id === m.id)
+            .map((q) => ({
+              id: q.id,
+              type: q.type,
+              category: q.category,
+              question: q.question,
+              options: q.options ?? [],
+              correctOptionIndex: q.correct_option_index,
+              explanation: q.explanation,
+              part: q.part ?? undefined,
+              scenario: q.scenario ?? undefined,
+            })),
+      annotationTasks: !canPractice
+        ? []
+        : (annotationTasks ?? [])
+            .filter((t) => t.module_id === m.id)
+            .map((t) => ({
+              id: t.id,
+              moduleId: t.module_id,
+              type: t.type,
+              title: t.title,
+              instructions: t.instructions ?? undefined,
+              media: t.media ?? [],
+              labelOptions: t.label_options ?? [],
+              rubric: t.rubric ?? undefined,
+            })),
+    };
+  }) as Module[];
 }
 
 export async function getAchievements(): Promise<Achievement[]> {

@@ -42,6 +42,7 @@ import { UserStats, Rank, Module, Lesson, Achievement, AnnotationSubmission } fr
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
+import { isModuleAccessible, isPaidTier } from "./lib/access";
 
 // Subcomponents
 import DashboardView from "./components/DashboardView";
@@ -221,14 +222,22 @@ export default function App({
     return "Trainee Evaluator";
   }, [stats.completedLessons, stats.passedExams, stats.completedSimulations]);
 
+  // Is this lesson's home module locked for the user's current tier? Real
+  // DB-module lessons check their module's server-computed `locked` flag;
+  // the legacy "Part 2" lessons aren't in moduleCurriculum at all, so they're
+  // gated as if they sat right after every real module (see the "modules"
+  // tab render below for the matching card-grid logic).
+  const isLessonLocked = (lessonId: string): boolean => {
+    const owningModule = moduleCurriculum.find((m) =>
+      m.lessons.some((l) => l.id === lessonId),
+    );
+    if (owningModule) return !!owningModule.locked;
+    return !isModuleAccessible(stats.membershipTier, moduleCurriculum.length);
+  };
+
   // Handle Lesson selection trigger
   const handleStartLesson = (lessonId: string) => {
-    if (
-      stats.membershipTier === "starter" &&
-      lessonId !== "l1" &&
-      lessonId !== "p2_intro" &&
-      lessonId !== "p2_m1_l1"
-    ) {
+    if (isLessonLocked(lessonId)) {
       setActiveTab("membership");
       setActiveLessonId(null);
       setMobileMenuOpen(false);
@@ -583,10 +592,17 @@ export default function App({
               Learn
             </button>
 
-            {/* Practice group: collapsible parent, expands to the 3 hands-on practice modes */}
+            {/* Real World Practice group: collapsible parent, entirely paid-tier gated */}
             <button
               id="tab-btn-practice-group"
-              onClick={() => setPracticeGroupOpen((v) => !v)}
+              onClick={() => {
+                if (!isPaidTier(stats.membershipTier)) {
+                  setActiveTab("membership");
+                  setMobileMenuOpen(false);
+                  return;
+                }
+                setPracticeGroupOpen((v) => !v);
+              }}
               className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                 practiceTabs.includes(activeTab)
                   ? "text-indigo-650 dark:text-indigo-400"
@@ -595,16 +611,18 @@ export default function App({
             >
               <div className="flex items-center gap-3">
                 <Briefcase className="w-4 h-4" />
-                Practice
+                Real World Practice
               </div>
-              {practiceGroupOpen ? (
+              {!isPaidTier(stats.membershipTier) ? (
+                <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+              ) : practiceGroupOpen ? (
                 <ChevronUp className="w-3.5 h-3.5 shrink-0" />
               ) : (
                 <ChevronDown className="w-3.5 h-3.5 shrink-0" />
               )}
             </button>
 
-            {practiceGroupOpen && (
+            {practiceGroupOpen && isPaidTier(stats.membershipTier) && (
               <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-slate-850 ml-4">
                 <button
                   id="tab-btn-simulations"
@@ -620,7 +638,7 @@ export default function App({
                       : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
                   }`}
                 >
-                  <span>Real World Practice Tests</span>
+                  <span>Simulation Tasks</span>
                   {!isSimUnlocked && (
                     <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
@@ -641,24 +659,35 @@ export default function App({
                 >
                   Data Annotation
                 </button>
-
-                <button
-                  id="tab-btn-interview"
-                  onClick={() => {
-                    setActiveTab("interview");
-                    setActiveLessonId(null);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                    activeTab === "interview"
-                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-                  }`}
-                >
-                  AI Interview Simulator
-                </button>
               </div>
             )}
+
+            <button
+              id="tab-btn-interview"
+              onClick={() => {
+                if (!isPaidTier(stats.membershipTier)) {
+                  setActiveTab("membership");
+                  setMobileMenuOpen(false);
+                  return;
+                }
+                setActiveTab("interview");
+                setActiveLessonId(null);
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                activeTab === "interview"
+                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-4 h-4 text-indigo-500 dark:text-indigo-455" />
+                AI Interview Simulator
+              </div>
+              {!isPaidTier(stats.membershipTier) && (
+                <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+              )}
+            </button>
 
             <button
               id="tab-btn-jobs"
@@ -1097,18 +1126,6 @@ export default function App({
 
               {activeTab === "modules" &&
                 (() => {
-                  const part1Lessons = moduleCurriculum.flatMap(
-                    (m) => m.lessons,
-                  ).map((l) => l.id);
-                  const part1CompletedCount = stats.completedLessons.filter(
-                    (id) => part1Lessons.includes(id),
-                  ).length;
-                  const part1TotalCount = part1Lessons.length; // 11
-                  const part1Percent = Math.min(
-                    100,
-                    Math.round((part1CompletedCount / part1TotalCount) * 100),
-                  );
-
                   const part2Lessons = [
                     "p2_intro",
                     "p2_m1_l1",
@@ -1122,48 +1139,34 @@ export default function App({
                   const part2CompletedCount = stats.completedLessons.filter(
                     (id) => part2Lessons.includes(id),
                   ).length;
-                  const part2TotalCount = part2Lessons.length;
-                  const part2Percent = Math.min(
-                    100,
-                    Math.round((part2CompletedCount / part2TotalCount) * 100),
+                  // The legacy "Part 2" content isn't a row in the modules
+                  // table — it's hardcoded standalone components — so it
+                  // always sits after every real module in the grid and is
+                  // gated the same way: free only if it lands at index 0.
+                  const part2Locked = !isModuleAccessible(
+                    stats.membershipTier,
+                    moduleCurriculum.length,
                   );
 
-                  const PARTS = [
+                  const cards = [
+                    ...moduleCurriculum.map((m) => ({
+                      id: m.id,
+                      title: m.title,
+                      description: m.description,
+                      lessonsCount: m.lessons.length,
+                      completedCount: m.lessons.filter((l) =>
+                        stats.completedLessons.includes(l.id),
+                      ).length,
+                      locked: !!m.locked,
+                    })),
                     {
-                      id: "part1",
-                      title: "Part 1: AI Evaluation Foundations & RLHF Core",
-                      description:
-                        "Master human-in-the-loop training, pairwise evaluations, fact-checking, and negative constraint compliance across 6 comprehensive modules.",
-                      modulesCount: 6,
-                      lessonsCount: part1TotalCount,
-                      isUnlocked: true,
-                    },
-                    {
-                      id: "part2",
-                      title: "Part 2: Professional AI Evaluation Skills",
+                      id: "p2",
+                      title: "Professional AI Evaluation Skills",
                       description:
                         "Learn how professional AI evaluators review responses, use structured workflows, and evaluate key dimensions.",
-                      modulesCount: 1,
-                      lessonsCount: part2TotalCount,
-                      isUnlocked: true,
-                    },
-                    {
-                      id: "part3",
-                      title: "Part 3: RLHF Optimization & Reward Modeling",
-                      description:
-                        "Master advanced pairwise comparative algorithms, RLHF reward optimization, and drafting long, analytical justifications that clear lead QA manual audits.",
-                      modulesCount: 4,
-                      lessonsCount: 5,
-                      isUnlocked: false,
-                    },
-                    {
-                      id: "part4",
-                      title: "Part 4: Expert Red-Teaming & Safety Guardrails",
-                      description:
-                        "Stress-test security boundaries using jailbreaks, identify medical and financial liabilities, audit privacy protection rules, and run adversarial evaluations.",
-                      modulesCount: 3,
-                      lessonsCount: 3,
-                      isUnlocked: false,
+                      lessonsCount: part2Lessons.length,
+                      completedCount: part2CompletedCount,
+                      locked: part2Locked,
                     },
                   ];
 
@@ -1173,11 +1176,11 @@ export default function App({
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="space-y-1">
                             <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                              Curriculum Syllabus Tracks
+                              Modules
                             </h2>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              Select a structured learning track to begin
-                              mastering human-in-the-loop AI training and
+                              Select a module to begin mastering
+                              human-in-the-loop AI training and
                               qualifications.
                             </p>
                           </div>
@@ -1192,117 +1195,62 @@ export default function App({
 
                         <hr className="border-slate-100 dark:border-slate-850" />
 
-                        {/* Grid of Parts */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {PARTS.map((part) => {
-                            const isPart1 = part.id === "part1";
-                            const isPart2 = part.id === "part2";
-                            const progressPercent = isPart1
-                              ? part1Percent
-                              : isPart2
-                                ? part2Percent
+                        {/* Grid of Modules */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {cards.map((card) => {
+                            const progressPercent =
+                              card.lessonsCount > 0
+                                ? Math.min(
+                                    100,
+                                    Math.round(
+                                      (card.completedCount /
+                                        card.lessonsCount) *
+                                        100,
+                                    ),
+                                  )
                                 : 0;
-                            const completedCount = isPart1
-                              ? part1CompletedCount
-                              : isPart2
-                                ? part2CompletedCount
-                                : 0;
-                            const totalCount = part.lessonsCount;
-
-                            // Determine active/next lesson ID for direct launching
-                            let nextLessonId = "";
-                            if (isPart1) {
-                              const nextPart1Lesson =
-                                moduleCurriculum.flatMap(
-                                  (m) => m.lessons,
-                                ).find(
-                                  (l) => !stats.completedLessons.includes(l.id),
-                                ) || moduleCurriculum[0].lessons[0];
-                              nextLessonId = nextPart1Lesson.id;
-                            } else if (isPart2) {
-                              nextLessonId = !stats.completedLessons.includes(
-                                "p2_intro",
-                              )
-                                ? "p2_intro"
-                                : !stats.completedLessons.includes("p2_m1_l1")
-                                  ? "p2_m1_l1"
-                                  : !stats.completedLessons.includes("p2_m1_l2")
-                                    ? "p2_m1_l2"
-                                  : !stats.completedLessons.includes("p2_m1_l3")
-                                    ? "p2_m1_l3"
-                                    : !stats.completedLessons.includes(
-                                          "p2_m1_l4",
-                                        )
-                                      ? "p2_m1_l4"
-                                      : !stats.completedLessons.includes(
-                                            "p2_m1_l5",
-                                          )
-                                        ? "p2_m1_l5"
-                                        : !stats.completedLessons.includes(
-                                              "p2_m1_l6",
-                                            )
-                                          ? "p2_m1_l6"
-                                          : "p2_m1_l7";
-                            }
 
                             return (
                               <div
-                                key={part.id}
-                                className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-6 transition-all ${
-                                  part.isUnlocked
-                                    ? "hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md"
-                                    : "opacity-75 relative overflow-hidden"
+                                key={card.id}
+                                className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-6 transition-all relative overflow-hidden ${
+                                  card.locked
+                                    ? "opacity-75"
+                                    : "hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md"
                                 }`}
                               >
-                                {!part.isUnlocked && (
-                                  <div className="absolute top-3 right-3 bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 uppercase tracking-wider">
-                                    <Lock className="w-3 h-3" /> Coming Soon
+                                {card.locked && (
+                                  <div className="absolute top-3 right-3 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 uppercase tracking-wider">
+                                    <Lock className="w-3 h-3" /> Locked
                                   </div>
                                 )}
 
                                 <div className="space-y-3">
-                                  <span
-                                    className={`inline-flex items-center text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full tracking-wider leading-none ${
-                                      part.isUnlocked
-                                        ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400"
-                                        : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                                    }`}
-                                  >
-                                    {part.id.toUpperCase()}
-                                  </span>
-
-                                  <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
-                                    {part.title}
+                                  <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight pr-20">
+                                    {card.title}
                                   </h3>
 
                                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    {part.description}
+                                    {card.description}
                                   </p>
 
-                                  {/* Info tags */}
-                                  <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-slate-405 font-mono">
-                                    <div className="flex items-center gap-1">
-                                      <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-                                      <span>{part.modulesCount} Modules</span>
-                                    </div>
-                                    <span>&bull;</span>
-                                    <div>
-                                      <span>{part.lessonsCount} Lessons</span>
-                                    </div>
+                                  <div className="flex items-center gap-1 pt-1 text-[11px] text-slate-405 font-mono">
+                                    <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+                                    <span>{card.lessonsCount} Lessons</span>
                                   </div>
                                 </div>
 
-                                {/* Progress block */}
                                 <div className="space-y-4 pt-2">
-                                  {part.isUnlocked && (
+                                  {!card.locked && (
                                     <div className="space-y-1.5">
                                       <div className="flex justify-between items-center text-xs">
                                         <span className="text-slate-450 dark:text-slate-500 font-semibold">
-                                          Overall Progress
+                                          Progress
                                         </span>
                                         <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
-                                          {progressPercent}% ({completedCount}/
-                                          {totalCount} Completed)
+                                          {progressPercent}% (
+                                          {card.completedCount}/
+                                          {card.lessonsCount})
                                         </span>
                                       </div>
                                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -1316,65 +1264,20 @@ export default function App({
                                     </div>
                                   )}
 
-                                  {part.isUnlocked ? (
-                                    <div className="flex flex-col sm:flex-row gap-2 w-full">
-                                      <button
-                                        onClick={() => setActivePartId(part.id)}
-                                        className="flex-1 py-3 px-4 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                                      >
-                                        <span>View Track Modules</span>
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          if (
-                                            stats.membershipTier === "starter" &&
-                                            nextLessonId !== "l1" &&
-                                            nextLessonId !== "p2_intro" &&
-                                            nextLessonId !== "p2_m1_l1"
-                                          ) {
-                                            setActivePartId(part.id);
-                                          } else {
-                                            handleStartLesson(nextLessonId);
-                                          }
-                                        }}
-                                        className="flex-1 py-3 px-4 bg-[#4F46E5] hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:shadow-sm whitespace-nowrap"
-                                      >
-                                        <span>
-                                          {isPart2 &&
-                                          nextLessonId === "p2_m1_l2"
-                                            ? "Start Lesson 2 (Case Studies)"
-                                            : isPart2 &&
-                                                nextLessonId === "p2_m1_l3"
-                                              ? "Start Lesson 3 (Accuracy)"
-                                              : isPart2 &&
-                                                  nextLessonId === "p2_m1_l4"
-                                                ? "Start Lesson 4 (Completeness)"
-                                                : isPart2 &&
-                                                    nextLessonId === "p2_m1_l5"
-                                                  ? "Start Lesson 5 (Clarity, Tone)"
-                                                  : isPart2 &&
-                                                      nextLessonId === "p2_m1_l6"
-                                                    ? "Start Lesson 6 (Context Tracking)"
-                                                    : isPart2 &&
-                                                        nextLessonId === "p2_m1_l7"
-                                                      ? "Start Lesson 7 (Response Ranking)"
-                                                      : isPart2 &&
-                                                          stats.completedLessons.includes(
-                                                            "p2_m1_l7",
-                                                          )
-                                                        ? "Review Lesson"
-                                                        : "Start Active Lesson"}
-                                        </span>
-                                        <ArrowRight className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  ) : (
+                                  {card.locked ? (
                                     <button
-                                      disabled
-                                      className="w-full py-3 px-4 bg-slate-50 text-slate-400 dark:bg-slate-855 dark:text-slate-600 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+                                      onClick={() => setActiveTab("membership")}
+                                      className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
                                       <Lock className="w-3.5 h-3.5" />
-                                      <span>Track Locked</span>
+                                      <span>Upgrade to Unlock</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setActivePartId(card.id)}
+                                      className="w-full py-3 px-4 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                                    >
+                                      <span>View Track Lessons</span>
                                     </button>
                                   )}
                                 </div>
@@ -1386,7 +1289,7 @@ export default function App({
                     );
                   }
 
-                  if (activePartId === "part2") {
+                  if (activePartId === "p2") {
                     return (
                       <Part2IntroView
                         onBack={() => setActivePartId(null)}
@@ -1400,7 +1303,11 @@ export default function App({
                     );
                   }
 
-                  // If activePartId === "part1", render modules list as before
+                  // activePartId is a real module id — show its lesson list
+                  const viewedModule =
+                    moduleCurriculum.find((m) => m.id === activePartId) ??
+                    activeModule;
+
                   return (
                     <div className="space-y-4 animate-fade-in pl-1">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1409,16 +1316,24 @@ export default function App({
                           className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-905 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
                         >
                           <ArrowLeft className="w-4 h-4" />
-                          Back to Curriculum Parts
+                          Back to Modules
                         </button>
-                        {/* Track Switcher */}
+                        {/* Module Switcher */}
                         <div className="flex bg-slate-100 dark:bg-slate-850 p-1 rounded-xl w-full md:max-w-md gap-1 border border-slate-200 dark:border-slate-800 overflow-x-auto">
                           {moduleCurriculum.map((m) => (
                             <button
                               key={m.id}
-                              onClick={() => setActiveModuleId(m.id)}
-                              className={`flex-1 min-w-[70px] py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                                activeModuleId === m.id
+                              disabled={m.locked}
+                              onClick={() => {
+                                setActiveModuleId(m.id);
+                                setActivePartId(m.id);
+                              }}
+                              className={`flex-1 min-w-[70px] py-1.5 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                                m.locked
+                                  ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                                  : "cursor-pointer"
+                              } ${
+                                activePartId === m.id
                                   ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
                                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
                               }`}
@@ -1431,10 +1346,10 @@ export default function App({
                       {/* Module header card */}
                       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                          {activeModule.title}
+                          {viewedModule.title}
                         </h2>
                         <p className="text-xs text-slate-450 mt-1 max-w-xl">
-                          {activeModule.description}
+                          {viewedModule.description}
                         </p>
 
                         <div className="mt-4 flex gap-4 text-xs font-mono">
@@ -1442,19 +1357,11 @@ export default function App({
                             <span className="text-slate-405">Lessons: </span>
                             <span className="font-bold text-slate-850 dark:text-white">
                               {
-                                activeModule.lessons.filter((l) =>
+                                viewedModule.lessons.filter((l) =>
                                   stats.completedLessons.includes(l.id),
                                 ).length
                               }{" "}
-                              / {activeModule.lessons.length} complete
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-slate-405">
-                              Total Duration:{" "}
-                            </span>
-                            <span className="font-bold text-slate-850 dark:text-white">
-                              {activeModuleDuration}
+                              / {viewedModule.lessons.length} complete
                             </span>
                           </div>
                         </div>
@@ -1462,14 +1369,14 @@ export default function App({
 
                       {/* Complete syllabus lessons listed vertically */}
                       <div className="space-y-4">
-                        {activeModule.lessons.map((lesson, idx) => {
+                        {viewedModule.lessons.map((lesson, idx) => {
                           const completed = stats.completedLessons.includes(
                             lesson.id,
                           );
                           const isNextUnlocked =
                             idx === 0 ||
                             stats.completedLessons.includes(
-                              activeModule.lessons[idx - 1].id,
+                              viewedModule.lessons[idx - 1].id,
                             );
                           const isLock = !completed && !isNextUnlocked;
 
@@ -1522,16 +1429,7 @@ export default function App({
                               </div>
 
                               <div className="flex items-center gap-3 self-end md:self-center shrink-0">
-                                {stats.membershipTier === "starter" &&
-                                lesson.id !== "l1" ? (
-                                  <button
-                                    onClick={() => handleStartLesson(lesson.id)}
-                                    className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                                  >
-                                    <Lock className="w-3.5 h-3.5" />
-                                    <span>Upgrade to Unlock</span>
-                                  </button>
-                                ) : completed ? (
+                                {completed ? (
                                   <button
                                     onClick={() => handleStartLesson(lesson.id)}
                                     className="bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 font-bold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer"
@@ -1544,7 +1442,7 @@ export default function App({
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-colors flex items-center gap-1 cursor-pointer"
                                   >
                                     <Play className="w-3.5 h-3.5 fill-white" />
-                                    Start Learning Track
+                                    Start Active Lesson
                                   </button>
                                 ) : (
                                   <span className="text-xs text-slate-350 dark:text-slate-650 flex items-center gap-1">

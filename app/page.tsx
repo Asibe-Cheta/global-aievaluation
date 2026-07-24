@@ -13,13 +13,18 @@ export default async function Home() {
     return <LandingGate />;
   }
 
-  const [moduleCurriculum, achievements, jobs, initialStats, { data: profile }] =
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin, membership_tier")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const [moduleCurriculum, achievements, jobs, initialStats] =
     await Promise.all([
-      getModuleCurriculum(),
+      getModuleCurriculum(profile?.membership_tier ?? "starter"),
       getAchievements(),
       getJobs(),
       getUserStats(user.id, user.email!),
-      supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle(),
     ]);
 
   return (

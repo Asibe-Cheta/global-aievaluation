@@ -1,8 +1,9 @@
 import React from "react";
 import {
-  BookOpen, Play, BadgeCheck, Zap, Target, Lock, Clock, ChevronRight, ArrowRight, Gauge, ShieldAlert
+  BookOpen, Play, Lock, ChevronRight, Gauge, ShieldAlert
 } from "lucide-react";
 import { UserStats, Rank, Module } from "../types";
+import { isModuleAccessible } from "../lib/access";
 
 interface DashboardViewProps {
   stats: UserStats;
@@ -44,25 +45,31 @@ export default function DashboardView({
   const hasRealName = !!stats.displayName && stats.displayName !== emailLocalPart;
   const firstName = hasRealName ? stats.displayName!.split(" ")[0] : null;
 
-  // Part 2 Metrics
+  // The legacy "Part 2" content (Professional AI Evaluation Skills) isn't a
+  // row in the modules table — it's hardcoded standalone components — so it
+  // shows up as one more card after every real module, gated the same way.
   const part2Lessons = ["p2_intro", "p2_m1_l1", "p2_m1_l2", "p2_m1_l3", "p2_m1_l4", "p2_m1_l5", "p2_m1_l6", "p2_m1_l7"];
   const part2CompletedCount = stats.completedLessons.filter(id => part2Lessons.includes(id)).length;
-  const part2Percent = Math.min(100, Math.round((part2CompletedCount / part2Lessons.length) * 100));
-  const activePart2LessonId = !stats.completedLessons.includes("p2_intro")
-    ? "p2_intro"
-    : !stats.completedLessons.includes("p2_m1_l1") 
-      ? "p2_m1_l1" 
-      : !stats.completedLessons.includes("p2_m1_l2")
-        ? "p2_m1_l2"
-        : !stats.completedLessons.includes("p2_m1_l3")
-          ? "p2_m1_l3"
-          : !stats.completedLessons.includes("p2_m1_l4")
-            ? "p2_m1_l4"
-            : !stats.completedLessons.includes("p2_m1_l5")
-              ? "p2_m1_l5"
-              : !stats.completedLessons.includes("p2_m1_l6")
-                ? "p2_m1_l6"
-                : "p2_m1_l7";
+  const part2Locked = !isModuleAccessible(stats.membershipTier, moduleCurriculum.length);
+
+  const moduleCards = [
+    ...moduleCurriculum.map((m) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      lessonsCount: m.lessons.length,
+      completedCount: m.lessons.filter((l) => stats.completedLessons.includes(l.id)).length,
+      locked: !!m.locked,
+    })),
+    {
+      id: "p2",
+      title: "Professional AI Evaluation Skills",
+      description: "Learn how professional AI evaluators review responses, use structured workflows, and evaluate key dimensions.",
+      lessonsCount: part2Lessons.length,
+      completedCount: part2CompletedCount,
+      locked: part2Locked,
+    },
+  ];
 
   // Find recommended next lesson
   // We go through Level 1 lessons first
@@ -255,13 +262,13 @@ export default function DashboardView({
         </button>
       </div>
 
-      {/* 4. Syllabus Overview Section */}
+      {/* 4. Modules Overview Section */}
       <div className="pt-2">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-            Curriculum Syllabus Parts
+            Modules
           </h2>
-          <button 
+          <button
             onClick={() => {
               setActivePartId?.(null);
               setActiveTab("modules");
@@ -274,215 +281,87 @@ export default function DashboardView({
 
         <hr className="border-slate-100 dark:border-slate-850 my-4" />
 
-        {/* Horizontal Syllabus Parts List */}
-        <div className="space-y-4">
-          {/* Part 1 */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl p-4 md:p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-sm transition-all">
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-full tracking-wider leading-none bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400">
-                  PART 1
-                </span>
-                <div className="flex items-center gap-2 text-[10px] text-slate-405 font-mono">
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="w-3 h-3 text-indigo-500" />
-                    6 Modules
-                  </span>
-                  <span>&bull;</span>
-                  <span>11 Lessons</span>
-                </div>
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                AI Evaluation Foundations & RLHF Core
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
-                Master human-in-the-loop training, pairwise evaluations, fact-checking, and negative constraint compliance across 6 comprehensive modules.
-              </p>
-            </div>
+        {/* Module Card Grid — matches the Learn tab's card grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {moduleCards.map((card) => {
+            const progressPercent = card.lessonsCount > 0
+              ? Math.min(100, Math.round((card.completedCount / card.lessonsCount) * 100))
+              : 0;
 
-            {/* Browse action — the quick-continue path already lives in the Resume Learning card above */}
-            <div className="flex items-center lg:justify-end shrink-0 w-full sm:w-auto">
-              <button
-                onClick={() => {
-                  setActivePartId?.("part1");
-                  setActiveTab("modules");
-                }}
-                className="w-full sm:w-auto py-2 px-4 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850 shrink-0 whitespace-nowrap"
+            return (
+              <div
+                key={card.id}
+                className={`bg-white dark:bg-slate-900 border rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4 transition-all relative overflow-hidden ${
+                  card.locked
+                    ? "opacity-75 border-slate-200 dark:border-slate-850"
+                    : "border-slate-200 dark:border-slate-850 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-sm"
+                }`}
               >
-                View Track
-              </button>
-            </div>
-          </div>
+                {card.locked && (
+                  <div className="absolute top-3 right-3 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 uppercase tracking-wider">
+                    <Lock className="w-3 h-3" /> Locked
+                  </div>
+                )}
 
-          {/* Part 2 */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl p-4 md:p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative overflow-hidden hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-sm transition-all">
-            <div className="absolute top-3 right-3 lg:static bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 uppercase tracking-wider self-start lg:self-auto">
-              Active Track
-            </div>
-
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-full tracking-wider leading-none bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400">
-                  PART 2
-                </span>
-                <div className="flex items-center gap-2 text-[10px] text-slate-405 font-mono">
-                  <span className="flex items-center gap-1">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight pr-16">
+                    {card.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+                    {card.description}
+                  </p>
+                  <div className="flex items-center gap-1 text-[10px] text-slate-405 font-mono">
                     <BookOpen className="w-3 h-3 text-indigo-500" />
-                    1 Module
-                  </span>
-                  <span>&bull;</span>
-                  <span>2 Lessons</span>
+                    <span>{card.lessonsCount} Lessons</span>
+                  </div>
                 </div>
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                Professional AI Evaluation Skills
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
-                Learn how professional AI evaluators review responses, use structured workflows, and evaluate key dimensions.
-              </p>
-            </div>
 
-            {/* Progress and Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center lg:justify-end gap-4 shrink-0 w-full sm:w-auto lg:w-[350px]">
-              <div className="space-y-1 flex-1 sm:max-w-[150px] w-full">
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-slate-450 dark:text-slate-500 font-semibold">
-                    Part 2 Progress
-                  </span>
-                  <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
-                    {part2Percent}%
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-indigo-600 dark:bg-indigo-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${part2Percent}%` }}
-                  ></div>
-                </div>
-              </div>
+                {!card.locked && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-450 dark:text-slate-500 font-semibold">
+                        Progress
+                      </span>
+                      <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
+                        {progressPercent}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+                      <div
+                        className="bg-indigo-600 dark:bg-indigo-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
 
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => {
-                    setActivePartId?.("part2");
+                    if (card.locked) {
+                      setActiveTab("membership");
+                      return;
+                    }
+                    setActivePartId?.(card.id);
                     setActiveTab("modules");
                   }}
-                  className="w-full sm:w-auto py-2 px-3 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850 shrink-0 whitespace-nowrap"
+                  className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    card.locked
+                      ? "bg-amber-500 hover:bg-amber-600 text-white"
+                      : "border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850"
+                  }`}
                 >
-                  View Track
-                </button>
-                <button
-                  onClick={() => {
-                    if (stats.membershipTier === "starter" && activePart2LessonId !== "p2_m1_l1") {
-                      setActivePartId?.("part2");
-                      setActiveTab("modules");
-                    } else {
-                      startLesson(activePart2LessonId);
-                    }
-                  }}
-                  className="w-full sm:w-auto py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:shadow-sm transition-all whitespace-nowrap"
-                >
-                  <span>
-                    {!stats.completedLessons.includes("p2_m1_l1") 
-                      ? "Start Lesson 1" 
-                      : !stats.completedLessons.includes("p2_m1_l2")
-                        ? "Start Lesson 2"
-                        : !stats.completedLessons.includes("p2_m1_l3")
-                          ? "Start Lesson 3"
-                          : !stats.completedLessons.includes("p2_m1_l4")
-                            ? "Start Lesson 4"
-                            : !stats.completedLessons.includes("p2_m1_l5")
-                              ? "Start Lesson 5"
-                              : !stats.completedLessons.includes("p2_m1_l6")
-                                ? "Start Lesson 6"
-                                : !stats.completedLessons.includes("p2_m1_l7")
-                                  ? "Start Lesson 7"
-                                  : "Review Lesson 1"
-                    }
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  {card.locked ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Upgrade to Unlock</span>
+                    </>
+                  ) : (
+                    <span>View Track Lessons</span>
+                  )}
                 </button>
               </div>
-            </div>
-          </div>
-
-          {/* Part 3 */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl p-4 md:p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 opacity-75 relative overflow-hidden">
-            <div className="absolute top-3 right-3 lg:static bg-slate-100 dark:bg-slate-800/80 lg:bg-transparent text-slate-400 dark:text-slate-500 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 uppercase tracking-wider self-start lg:self-auto">
-              <Lock className="w-2.5 h-2.5 lg:hidden" /> Coming Soon
-            </div>
-
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-full tracking-wider leading-none bg-slate-100 text-slate-400 dark:bg-slate-805 dark:text-slate-500">
-                  PART 3
-                </span>
-                <div className="flex items-center gap-2 text-[10px] text-slate-405 font-mono">
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="w-3 h-3 text-slate-400" />
-                    4 Modules
-                  </span>
-                  <span>&bull;</span>
-                  <span>5 Lessons</span>
-                </div>
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                RLHF Optimization & Reward Modeling
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
-                Master advanced pairwise comparative algorithms, RLHF reward optimization, and drafting long, analytical justifications that clear lead QA manual audits.
-              </p>
-            </div>
-
-            <div className="flex items-center lg:justify-end gap-4 shrink-0 w-full sm:w-auto lg:w-[280px]">
-              <button
-                disabled
-                className="w-full lg:w-auto py-2 px-4 bg-slate-50 text-slate-400 dark:bg-slate-855 dark:text-slate-650 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed whitespace-nowrap"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Track Locked</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Part 4 */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl p-4 md:p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 opacity-75 relative overflow-hidden">
-            <div className="absolute top-3 right-3 lg:static bg-slate-100 dark:bg-slate-800/80 lg:bg-transparent text-slate-400 dark:text-slate-500 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 uppercase tracking-wider self-start lg:self-auto">
-              <Lock className="w-2.5 h-2.5 lg:hidden" /> Coming Soon
-            </div>
-
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-full tracking-wider leading-none bg-slate-100 text-slate-400 dark:bg-slate-805 dark:text-slate-500">
-                  PART 4
-                </span>
-                <div className="flex items-center gap-2 text-[10px] text-slate-405 font-mono">
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="w-3 h-3 text-slate-400" />
-                    3 Modules
-                  </span>
-                  <span>&bull;</span>
-                  <span>3 Lessons</span>
-                </div>
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                Expert Red-Teaming & Safety Guardrails
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
-                Stress-test security boundaries using jailbreaks, identify medical and financial liabilities, audit privacy protection rules, and run adversarial evaluations.
-              </p>
-            </div>
-
-            <div className="flex items-center lg:justify-end gap-4 shrink-0 w-full sm:w-auto lg:w-[280px]">
-              <button
-                disabled
-                className="w-full lg:w-auto py-2 px-4 bg-slate-50 text-slate-400 dark:bg-slate-855 dark:text-slate-650 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed whitespace-nowrap"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Track Locked</span>
-              </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
