@@ -7,8 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 export interface ModuleFormInput {
   title: string;
   description: string;
-  scenario: string;
-  objective: string;
   simSkillBoosts: Record<string, number>;
   sortOrder: number;
 }
@@ -17,10 +15,6 @@ function toRow(input: ModuleFormInput) {
   return {
     title: input.title,
     description: input.description || null,
-    simulation_intro: {
-      scenario: input.scenario,
-      objective: input.objective,
-    },
     sim_skill_boosts: input.simSkillBoosts,
     sort_order: input.sortOrder,
   };

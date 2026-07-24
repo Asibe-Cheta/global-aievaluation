@@ -40,7 +40,6 @@ export async function getModuleCurriculum(
       id: m.id,
       title: m.title,
       description: m.description ?? "",
-      simulationIntro: m.simulation_intro ?? { scenario: "", objective: "" },
       simSkillBoosts: m.sim_skill_boosts ?? {},
       locked,
       // Locked modules keep just enough metadata (title/duration/count) to

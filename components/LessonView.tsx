@@ -13,8 +13,8 @@ interface LessonViewProps {
 }
 
 export default function LessonView({ lesson, stats, onBack, onComplete }: LessonViewProps) {
-  const [currentSection, setCurrentSection] = useState<"lecture" | "cases" | "reflection">("lecture");
-  
+  const [currentSection, setCurrentSection] = useState<"lecture" | "cases">("lecture");
+
   // Section 2 / 3: Lecture page scrolling
   const [readIndex, setReadIndex] = useState(0);
 
@@ -22,10 +22,8 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
   const [caseIndex, setCaseIndex] = useState(0);
   const [selectedCaseAnswers, setSelectedCaseAnswers] = useState<Record<string, number>>({}); // caseId -> chosenIndex
   const [caseSubmitted, setCaseSubmitted] = useState<Record<string, boolean>>({}); // caseId -> true
-
-  // Section 5: Reflection State
-  const [reflectionAnswers, setReflectionAnswers] = useState<Record<number, string>>({});
-  const [revealExpertReflection, setRevealExpertReflection] = useState<Record<number, boolean>>({});
+  const [caseRationales, setCaseRationales] = useState<Record<string, string>>({}); // caseId -> rationale text
+  const [showWrapUp, setShowWrapUp] = useState(false);
 
   // General Case Studies score count
   const completedCaseCount = Object.keys(caseSubmitted).filter(k => k.startsWith(lesson.id)).length;
@@ -38,13 +36,14 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
 
   const submitCaseAnswer = (caseStudy: MiniCaseStudy) => {
     if (selectedCaseAnswers[caseStudy.id] === undefined) return;
+    if (!caseRationales[caseStudy.id]?.trim()) return;
     setCaseSubmitted(prev => ({ ...prev, [caseStudy.id]: true }));
   };
 
   const isCasesDone = lesson.miniCaseStudies.every(cs => caseSubmitted[cs.id]);
 
   const handleFinishLesson = () => {
-    onComplete(100, {});
+    onComplete(100, { [`case_rationales_${lesson.id}`]: caseRationales });
   };
 
   const renderFormattedText = (text: string) => {
@@ -151,16 +150,6 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
             <span className="ml-1 text-[9px] opacity-75">({completedCaseCount}/5)</span>
             {isCasesDone && <span className="absolute -top-1 -right-1 text-emerald-500 font-bold text-[9px] bg-white rounded-full">✓</span>}
           </button>
-          <button 
-            onClick={() => setCurrentSection("reflection")}
-            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all shrink-0 ${
-              currentSection === "reflection" 
-                ? "bg-[#4F46E5] text-white shadow-xs" 
-                : "bg-slate-50 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400 hover:bg-slate-100"
-            }`}
-          >
-            3. Reflections
-          </button>
         </div>
       </div>
 
@@ -198,6 +187,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
       {/* STEP 2: MINI CASE STUDIES */}
       {currentSection === "cases" && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+          {!showWrapUp && (
           <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-855">
             <div>
               <p className="text-xs text-indigo-650 dark:text-indigo-400 font-extrabold uppercase tracking-widest">
@@ -226,9 +216,10 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
               ))}
             </div>
           </div>
+          )}
 
           {/* Render Active Case details */}
-          {(() => {
+          {!showWrapUp && (() => {
             const activeCase = lesson.miniCaseStudies[caseIndex];
             const hasChosen = selectedCaseAnswers[activeCase.id] !== undefined;
             const isSub = caseSubmitted[activeCase.id] === true;
@@ -302,14 +293,35 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                   </div>
                 </div>
 
+                {/* Rationale — required before submitting, to practice justifying the choice */}
+                {!isSub && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      Your Rationale
+                    </p>
+                    <textarea
+                      placeholder="Explain why you chose this answer..."
+                      value={caseRationales[activeCase.id] || ""}
+                      onChange={(e) => setCaseRationales(prev => ({ ...prev, [activeCase.id]: e.target.value }))}
+                      className="w-full h-20 p-3 border border-slate-200 dark:border-slate-750 rounded-xl bg-slate-50 dark:bg-slate-900 text-xs focus:ring-1 focus:ring-indigo-500"
+                    ></textarea>
+                  </div>
+                )}
+                {isSub && caseRationales[activeCase.id] && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-150 dark:border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Your Rationale</span>
+                    <p className="text-xs text-slate-700 dark:text-slate-300">{caseRationales[activeCase.id]}</p>
+                  </div>
+                )}
+
                 {/* Submissions button details */}
                 {!isSub ? (
                   <button
-                    disabled={!hasChosen}
+                    disabled={!hasChosen || !caseRationales[activeCase.id]?.trim()}
                     onClick={() => submitCaseAnswer(activeCase)}
                     className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                      hasChosen 
-                        ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer" 
+                      hasChosen && caseRationales[activeCase.id]?.trim()
+                        ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
                         : "bg-slate-100 text-slate-400 cursor-not-allowed"
                     }`}
                   >
@@ -398,7 +410,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                         </button>
                       ) : (
                         <button
-                          onClick={() => setCurrentSection("reflection")}
+                          onClick={() => setShowWrapUp(true)}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg px-4 py-1.5 text-xs transition-colors cursor-pointer"
                         >
                           Complete Case Studies Block
@@ -410,87 +422,50 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
               </div>
             );
           })()}
-        </div>
-      )}
 
-      {/* STEP 3: REFLECTIONS */}
-      {currentSection === "reflection" && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-          <div>
-            <p className="text-xs text-indigo-650 dark:text-indigo-400 font-extrabold uppercase tracking-widest">
-              Part 3: Share Your Thoughts
-            </p>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
-              Practice explaining your answers
-            </h3>
-            <p className="text-xs text-slate-450 mt-1 leading-normal">
-              In real AI job exams, you will write short, simple notes explaining why one answer is better. Practice writing your thoughts below.
-            </p>
-          </div>
-
-          <div className="space-y-6 divide-y divide-slate-150 dark:divide-slate-800">
-            {lesson.reflectionQuestions.map((q, idx) => (
-              <div key={idx} className={`pt-4 first:pt-0 space-y-3`}>
-                <p className="text-xs font-bold text-slate-900 dark:text-white">
-                  Q{idx + 1}: {q}
+          {/* Wrap-up: shown once all case studies are submitted */}
+          {showWrapUp && (
+            <div className="space-y-6 animate-fade-in">
+              <div>
+                <p className="text-xs text-indigo-650 dark:text-indigo-400 font-extrabold uppercase tracking-widest">
+                  Case Studies Complete
                 </p>
-                <textarea
-                  placeholder="Write your simple explanation here..."
-                  value={reflectionAnswers[idx] || ""}
-                  onChange={(e) => setReflectionAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
-                  className="w-full h-24 p-3 border border-slate-200 dark:border-slate-750 rounded-xl bg-slate-50 dark:bg-slate-900 text-xs focus:ring-1 focus:ring-indigo-500"
-                ></textarea>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-slate-400">
-                    Explanation length: {reflectionAnswers[idx]?.trim().split(/\s+/).filter(Boolean).length || 0} words
-                  </span>
-                  <button
-                    disabled={!reflectionAnswers[idx]?.trim()}
-                    onClick={() => setRevealExpertReflection(p => ({ ...p, [idx]: !p[idx] }))}
-                    className="text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 hover:text-indigo-600 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-350 font-bold tracking-tight cursor-pointer"
-                  >
-                    {revealExpertReflection[idx] ? "Hide Analyst View" : "See Trainer Answer"}
-                  </button>
-                </div>
-
-                {revealExpertReflection[idx] && (
-                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs animate-fade-in">
-                    <p className="font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-widest text-[9px] mb-1.5">
-                      Trainer Tip
-                    </p>
-                    <p className="text-slate-700 dark:text-slate-300 italic">
-                      "Always check if the AI followed your rules first, even if its writing sounds very nice and polite. Following rules is the most important part!"
-                    </p>
-                  </div>
-                )}
+                <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  Nice work — here's what to remember
+                </h3>
               </div>
-            ))}
-          </div>
 
-          {/* Key Takeaways list */}
-          <div className="bg-indigo-550/10 border border-indigo-550/20 rounded-2xl p-5 space-y-3 mt-8">
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 leading-snug">
-              Key Takeaways
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              {lesson.keyTakeaways.map((take, i) => (
-                <div key={i} className="flex gap-2.5">
-                  <span className="text-indigo-600 font-bold leading-none">&#10004;</span>
-                  <span className="text-slate-700 dark:text-slate-350">{take}</span>
+              <div className="bg-indigo-550/10 border border-indigo-550/20 rounded-2xl p-5 space-y-3">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 leading-snug">
+                  Key Takeaways
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  {lesson.keyTakeaways.map((take, i) => (
+                    <div key={i} className="flex gap-2.5">
+                      <span className="text-indigo-600 font-bold leading-none">&#10004;</span>
+                      <span className="text-slate-700 dark:text-slate-350">{take}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <div className="pt-4 flex justify-end">
-            <button 
-              onClick={handleFinishLesson}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-2.5 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
-            >
-              Finish Lesson & Save Progress
-              <Check className="w-4 h-4" />
-            </button>
-          </div>
+              <div className="pt-2 flex justify-between">
+                <button
+                  onClick={() => setShowWrapUp(false)}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer"
+                >
+                  &larr; Back to Case Studies
+                </button>
+                <button
+                  onClick={handleFinishLesson}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-2.5 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  Finish Lesson & Save Progress
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

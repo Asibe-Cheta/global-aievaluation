@@ -19,11 +19,9 @@ export interface LessonFormInput {
   content: string[];
   examples: AdminExample[];
   miniCaseStudies: AdminMiniCaseStudy[];
-  reflectionQuestions: string[];
   keyTakeaways: string[];
   practiceLab: AdminPracticeTask[];
   quiz: AdminQuizQuestion[];
-  skillBoosts: Record<string, number>;
   sortOrder: number;
 }
 
@@ -37,11 +35,9 @@ function toRow(input: LessonFormInput) {
     content: input.content,
     examples: input.examples,
     mini_case_studies: input.miniCaseStudies,
-    reflection_questions: input.reflectionQuestions,
     key_takeaways: input.keyTakeaways,
     practice_lab: input.practiceLab,
     quiz: input.quiz,
-    skill_boosts: input.skillBoosts,
     sort_order: input.sortOrder,
   };
 }

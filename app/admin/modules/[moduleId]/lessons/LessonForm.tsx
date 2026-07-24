@@ -6,7 +6,6 @@ import { Loader2, ShieldAlert } from "lucide-react";
 import { createLesson, updateLesson, type LessonFormInput } from "@/lib/actions/admin-lessons";
 import type { AdminLessonRow } from "@/lib/admin/queries";
 import StringListEditor from "../../../StringListEditor";
-import SkillBoostsEditor from "../../../SkillBoostsEditor";
 import ExamplesEditor from "./ExamplesEditor";
 import MiniCaseStudiesEditor from "./MiniCaseStudiesEditor";
 import PracticeLabEditor from "./PracticeLabEditor";
@@ -37,15 +36,9 @@ export default function LessonForm({
   const [content, setContent] = useState<string[]>(lesson?.content ?? []);
   const [examples, setExamples] = useState(lesson?.examples ?? []);
   const [miniCaseStudies, setMiniCaseStudies] = useState(lesson?.mini_case_studies ?? []);
-  const [reflectionQuestions, setReflectionQuestions] = useState<string[]>(
-    lesson?.reflection_questions ?? [],
-  );
   const [keyTakeaways, setKeyTakeaways] = useState<string[]>(lesson?.key_takeaways ?? []);
   const [practiceLab, setPracticeLab] = useState(lesson?.practice_lab ?? []);
   const [quiz, setQuiz] = useState(lesson?.quiz ?? []);
-  const [skillBoosts, setSkillBoosts] = useState<Record<string, number>>(
-    lesson?.skill_boosts ?? {},
-  );
   const [sortOrder, setSortOrder] = useState(String(lesson?.sort_order ?? 0));
 
   const [error, setError] = useState("");
@@ -65,11 +58,9 @@ export default function LessonForm({
       content,
       examples,
       miniCaseStudies,
-      reflectionQuestions,
       keyTakeaways,
       practiceLab,
       quiz,
-      skillBoosts,
       sortOrder: Number(sortOrder) || 0,
     };
 
@@ -162,11 +153,6 @@ export default function LessonForm({
       </div>
 
       <div>
-        <label className={sectionLabelClass}>Reflection Questions</label>
-        <StringListEditor items={reflectionQuestions} onChange={setReflectionQuestions} rows={1} />
-      </div>
-
-      <div>
         <label className={sectionLabelClass}>Key Takeaways</label>
         <StringListEditor items={keyTakeaways} onChange={setKeyTakeaways} rows={1} />
       </div>
@@ -179,11 +165,6 @@ export default function LessonForm({
       <div>
         <label className={sectionLabelClass}>Quiz</label>
         <QuizEditor quiz={quiz} onChange={setQuiz} />
-      </div>
-
-      <div>
-        <label className={sectionLabelClass}>Skill Boosts on First Completion</label>
-        <SkillBoostsEditor value={skillBoosts} onChange={setSkillBoosts} />
       </div>
 
       {error && (

@@ -19,8 +19,6 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
   const [id, setId] = useState(mod?.id ?? "");
   const [title, setTitle] = useState(mod?.title ?? "");
   const [description, setDescription] = useState(mod?.description ?? "");
-  const [scenario, setScenario] = useState(mod?.simulation_intro?.scenario ?? "");
-  const [objective, setObjective] = useState(mod?.simulation_intro?.objective ?? "");
   const [simSkillBoosts, setSimSkillBoosts] = useState<Record<string, number>>(
     mod?.sim_skill_boosts ?? {},
   );
@@ -37,8 +35,6 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
     const input: ModuleFormInput = {
       title,
       description,
-      scenario,
-      objective,
       simSkillBoosts,
       sortOrder: Number(sortOrder) || 0,
     };
@@ -85,25 +81,6 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Simulation Intro — Scenario</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={scenario}
-            onChange={(e) => setScenario(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Simulation Intro — Objective</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={objective}
-            onChange={(e) => setObjective(e.target.value)}
           />
         </div>
 

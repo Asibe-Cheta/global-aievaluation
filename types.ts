@@ -103,7 +103,7 @@ export interface Lesson {
     justification: string;
   }[];
   miniCaseStudies: MiniCaseStudy[]; // 5 items
-  reflectionQuestions: string[];
+  reflectionQuestions?: string[];
   keyTakeaways: string[];
   practiceLab: PracticeTask[]; // 3 practice tasks
   quiz: QuizQuestion[]; // 5 questions
@@ -176,7 +176,7 @@ export interface Module {
   title: string;
   description: string;
   lessons: Lesson[];
-  simulationIntro: {
+  simulationIntro?: {
     scenario: string;
     objective: string;
   };
