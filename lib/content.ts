@@ -170,7 +170,13 @@ export async function getTestimonials(): Promise<Testimonial[]> {
     .eq("is_active", true)
     .order("sort_order");
 
-  if (error) throw new Error(`getTestimonials: ${error.message}`);
+  // Testimonials are decorative, not load-bearing — the landing page has a
+  // graceful empty state, so a missing/not-yet-migrated table shouldn't 500
+  // the entire public home page for every visitor.
+  if (error) {
+    console.error(`getTestimonials: ${error.message}`);
+    return [];
+  }
 
   return (data ?? []).map((t) => ({
     id: t.id,

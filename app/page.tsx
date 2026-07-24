@@ -1,7 +1,7 @@
 import App from "@/App";
 import LandingGate from "@/components/LandingGate";
 import { createClient } from "@/lib/supabase/server";
-import { getModuleCurriculum, getAchievements, getJobs, getUserStats } from "@/lib/content";
+import { getModuleCurriculum, getAchievements, getJobs, getUserStats, getTestimonials } from "@/lib/content";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -10,7 +10,8 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <LandingGate />;
+    const testimonials = await getTestimonials();
+    return <LandingGate testimonials={testimonials} />;
   }
 
   const { data: profile } = await supabase

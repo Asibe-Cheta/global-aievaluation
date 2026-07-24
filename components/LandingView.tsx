@@ -5,14 +5,20 @@ import Image from "next/image";
 import {
   ArrowRight, ShieldCheck, DollarSign, Clock, Globe, Lock,
   Users, CheckCircle2, ChevronDown, ChevronUp, Star, ChevronLeft,
-  Sparkles, Briefcase, Award, GraduationCap, Play, HelpCircle, Zap
+  Sparkles, Briefcase, Award, GraduationCap, Play, HelpCircle, Zap,
+  BookOpen, Target, Rocket
 } from "lucide-react";
+import type { Testimonial } from "@/types";
 
 interface LandingViewProps {
   onEnterPlatform: () => void;
+  onLogin: () => void;
+  testimonials: Testimonial[];
 }
 
-export default function LandingView({ onEnterPlatform }: LandingViewProps) {
+const PRACTICE_PLATFORMS = ["Outlier", "Scale AI", "Alignerr", "Mercor", "Micro1"];
+
+export default function LandingView({ onEnterPlatform, onLogin, testimonials }: LandingViewProps) {
   // State for FAQ Accordions
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -21,30 +27,6 @@ export default function LandingView({ onEnterPlatform }: LandingViewProps) {
 
   // State for "What You'll Do" interactive tab
   const [activeTaskTab, setActiveTaskTab] = useState<"prompts" | "evaluation" | "verification" | "multimodal">("prompts");
-
-  const testimonials = [
-    {
-      name: "Rajesh Sharma",
-      location: "Mumbai, India",
-      earnings: "Scale AI Qualified",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&auto=format&fit=crop",
-      quote: "What started as extra cash on weekends turned into my full-time thing. Passing the Scale assessments was incredibly easy after finishing this prep curriculum."
-    },
-    {
-      name: "Sarah Jenkins",
-      location: "Austin, USA",
-      earnings: "Alignerr Qualified",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=256&auto=format&fit=crop",
-      quote: "Global Ready AIEval's practice tests helped me clear the Alignerr qualification exam on my very first attempt! I'm now earning $55/hr evaluating LLM code outputs."
-    },
-    {
-      name: "Michael Chen",
-      location: "Vancouver, Canada",
-      earnings: "Outlier Qualified",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&auto=format&fit=crop",
-      quote: "The safety-evaluation exercises here are incredibly realistic. The platform taught me the 'Extreme Skepticism' mindset needed to pass strict scale quality audits easily."
-    }
-  ];
 
   const faqs = [
     {
@@ -102,18 +84,28 @@ export default function LandingView({ onEnterPlatform }: LandingViewProps) {
           </div>
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-bold text-slate-600 dark:text-slate-400">
-            <a href="#what-you-do" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">What You'll Do</a>
-            <a href="#why-join" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Why Train With Us</a>
-            <a href="#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">FAQ</a>
+            <a href="#landing-page-root" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Home</a>
+            <a href="#what-you-do" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Platform</a>
+            <a href="#who-we-are" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Who We Are</a>
+            <a href="#reviews" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Reviews</a>
+            <a href="#contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Contact</a>
           </nav>
 
-          <button 
-            onClick={onEnterPlatform}
-            className="bg-[#4F46E5] hover:bg-indigo-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-1.5"
-          >
-            <span>Enter Global Ready AIEval</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={onLogin}
+              className="hidden sm:inline-flex bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-extrabold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer"
+            >
+              Log In
+            </button>
+            <button
+              onClick={onEnterPlatform}
+              className="bg-[#4F46E5] hover:bg-indigo-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Sign Up</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -173,6 +165,23 @@ export default function LandingView({ onEnterPlatform }: LandingViewProps) {
               <span>High-Converting Resume &amp; Profile Keywords</span>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* 3b. TRUST / PRACTICE-PLATFORM LOGO BAR */}
+      <section className="max-w-5xl mx-auto px-6 pb-16">
+        <p className="text-center text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-5">
+          Train for qualification exams on every major platform
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
+          {PRACTICE_PLATFORMS.map((name) => (
+            <span
+              key={name}
+              className="text-sm sm:text-base font-black text-slate-400 dark:text-slate-600 tracking-tight"
+            >
+              {name}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -532,98 +541,177 @@ export default function LandingView({ onEnterPlatform }: LandingViewProps) {
         </div>
       </section>
 
+      {/* 7. THREE SIMPLE STEPS */}
+      <section className="bg-slate-100/50 dark:bg-slate-900/30 py-20 border-y border-slate-200/50 dark:border-slate-900 px-6">
+        <div className="max-w-5xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Three Simple Steps to Get Started
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
+              From your first lesson to your first paid contract — here's the whole path.
+            </p>
+          </div>
 
-      {/* 8. CAROUSEL TESTIMONIAL SLIDER SECTION */}
-      <section className="py-20 max-w-4xl mx-auto px-6 space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-850 rounded-2xl p-6 space-y-4">
+              <div className="w-9 h-9 rounded-lg bg-[#4F46E5] text-white flex items-center justify-center font-black text-sm shrink-0">
+                1
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-[#4F46E5] dark:text-indigo-400">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Learn the Fundamentals</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Work through structured lessons on prompt evaluation, response ranking, fact-checking, and safety review — no tech background required.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-850 rounded-2xl p-6 space-y-4">
+              <div className="w-9 h-9 rounded-lg bg-[#4F46E5] text-white flex items-center justify-center font-black text-sm shrink-0">
+                2
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-[#4F46E5] dark:text-indigo-400">
+                <Target className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Practice in Real Simulations</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Drill with realistic qualification exams, data annotation tasks, and AI interview simulations modeled on real platform assessments.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-850 rounded-2xl p-6 space-y-4">
+              <div className="w-9 h-9 rounded-lg bg-[#4F46E5] text-white flex items-center justify-center font-black text-sm shrink-0">
+                3
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-[#4F46E5] dark:text-indigo-400">
+                <Rocket className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Get Matched to Paid Work</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Browse curated AI evaluation job listings and apply with a readiness score that shows you're actually ready to pass.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7b. WHO WE ARE */}
+      <section id="who-we-are" className="py-20 max-w-4xl mx-auto px-6 text-center space-y-4">
+        <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          Who We Are
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
+          Global Ready AIEval is a training platform built for people who want a fair shot at the AI evaluation
+          economy — RLHF review, data annotation, and model red-teaming contracts on platforms like Outlier,
+          Scale AI, and Alignerr. We built the practice environment we wished existed: realistic simulations,
+          honest feedback, and a clear, structured path from "never done this before" to "qualified and hired."
+        </p>
+      </section>
+
+      {/* 8. REVIEWS / TESTIMONIAL SLIDER SECTION */}
+      <section id="reviews" className="py-20 max-w-4xl mx-auto px-6 space-y-12">
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-1.5 bg-[#EEF2FF] dark:bg-indigo-950/50 text-[#4F46E5] dark:text-indigo-400 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
             <Users className="w-3.5 h-3.5" />
             <span>Trusted Worldwide</span>
           </div>
           <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Hear From Our <span className="text-[#4F46E5] dark:text-indigo-400">Contributors</span>
+            What Others Have <span className="text-[#4F46E5] dark:text-indigo-400">To Say</span>
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Real stories from people earning and advancing their alignment skills with Global Ready AIEval.
           </p>
         </div>
 
-        {/* Testimonial card slider frame */}
-        <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-sm">
-          
-          {/* Quote bubble absolute icon */}
-          <div className="absolute -top-4 left-6 bg-[#4F46E5] text-white p-2.5 rounded-2xl shadow-md">
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path d="M11.192 15.757c0-.907-.188-1.754-.565-2.54a5.72 5.72 0 0 1-1.495-2.22c-.3-.747-.45-1.533-.45-2.36 0-1.21.37-2.24 1.101-3.09.73-.85 1.782-1.28 3.141-1.28h.74v2.24h-.74c-.58 0-1.04.183-1.38.55-.34.367-.51.847-.51 1.44 0 .34.05.67.15 1 .1.33.22.65.36.96.14.3.3.61.47.93.18.32.35.64.51.96.16.32.28.66.36 1.02.08.36.12.74.12 1.14 0 1.22-.37 2.25-1.111 3.09-.74.84-1.782 1.26-3.12 1.26h-.74v-2.24h.74a1.455 1.455 0 0 0 1.38-.85zM4 15.757c0-.907-.188-1.754-.565-2.54a5.72 5.72 0 0 1-1.495-2.22c-.3-.747-.45-1.533-.45-2.36 0-1.21.37-2.24 1.101-3.09.73-.85 1.782-1.28 3.141-1.28h.74v2.24h-.74c-.58 0-1.04.183-1.38.55-.34.367-.51.847-.51 1.44 0 .34.05.67.15 1 .1.33.22.65.36.96.14.3.3.61.47.93.18.32.35.64.51.96.16.32.28.66.36 1.02.08.36.12.74.12 1.14 0 1.22-.37 2.25-1.111 3.09-.74.84-1.782 1.26-3.12 1.26h-.74v-2.24h.74a1.455 1.455 0 0 0 1.38-.85z"></path>
-            </svg>
+        {testimonials.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center text-sm text-slate-400">
+            Reviews are coming soon.
           </div>
+        ) : (
+          <>
+            {/* Testimonial card slider frame */}
+            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-sm">
 
-          <div className="space-y-6">
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-              ))}
-            </div>
+              {/* Quote bubble absolute icon */}
+              <div className="absolute -top-4 left-6 bg-[#4F46E5] text-white p-2.5 rounded-2xl shadow-md">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M11.192 15.757c0-.907-.188-1.754-.565-2.54a5.72 5.72 0 0 1-1.495-2.22c-.3-.747-.45-1.533-.45-2.36 0-1.21.37-2.24 1.101-3.09.73-.85 1.782-1.28 3.141-1.28h.74v2.24h-.74c-.58 0-1.04.183-1.38.55-.34.367-.51.847-.51 1.44 0 .34.05.67.15 1 .1.33.22.65.36.96.14.3.3.61.47.93.18.32.35.64.51.96.16.32.28.66.36 1.02.08.36.12.74.12 1.14 0 1.22-.37 2.25-1.111 3.09-.74.84-1.782 1.26-3.12 1.26h-.74v-2.24h.74a1.455 1.455 0 0 0 1.38-.85zM4 15.757c0-.907-.188-1.754-.565-2.54a5.72 5.72 0 0 1-1.495-2.22c-.3-.747-.45-1.533-.45-2.36 0-1.21.37-2.24 1.101-3.09.73-.85 1.782-1.28 3.141-1.28h.74v2.24h-.74c-.58 0-1.04.183-1.38.55-.34.367-.51.847-.51 1.44 0 .34.05.67.15 1 .1.33.22.65.36.96.14.3.3.61.47.93.18.32.35.64.51.96.16.32.28.66.36 1.02.08.36.12.74.12 1.14 0 1.22-.37 2.25-1.111 3.09-.74.84-1.782 1.26-3.12 1.26h-.74v-2.24h.74a1.455 1.455 0 0 0 1.38-.85z"></path>
+                </svg>
+              </div>
 
-            <p className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-100 leading-relaxed italic">
-              "{testimonials[activeTestimonial].quote}"
-            </p>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-150">
-                  <img 
-                    src={testimonials[activeTestimonial].avatar} 
-                    alt={testimonials[activeTestimonial].name} 
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
+              <div className="space-y-6">
+                <div className="flex items-center gap-1">
+                  {[...Array(testimonials[activeTestimonial].rating ?? 5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
                 </div>
-                <div>
-                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                    {testimonials[activeTestimonial].name}
-                  </h4>
-                  <p className="text-[11px] text-slate-400 font-semibold">{testimonials[activeTestimonial].location}</p>
+
+                <p className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-100 leading-relaxed italic">
+                  "{testimonials[activeTestimonial].quote}"
+                </p>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-150 bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-[#4F46E5] dark:text-indigo-400 font-black text-sm">
+                      {testimonials[activeTestimonial].avatarUrl ? (
+                        <img
+                          src={testimonials[activeTestimonial].avatarUrl}
+                          alt={testimonials[activeTestimonial].name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        testimonials[activeTestimonial].name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        {testimonials[activeTestimonial].name}
+                      </h4>
+                      {testimonials[activeTestimonial].role && (
+                        <p className="text-[11px] text-slate-400 font-semibold">
+                          {testimonials[activeTestimonial].role}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <span className="inline-flex bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-450 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase">
-                  {testimonials[activeTestimonial].earnings}
-                </span>
-              </div>
+              {/* Navigation Controls arrows */}
+              {testimonials.length > 1 && (
+                <div className="absolute right-4 bottom-4 flex gap-1.5">
+                  <button
+                    onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-500 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-500 cursor-pointer"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Navigation Controls arrows */}
-          <div className="absolute right-4 bottom-4 flex gap-1.5">
-            <button 
-              onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-500 cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-500 cursor-pointer"
-            >
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Bullet indicators */}
-        <div className="flex items-center justify-center gap-2">
-          {testimonials.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveTestimonial(i)}
-              className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                activeTestimonial === i ? "w-8 bg-[#4F46E5]" : "w-2 bg-slate-300 dark:bg-slate-800"
-              }`}
-            ></button>
-          ))}
-        </div>
+            {/* Bullet indicators */}
+            {testimonials.length > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                {testimonials.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveTestimonial(i)}
+                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                      activeTestimonial === i ? "w-8 bg-[#4F46E5]" : "w-2 bg-slate-300 dark:bg-slate-800"
+                    }`}
+                  ></button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </section>
 
       {/* 9. FREQUENTLY ASKED QUESTIONS (FAQ ACCORDION) */}
@@ -709,6 +797,19 @@ export default function LandingView({ onEnterPlatform }: LandingViewProps) {
         </div>
       </section>
 
+      {/* 10b. CONTACT */}
+      <section id="contact" className="py-16 max-w-2xl mx-auto px-6 text-center space-y-3">
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          Contact Us
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Questions before you get started? Reach us anytime at{" "}
+          <a href="mailto:support@globalreadyaieval.com" className="font-bold text-[#4F46E5] dark:text-indigo-400 hover:underline">
+            support@globalreadyaieval.com
+          </a>
+        </p>
+      </section>
+
       {/* 11. FOOTER */}
       <footer className="border-t border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-900 py-12 px-6 transition-colors">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-400">
@@ -725,9 +826,11 @@ export default function LandingView({ onEnterPlatform }: LandingViewProps) {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 font-semibold">
-            <a href="#what-you-do" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">What You Do</a>
-            <a href="#why-join" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Why Join</a>
+            <a href="#what-you-do" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Platform</a>
+            <a href="#who-we-are" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Who We Are</a>
+            <a href="#reviews" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Reviews</a>
             <a href="#faq" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">FAQ</a>
+            <a href="#contact" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Contact</a>
           </div>
 
           <p>&copy; 2026 Global Ready AIEval. All rights reserved.</p>
