@@ -4,8 +4,12 @@ import {
   Tags,
   Image as ImageIcon,
   Video,
+  Music,
   CheckCircle2,
+  XCircle,
   ChevronRight,
+  HelpCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { Module, UserStats, AnnotationTask, AnnotationSubmission } from "../types";
 
@@ -14,30 +18,6 @@ interface AnnotationViewProps {
   stats: UserStats;
   onSubmit: (taskId: string, submission: AnnotationSubmission) => void;
   onBack: () => void;
-}
-
-function ChipToggle({
-  label,
-  selected,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-[11px] font-bold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
-        selected
-          ? "bg-indigo-600 border-indigo-600 text-white"
-          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300 dark:hover:border-indigo-700"
-      }`}
-    >
-      {label}
-    </button>
-  );
 }
 
 function TaskReview({
@@ -53,30 +33,23 @@ function TaskReview({
   onSubmit: (taskId: string, submission: AnnotationSubmission) => void;
   onBack: () => void;
 }) {
-  const [labelsPerItem, setLabelsPerItem] = useState<string[][]>(
-    existing?.labelsPerItem ?? task.media.map(() => []),
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | undefined>(
+    existing?.selectedOptionIndex,
   );
-  const [notes, setNotes] = useState(existing?.notes ?? "");
-  const [justSubmitted, setJustSubmitted] = useState(false);
+  const [rationale, setRationale] = useState(existing?.rationale ?? "");
+  const [isSubmitted, setIsSubmitted] = useState(!!existing);
 
-  const toggleLabel = (itemIdx: number, label: string) => {
-    setLabelsPerItem((prev) => {
-      const next = prev.map((labels) => [...labels]);
-      const current = next[itemIdx] ?? [];
-      next[itemIdx] = current.includes(label)
-        ? current.filter((l) => l !== label)
-        : [...current, label];
-      return next;
-    });
-  };
+  const hasChosen = selectedOptionIndex !== undefined;
+  const isCorrect = selectedOptionIndex === task.correctOptionIndex;
 
   const handleSubmit = () => {
+    if (selectedOptionIndex === undefined || !rationale.trim()) return;
     onSubmit(task.id, {
-      labelsPerItem,
-      notes,
+      selectedOptionIndex,
+      rationale,
       submittedAt: new Date().toISOString(),
     });
-    setJustSubmitted(true);
+    setIsSubmitted(true);
   };
 
   return (
@@ -103,23 +76,16 @@ function TaskReview({
         )}
       </div>
 
-      {justSubmitted && (
-        <div className="p-4 bg-emerald-500/10 border-2 border-emerald-500/20 text-emerald-800 dark:text-emerald-400 rounded-2xl flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 shrink-0" />
-          <p className="text-xs font-bold m-0">
-            Annotation submitted. Your Annotation skill score has been updated.
-          </p>
-        </div>
-      )}
-
-      <div className={`grid gap-6 ${task.media.length > 1 ? "sm:grid-cols-2" : "grid-cols-1 max-w-xl"}`}>
+      <div className={`grid gap-4 ${task.media.length > 1 ? "sm:grid-cols-2" : "grid-cols-1 max-w-xl"}`}>
         {task.media.map((item, idx) => (
           <div
             key={item.path}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4"
           >
             {task.type === "video" ? (
               <video src={item.url} controls className="w-full rounded-xl bg-black max-h-72" />
+            ) : task.type === "audio" ? (
+              <audio src={item.url} controls className="w-full" />
             ) : (
               <img
                 src={item.url}
@@ -127,47 +93,138 @@ function TaskReview({
                 className="w-full rounded-xl object-cover max-h-72"
               />
             )}
-            <div className="space-y-1.5">
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider block">
-                {task.type === "video" ? "Labels" : `Labels — Image ${idx + 1}`}
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {task.labelOptions.length === 0 && (
-                  <span className="text-[11px] text-slate-400">No label options configured.</span>
-                )}
-                {task.labelOptions.map((label) => (
-                  <ChipToggle
-                    key={label}
-                    label={label}
-                    selected={(labelsPerItem[idx] ?? []).includes(label)}
-                    onClick={() => toggleLabel(idx, label)}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
         ))}
       </div>
 
-      <div className="space-y-1.5">
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider block">
-          Notes / Rationale
-        </span>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          placeholder="Briefly explain what you observed and why you chose these labels..."
-          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+        {task.scenario && (
+          <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-150 dark:border-slate-800">
+            <span className="text-[9px] bg-slate-200 dark:bg-slate-750 text-slate-650 dark:text-slate-400 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+              Context
+            </span>
+            <p className="text-xs text-slate-700 dark:text-slate-300 italic mt-2">{task.scenario}</p>
+          </div>
+        )}
 
-      <button
-        onClick={handleSubmit}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors"
-      >
-        {existing ? "Update Submission" : "Submit Annotation"}
-      </button>
+        <div className="space-y-4">
+          <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-indigo-550" />
+            {task.question}
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {task.options.map((opt, idx) => {
+              const isSelected = selectedOptionIndex === idx;
+              let optionBg =
+                "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 border-slate-150 dark:border-slate-800 text-slate-800 dark:text-slate-350";
+
+              if (isSelected) {
+                optionBg =
+                  "bg-indigo-50/20 border-indigo-550 dark:bg-indigo-950/10 text-indigo-900 dark:text-indigo-400 font-medium";
+              }
+              if (isSubmitted) {
+                if (idx === task.correctOptionIndex) {
+                  optionBg =
+                    "bg-emerald-50/30 border-emerald-500 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 font-semibold";
+                } else if (isSelected && !isCorrect) {
+                  optionBg = "bg-rose-50/30 border-rose-500 dark:bg-rose-950/20 text-rose-800 dark:text-rose-450";
+                }
+              }
+
+              return (
+                <button
+                  key={idx}
+                  disabled={isSubmitted}
+                  onClick={() => setSelectedOptionIndex(idx)}
+                  className={`text-left p-4.5 rounded-xl border text-xs transition-all flex justify-between items-center ${optionBg} ${
+                    !isSubmitted ? "cursor-pointer" : "cursor-default"
+                  }`}
+                >
+                  <span>{opt}</span>
+                  {isSubmitted && idx === task.correctOptionIndex && (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  )}
+                  {isSubmitted && isSelected && !isCorrect && (
+                    <XCircle className="w-4 h-4 text-rose-600" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {!isSubmitted && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold text-slate-900 dark:text-white">Your Rationale</p>
+            <textarea
+              value={rationale}
+              onChange={(e) => setRationale(e.target.value)}
+              rows={3}
+              placeholder="Explain why you chose this answer..."
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        )}
+
+        {!isSubmitted ? (
+          <button
+            disabled={!hasChosen || !rationale.trim()}
+            onClick={handleSubmit}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              hasChosen && rationale.trim()
+                ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            Submit Annotation
+          </button>
+        ) : (
+          <div className="p-5 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-150 dark:border-slate-800 space-y-4 animate-fade-in">
+            <div
+              className={`p-4 rounded-xl border flex items-start gap-3 ${
+                isCorrect
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-450"
+                  : "bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-450"
+              }`}
+            >
+              {isCorrect ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
+              )}
+              <p className="text-xs font-extrabold uppercase tracking-wider">
+                {isCorrect ? "Nice Job! That's Correct." : "Not Quite! Let's Learn Why."}
+              </p>
+            </div>
+
+            {rationale && (
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Your Rationale</span>
+                <p className="text-xs text-slate-700 dark:text-slate-300">{rationale}</p>
+              </div>
+            )}
+
+            {task.explanation && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-1">Why is this correct?</p>
+                <p className="text-xs text-slate-750 dark:text-slate-350 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  {task.explanation}
+                </p>
+              </div>
+            )}
+
+            {task.reviewerNotes && (
+              <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1">
+                  <ShieldAlert className="w-4 h-4" />
+                  Trainer Tip
+                </p>
+                <p className="text-xs italic text-amber-900 dark:text-amber-300 mt-1">{task.reviewerNotes}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -216,7 +273,7 @@ export default function AnnotationView({
           Data Annotation Practice
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-normal">
-          Review image and video content the way real AI-training platforms do: tag what you see, flag issues, and justify your labels.
+          Review image, video, and audio content the way real AI-training platforms do: answer the question and justify your rationale.
         </p>
       </div>
 
@@ -257,10 +314,12 @@ export default function AnnotationView({
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
                     {task.type === "video" ? (
                       <Video className="w-3 h-3" />
+                    ) : task.type === "audio" ? (
+                      <Music className="w-3 h-3" />
                     ) : (
                       <ImageIcon className="w-3 h-3" />
                     )}
-                    {task.type === "video" ? "Video" : "Image pair"}
+                    {task.type === "video" ? "Video" : task.type === "audio" ? "Audio" : "Image pair"}
                   </span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </div>

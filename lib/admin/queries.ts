@@ -297,12 +297,16 @@ export interface AdminAnnotationMediaItem {
 export interface AdminAnnotationTaskRow {
   id: string;
   module_id: string;
-  type: "image_pair" | "video";
+  type: "image_pair" | "video" | "audio";
   title: string;
   instructions: string | null;
   media: AdminAnnotationMediaItem[];
-  label_options: string[];
-  rubric: string | null;
+  scenario: string | null;
+  question: string;
+  options: string[];
+  correct_option_index: number;
+  explanation: string | null;
+  reviewer_notes: string | null;
   sort_order: number;
 }
 

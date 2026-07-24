@@ -8,7 +8,7 @@ import {
   updateAnnotationTask,
 } from "@/lib/actions/admin-annotation-tasks";
 import type { AdminAnnotationTaskRow } from "@/lib/admin/queries";
-import StringListEditor from "../../../StringListEditor";
+import OptionsEditor from "../../../OptionsEditor";
 
 const MAX_VIDEO_SECONDS = 10;
 
@@ -46,16 +46,28 @@ export default function AnnotationTaskForm({
   const isEdit = !!task;
 
   const [id, setId] = useState(task?.id ?? "");
-  const [type, setType] = useState<"image_pair" | "video">(task?.type ?? "image_pair");
+  const [type, setType] = useState<"image_pair" | "video" | "audio">(
+    task?.type ?? "image_pair",
+  );
   const [title, setTitle] = useState(task?.title ?? "");
   const [instructions, setInstructions] = useState(task?.instructions ?? "");
-  const [rubric, setRubric] = useState(task?.rubric ?? "");
   const [sortOrder, setSortOrder] = useState(String(task?.sort_order ?? 0));
-  const [labelOptions, setLabelOptions] = useState<string[]>(task?.label_options ?? []);
+
+  const [scenario, setScenario] = useState(task?.scenario ?? "");
+  const [question, setQuestion] = useState(task?.question ?? "");
+  const [options, setOptions] = useState<string[]>(
+    task?.options && task.options.length >= 2 ? task.options : ["", ""],
+  );
+  const [correctOptionIndex, setCorrectOptionIndex] = useState(
+    task?.correct_option_index ?? 0,
+  );
+  const [explanation, setExplanation] = useState(task?.explanation ?? "");
+  const [reviewerNotes, setReviewerNotes] = useState(task?.reviewer_notes ?? "");
 
   const [image1, setImage1] = useState<File | null>(null);
   const [image2, setImage2] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
+  const [audio, setAudio] = useState<File | null>(null);
   const [videoDuration, setVideoDuration] = useState<number | undefined>(
     task?.media?.[0]?.durationSeconds,
   );
@@ -96,6 +108,18 @@ export default function AnnotationTaskForm({
       setError("A video file is required.");
       return;
     }
+    if (!isEdit && type === "audio" && !audio) {
+      setError("An audio file is required.");
+      return;
+    }
+    if (!question.trim()) {
+      setError("Question is required.");
+      return;
+    }
+    if (options.filter((o) => o.trim()).length < 2) {
+      setError("At least 2 options are required.");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -104,12 +128,17 @@ export default function AnnotationTaskForm({
     formData.set("type", type);
     formData.set("title", title);
     formData.set("instructions", instructions);
-    formData.set("rubric", rubric);
     formData.set("sortOrder", sortOrder);
-    formData.set("labelOptions", JSON.stringify(labelOptions));
+    formData.set("scenario", scenario);
+    formData.set("question", question);
+    formData.set("options", JSON.stringify(options));
+    formData.set("correctOptionIndex", String(correctOptionIndex));
+    formData.set("explanation", explanation);
+    formData.set("reviewerNotes", reviewerNotes);
     if (image1) formData.set("image1", image1);
     if (image2) formData.set("image2", image2);
     if (video) formData.set("video", video);
+    if (audio) formData.set("audio", audio);
     if (videoDuration) formData.set("videoDurationSeconds", String(videoDuration));
 
     let result: { error?: string } | undefined;
@@ -153,11 +182,14 @@ export default function AnnotationTaskForm({
           <select
             className={inputClass}
             value={type}
-            onChange={(e) => setType(e.target.value as "image_pair" | "video")}
+            onChange={(e) =>
+              setType(e.target.value as "image_pair" | "video" | "audio")
+            }
             disabled={isEdit}
           >
             <option value="image_pair">Image pair</option>
             <option value="video">Video (max {MAX_VIDEO_SECONDS}s)</option>
+            <option value="audio">Audio clip</option>
           </select>
           {isEdit && (
             <p className="text-[10px] text-slate-400 mt-1">
@@ -181,26 +213,9 @@ export default function AnnotationTaskForm({
             rows={2}
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
-            placeholder="What should the annotator look for?"
+            placeholder="What should the annotator look/listen for?"
           />
         </div>
-        <div className="sm:col-span-2">
-          <label className={labelClass}>Rubric (admin-facing notes)</label>
-          <textarea
-            className={inputClass}
-            rows={2}
-            value={rubric}
-            onChange={(e) => setRubric(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className={sectionLabelClass}>Label Options</label>
-        <p className="text-[11px] text-slate-450 mb-2">
-          Tags/flags the annotator can pick, e.g. "Blurry", "Unsafe content", "Off-topic".
-        </p>
-        <StringListEditor items={labelOptions} onChange={setLabelOptions} rows={1} />
       </div>
 
       <div>
@@ -243,7 +258,7 @@ export default function AnnotationTaskForm({
               </div>
             ))}
           </div>
-        ) : (
+        ) : type === "video" ? (
           <div className="border border-dashed border-slate-300 dark:border-slate-750 rounded-xl p-4 space-y-2 max-w-md">
             {task?.media?.[0]?.url && !video && (
               <video
@@ -278,7 +293,82 @@ export default function AnnotationTaskForm({
               />
             </label>
           </div>
+        ) : (
+          <div className="border border-dashed border-slate-300 dark:border-slate-750 rounded-xl p-4 space-y-2 max-w-md">
+            {task?.media?.[0]?.url && !audio && (
+              <audio src={task.media[0].url} controls className="w-full" />
+            )}
+            {audio && (
+              <audio src={URL.createObjectURL(audio)} controls className="w-full" />
+            )}
+            <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+              <Upload className="w-3.5 h-3.5" />
+              {task?.media?.[0] ? "Replace audio" : "Upload audio"}
+              <input
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => setAudio(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          </div>
         )}
+      </div>
+
+      {/* Same Q&A shape as a Lesson's Mini Case Study, minus prompt/response
+          (the media above stands in for that) */}
+      <div>
+        <label className={sectionLabelClass}>Scenario (optional)</label>
+        <textarea
+          className={inputClass}
+          rows={2}
+          value={scenario}
+          onChange={(e) => setScenario(e.target.value)}
+          placeholder="Any context the annotator needs before reviewing the media..."
+        />
+      </div>
+
+      <div>
+        <label className={sectionLabelClass}>Question</label>
+        <textarea
+          className={inputClass}
+          rows={2}
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          required
+        />
+      </div>
+
+      <div>
+        <label className={sectionLabelClass}>Options &amp; Correct Answer</label>
+        <OptionsEditor
+          options={options}
+          correctIndex={correctOptionIndex}
+          onChange={(opts, correctIdx) => {
+            setOptions(opts);
+            setCorrectOptionIndex(correctIdx);
+          }}
+        />
+      </div>
+
+      <div>
+        <label className={sectionLabelClass}>Explanation</label>
+        <textarea
+          className={inputClass}
+          rows={2}
+          value={explanation}
+          onChange={(e) => setExplanation(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className={sectionLabelClass}>Reviewer Notes (optional)</label>
+        <textarea
+          className={inputClass}
+          rows={2}
+          value={reviewerNotes}
+          onChange={(e) => setReviewerNotes(e.target.value)}
+        />
       </div>
 
       {error && (

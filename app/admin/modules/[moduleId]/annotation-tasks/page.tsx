@@ -61,7 +61,7 @@ export default async function AnnotationTasksPage({
                   <div className="text-slate-400 font-normal">{t.id}</div>
                 </td>
                 <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                  {t.type === "image_pair" ? "Image pair" : "Video"}
+                  {t.type === "image_pair" ? "Image pair" : t.type === "video" ? "Video" : "Audio"}
                 </td>
                 <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{t.sort_order}</td>
                 <td className="px-4 py-3 text-right space-x-3">

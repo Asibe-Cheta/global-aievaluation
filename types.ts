@@ -144,18 +144,21 @@ export interface AnnotationMediaItem {
 export interface AnnotationTask {
   id: string;
   moduleId: string;
-  type: "image_pair" | "video";
+  type: "image_pair" | "video" | "audio";
   title: string;
   instructions?: string;
   media: AnnotationMediaItem[];
-  labelOptions: string[];
-  rubric?: string;
+  scenario?: string;
+  question: string;
+  options: string[];
+  correctOptionIndex: number;
+  explanation: string;
+  reviewerNotes?: string;
 }
 
 export interface AnnotationSubmission {
-  // one entry per media item, in the same order as task.media
-  labelsPerItem: string[][];
-  notes: string;
+  selectedOptionIndex: number;
+  rationale: string;
   submittedAt: string;
 }
 

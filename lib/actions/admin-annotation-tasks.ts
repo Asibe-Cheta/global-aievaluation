@@ -55,24 +55,77 @@ function readFile(formData: FormData, key: string): File | null {
 
 export interface AnnotationTaskFormFields {
   moduleId: string;
-  type: "image_pair" | "video";
+  type: "image_pair" | "video" | "audio";
   title: string;
   instructions: string | null;
-  rubric: string | null;
   sortOrder: number;
-  labelOptions: string[];
+  scenario: string | null;
+  question: string;
+  options: string[];
+  correctOptionIndex: number;
+  explanation: string | null;
+  reviewerNotes: string | null;
 }
 
 function readFields(formData: FormData): AnnotationTaskFormFields {
   return {
     moduleId: String(formData.get("moduleId") ?? ""),
-    type: (String(formData.get("type") ?? "image_pair")) as "image_pair" | "video",
+    type: String(formData.get("type") ?? "image_pair") as
+      | "image_pair"
+      | "video"
+      | "audio",
     title: String(formData.get("title") ?? ""),
     instructions: String(formData.get("instructions") ?? "") || null,
-    rubric: String(formData.get("rubric") ?? "") || null,
     sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
-    labelOptions: JSON.parse(String(formData.get("labelOptions") ?? "[]")),
+    scenario: String(formData.get("scenario") ?? "") || null,
+    question: String(formData.get("question") ?? ""),
+    options: JSON.parse(String(formData.get("options") ?? "[]")),
+    correctOptionIndex: Number(formData.get("correctOptionIndex") ?? 0) || 0,
+    explanation: String(formData.get("explanation") ?? "") || null,
+    reviewerNotes: String(formData.get("reviewerNotes") ?? "") || null,
   };
+}
+
+async function uploadNewMedia(
+  supabase: SupabaseServerClient,
+  id: string,
+  fields: AnnotationTaskFormFields,
+  formData: FormData,
+): Promise<{ media?: AdminAnnotationMediaItem[]; error?: string }> {
+  if (fields.type === "image_pair") {
+    const image1 = readFile(formData, "image1");
+    const image2 = readFile(formData, "image2");
+    if (!image1 || !image2) {
+      return { error: "Both images are required for an image pair task." };
+    }
+    return {
+      media: [
+        await uploadMedia(supabase, id, image1),
+        await uploadMedia(supabase, id, image2),
+      ],
+    };
+  }
+
+  if (fields.type === "video") {
+    const video = readFile(formData, "video");
+    if (!video) return { error: "A video file is required." };
+
+    const durationRaw = formData.get("videoDurationSeconds");
+    const durationSeconds = durationRaw ? Number(durationRaw) : undefined;
+    if (durationSeconds && durationSeconds > MAX_VIDEO_SECONDS) {
+      return {
+        error: `Video must be ${MAX_VIDEO_SECONDS}s or less (got ${durationSeconds.toFixed(1)}s).`,
+      };
+    }
+
+    const uploaded = await uploadMedia(supabase, id, video);
+    return { media: [{ ...uploaded, durationSeconds }] };
+  }
+
+  // audio
+  const audio = readFile(formData, "audio");
+  if (!audio) return { error: "An audio file is required." };
+  return { media: [await uploadMedia(supabase, id, audio)] };
 }
 
 export async function createAnnotationTask(
@@ -84,34 +137,14 @@ export async function createAnnotationTask(
 
   if (!id) return { error: "Slug/ID is required." };
   if (!fields.title) return { error: "Title is required." };
+  if (!fields.question) return { error: "Question is required." };
+  if (fields.options.length < 2) return { error: "At least 2 options are required." };
 
   let media: AdminAnnotationMediaItem[];
   try {
-    if (fields.type === "image_pair") {
-      const image1 = readFile(formData, "image1");
-      const image2 = readFile(formData, "image2");
-      if (!image1 || !image2) {
-        return { error: "Both images are required for an image pair task." };
-      }
-      media = [
-        await uploadMedia(supabase, id, image1),
-        await uploadMedia(supabase, id, image2),
-      ];
-    } else {
-      const video = readFile(formData, "video");
-      if (!video) return { error: "A video file is required." };
-
-      const durationRaw = formData.get("videoDurationSeconds");
-      const durationSeconds = durationRaw ? Number(durationRaw) : undefined;
-      if (durationSeconds && durationSeconds > MAX_VIDEO_SECONDS) {
-        return {
-          error: `Video must be ${MAX_VIDEO_SECONDS}s or less (got ${durationSeconds.toFixed(1)}s).`,
-        };
-      }
-
-      const uploaded = await uploadMedia(supabase, id, video);
-      media = [{ ...uploaded, durationSeconds }];
-    }
+    const result = await uploadNewMedia(supabase, id, fields, formData);
+    if (result.error || !result.media) return { error: result.error };
+    media = result.media;
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
@@ -123,8 +156,12 @@ export async function createAnnotationTask(
     title: fields.title,
     instructions: fields.instructions,
     media,
-    label_options: fields.labelOptions,
-    rubric: fields.rubric,
+    scenario: fields.scenario,
+    question: fields.question,
+    options: fields.options,
+    correct_option_index: fields.correctOptionIndex,
+    explanation: fields.explanation,
+    reviewer_notes: fields.reviewerNotes,
     sort_order: fields.sortOrder,
   });
 
@@ -146,6 +183,8 @@ export async function updateAnnotationTask(
   );
 
   if (!fields.title) return { error: "Title is required." };
+  if (!fields.question) return { error: "Question is required." };
+  if (fields.options.length < 2) return { error: "At least 2 options are required." };
 
   let media: AdminAnnotationMediaItem[];
   try {
@@ -162,7 +201,7 @@ export async function updateAnnotationTask(
         return { error: "Both images are required for an image pair task." };
       }
       media = [slot1, slot2];
-    } else {
+    } else if (fields.type === "video") {
       const video = readFile(formData, "video");
       const durationRaw = formData.get("videoDurationSeconds");
       const durationSeconds = durationRaw
@@ -178,6 +217,13 @@ export async function updateAnnotationTask(
         : existingMedia[0];
       if (!slot) return { error: "A video file is required." };
       media = [{ ...slot, durationSeconds }];
+    } else {
+      const audio = readFile(formData, "audio");
+      const slot = audio
+        ? await replaceMedia(supabase, id, audio, existingMedia[0])
+        : existingMedia[0];
+      if (!slot) return { error: "An audio file is required." };
+      media = [slot];
     }
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Upload failed." };
@@ -191,8 +237,12 @@ export async function updateAnnotationTask(
       title: fields.title,
       instructions: fields.instructions,
       media,
-      label_options: fields.labelOptions,
-      rubric: fields.rubric,
+      scenario: fields.scenario,
+      question: fields.question,
+      options: fields.options,
+      correct_option_index: fields.correctOptionIndex,
+      explanation: fields.explanation,
+      reviewer_notes: fields.reviewerNotes,
       sort_order: fields.sortOrder,
     })
     .eq("id", id);

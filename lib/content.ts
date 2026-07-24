@@ -131,8 +131,12 @@ export async function getModuleCurriculum(
               title: t.title,
               instructions: t.instructions ?? undefined,
               media: t.media ?? [],
-              labelOptions: t.label_options ?? [],
-              rubric: t.rubric ?? undefined,
+              scenario: t.scenario ?? undefined,
+              question: t.question,
+              options: t.options ?? [],
+              correctOptionIndex: t.correct_option_index,
+              explanation: t.explanation ?? "",
+              reviewerNotes: t.reviewer_notes ?? undefined,
             })),
     };
   }) as Module[];
