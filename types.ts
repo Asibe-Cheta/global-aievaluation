@@ -189,3 +189,12 @@ export interface Module {
   simSkillBoosts?: Partial<UserStats["skills"]>;
   locked?: boolean;
 }
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  role?: string;
+  quote: string;
+  avatarUrl?: string;
+  rating?: number;
+}

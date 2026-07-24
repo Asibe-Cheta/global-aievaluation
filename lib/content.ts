@@ -3,6 +3,7 @@ import type {
   Module,
   Achievement,
   UserStats,
+  Testimonial,
 } from "@/types";
 import type { JobOpportunity } from "@/data/jobs";
 import { isModuleAccessible, isPaidTier, type MembershipTier } from "@/lib/access";
@@ -158,6 +159,26 @@ export async function getAchievements(): Promise<Achievement[]> {
     icon: a.icon ?? "",
     reqMetric: a.req_metric ?? "",
     unlocked: false,
+  }));
+}
+
+export async function getTestimonials(): Promise<Testimonial[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("testimonials")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order");
+
+  if (error) throw new Error(`getTestimonials: ${error.message}`);
+
+  return (data ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    role: t.role ?? undefined,
+    quote: t.quote,
+    avatarUrl: t.avatar_url ?? undefined,
+    rating: t.rating ?? undefined,
   }));
 }
 

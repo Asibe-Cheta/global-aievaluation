@@ -349,3 +349,39 @@ export async function getAdminAnnotationTask(
   if (error) throw new Error(`getAdminAnnotationTask: ${error.message}`);
   return data;
 }
+
+export interface AdminTestimonialRow {
+  id: string;
+  name: string;
+  role: string | null;
+  quote: string;
+  avatar_url: string | null;
+  rating: number | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export async function getAdminTestimonials(): Promise<AdminTestimonialRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("testimonials")
+    .select("*")
+    .order("sort_order");
+
+  if (error) throw new Error(`getAdminTestimonials: ${error.message}`);
+  return data ?? [];
+}
+
+export async function getAdminTestimonial(
+  id: string,
+): Promise<AdminTestimonialRow | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("testimonials")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`getAdminTestimonial: ${error.message}`);
+  return data;
+}
