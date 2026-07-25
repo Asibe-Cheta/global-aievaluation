@@ -167,6 +167,19 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
               <span>High-Converting Resume &amp; Profile Keywords</span>
             </div>
           </div>
+
+          {/* Hero centerpiece graphic */}
+          <div className="pt-10 flex justify-center">
+            <div className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden shadow-xl shadow-indigo-600/10">
+              <Image
+                src="/assets/images/landing/hero-centerpiece.png"
+                alt=""
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </section>
       </Reveal>
@@ -563,6 +576,16 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
               From your first lesson to your first paid contract — here's the whole path.
             </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto rounded-3xl overflow-hidden shadow-lg shadow-slate-900/10">
+            <Image
+              src="/assets/images/landing/three-steps-illustration.png"
+              alt="A trainee evaluating two AI responses side-by-side during a live training session"
+              width={1536}
+              height={1024}
+              className="w-full h-auto"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
