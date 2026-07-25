@@ -9,6 +9,7 @@ import {
   BookOpen, Target, Rocket
 } from "lucide-react";
 import type { Testimonial } from "@/types";
+import Reveal from "./Reveal";
 
 interface LandingViewProps {
   onEnterPlatform: () => void;
@@ -110,6 +111,7 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
       </header>
 
       {/* 3. HERO SHOWCASE SECTION */}
+      <Reveal>
       <section className="relative py-20 sm:py-24 px-6 overflow-hidden">
         {/* Ambient Gradient glow backdrop */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -167,8 +169,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* 3b. TRUST / PRACTICE-PLATFORM LOGO BAR */}
+      <Reveal>
       <section className="max-w-5xl mx-auto px-6 pb-16">
         <p className="text-center text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-5">
           Train for qualification exams on every major platform
@@ -184,8 +188,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           ))}
         </div>
       </section>
+      </Reveal>
 
       {/* 4. KEY STATS BANNER */}
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 pb-16">
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-850 rounded-3xl p-6 sm:p-10 shadow-xs grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
           <div className="space-y-1">
@@ -206,8 +212,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* 5. INTERACTIVE "WHAT YOU'LL DO" MODULE */}
+      <Reveal>
       <section id="what-you-do" className="bg-slate-100/50 dark:bg-slate-900/30 py-20 border-y border-slate-200/50 dark:border-slate-900 px-6">
         <div className="max-w-5xl mx-auto space-y-12">
           
@@ -438,8 +446,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
 
         </div>
       </section>
+      </Reveal>
 
       {/* 6. "WHY JOIN" VALUE PROPOSITIONS SECTION */}
+      <Reveal>
       <section id="why-join" className="py-20 max-w-6xl mx-auto px-6 space-y-12">
         <div className="text-center space-y-3">
           <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -540,8 +550,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* 7. THREE SIMPLE STEPS */}
+      <Reveal>
       <section className="bg-slate-100/50 dark:bg-slate-900/30 py-20 border-y border-slate-200/50 dark:border-slate-900 px-6">
         <div className="max-w-5xl mx-auto space-y-12">
           <div className="text-center space-y-3">
@@ -593,8 +605,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* 7b. WHO WE ARE */}
+      <Reveal>
       <section id="who-we-are" className="py-20 max-w-4xl mx-auto px-6 text-center space-y-4">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
           Who We Are
@@ -606,8 +620,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           honest feedback, and a clear, structured path from "never done this before" to "qualified and hired."
         </p>
       </section>
+      </Reveal>
 
       {/* 8. REVIEWS / TESTIMONIAL SLIDER SECTION */}
+      <Reveal>
       <section id="reviews" className="py-20 max-w-4xl mx-auto px-6 space-y-12">
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-1.5 bg-[#EEF2FF] dark:bg-indigo-950/50 text-[#4F46E5] dark:text-indigo-400 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -713,8 +729,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           </>
         )}
       </section>
+      </Reveal>
 
       {/* 9. FREQUENTLY ASKED QUESTIONS (FAQ ACCORDION) */}
+      <Reveal>
       <section id="faq" className="bg-slate-100/50 dark:bg-slate-900/30 py-20 border-t border-slate-200/50 dark:border-slate-900 px-6">
         <div className="max-w-3xl mx-auto space-y-12">
           
@@ -761,8 +779,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
 
         </div>
       </section>
+      </Reveal>
 
       {/* 10. FINAL BOTTOM HERO CALL-TO-ACTION (CTA) */}
+      <Reveal>
       <section className="py-20 sm:py-24 px-6 text-center relative overflow-hidden bg-slate-50 dark:bg-slate-950">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -796,8 +816,10 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* 10b. CONTACT */}
+      <Reveal>
       <section id="contact" className="py-16 max-w-2xl mx-auto px-6 text-center space-y-3">
         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
           Contact Us
@@ -809,6 +831,7 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
           </a>
         </p>
       </section>
+      </Reveal>
 
       {/* 11. FOOTER */}
       <footer className="border-t border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-900 py-12 px-6 transition-colors">
