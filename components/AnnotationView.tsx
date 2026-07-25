@@ -10,6 +10,8 @@ import {
   ChevronRight,
   HelpCircle,
   ShieldAlert,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { Module, UserStats, AnnotationTask, AnnotationSubmission } from "../types";
 
@@ -18,6 +20,8 @@ interface AnnotationViewProps {
   stats: UserStats;
   onSubmit: (taskId: string, submission: AnnotationSubmission) => void;
   onBack: () => void;
+  isPaidUser: boolean;
+  onRequireUpgrade: () => void;
 }
 
 function TaskReview({
@@ -26,12 +30,16 @@ function TaskReview({
   existing,
   onSubmit,
   onBack,
+  isPaidUser,
+  onRequireUpgrade,
 }: {
   task: AnnotationTask;
   moduleTitle: string;
   existing?: AnnotationSubmission;
   onSubmit: (taskId: string, submission: AnnotationSubmission) => void;
   onBack: () => void;
+  isPaidUser: boolean;
+  onRequireUpgrade: () => void;
 }) {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | undefined>(
     existing?.selectedOptionIndex,
@@ -130,21 +138,26 @@ function TaskReview({
                   optionBg = "bg-rose-50/30 border-rose-500 dark:bg-rose-950/20 text-rose-800 dark:text-rose-450";
                 }
               }
+              if (!isPaidUser) {
+                optionBg =
+                  "bg-slate-50/60 dark:bg-slate-850/60 border-slate-150 dark:border-slate-800 text-slate-400 dark:text-slate-500";
+              }
 
               return (
                 <button
                   key={idx}
-                  disabled={isSubmitted}
+                  disabled={isSubmitted || !isPaidUser}
                   onClick={() => setSelectedOptionIndex(idx)}
                   className={`text-left p-4.5 rounded-xl border text-xs transition-all flex justify-between items-center ${optionBg} ${
-                    !isSubmitted ? "cursor-pointer" : "cursor-default"
+                    !isSubmitted && isPaidUser ? "cursor-pointer" : "cursor-not-allowed"
                   }`}
                 >
                   <span>{opt}</span>
-                  {isSubmitted && idx === task.correctOptionIndex && (
+                  {!isPaidUser && <Lock className="w-3.5 h-3.5 shrink-0" />}
+                  {isPaidUser && isSubmitted && idx === task.correctOptionIndex && (
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   )}
-                  {isSubmitted && isSelected && !isCorrect && (
+                  {isPaidUser && isSubmitted && isSelected && !isCorrect && (
                     <XCircle className="w-4 h-4 text-rose-600" />
                   )}
                 </button>
@@ -153,7 +166,7 @@ function TaskReview({
           </div>
         </div>
 
-        {!isSubmitted && (
+        {!isSubmitted && isPaidUser && (
           <div className="space-y-1.5">
             <p className="text-xs font-bold text-slate-900 dark:text-white">Your Rationale</p>
             <textarea
@@ -166,7 +179,15 @@ function TaskReview({
           </div>
         )}
 
-        {!isSubmitted ? (
+        {!isPaidUser ? (
+          <button
+            onClick={onRequireUpgrade}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            Upgrade to Professional to Submit
+          </button>
+        ) : !isSubmitted ? (
           <button
             disabled={!hasChosen || !rationale.trim()}
             onClick={handleSubmit}
@@ -234,6 +255,8 @@ export default function AnnotationView({
   stats,
   onSubmit,
   onBack,
+  isPaidUser,
+  onRequireUpgrade,
 }: AnnotationViewProps) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -251,6 +274,8 @@ export default function AnnotationView({
         existing={stats.annotationSubmissions?.[selected.task.id]}
         onSubmit={onSubmit}
         onBack={() => setSelectedTaskId(null)}
+        isPaidUser={isPaidUser}
+        onRequireUpgrade={onRequireUpgrade}
       />
     );
   }
@@ -276,6 +301,21 @@ export default function AnnotationView({
           Review image, video, and audio content the way real AI-training platforms do: answer the question and justify your rationale.
         </p>
       </div>
+
+      {!isPaidUser && (
+        <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-900/30 rounded-2xl p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-indigo-800 dark:text-indigo-300">
+            <Lock className="w-4 h-4 shrink-0" />
+            <span>You can preview these tasks for free — upgrade to submit annotations and track your annotation skill score.</span>
+          </div>
+          <button
+            onClick={onRequireUpgrade}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3.5 py-2 rounded-lg text-[11px] transition-colors cursor-pointer"
+          >
+            Upgrade
+          </button>
+        </div>
+      )}
 
       {tasksWithModule.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center shadow-xs">

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  Terminal, Award, Star, AlertTriangle, Play, HelpCircle, 
+import {
+  Terminal, Award, Star, AlertTriangle, Play, HelpCircle,
   ChevronRight, ArrowRight, ShieldCheck, CornerDownRight, Zap, ArrowLeft,
-  Clock, RotateCcw, CheckCircle2, FileText, Printer, Check
+  Clock, RotateCcw, CheckCircle2, FileText, Printer, Check, Lock, Sparkles
 } from "lucide-react";
 import { UserStats, SimulationTask, ExamQuestion } from "../types";
 import { SIMULATION_TASKS, EXAM_QUESTIONS } from "../data/modules";
@@ -14,25 +14,32 @@ interface SimulationViewProps {
   onBypass: () => void;
   onBack: () => void;
   simulationTasks?: SimulationTask[];
-  
+
   // Added Exam view properties
   isExamUnlocked: boolean;
   examQuestions?: ExamQuestion[];
   onExamComplete: (score: number) => void;
   initialMode?: "sandbox" | "exam" | "interview";
+
+  // Membership gating: content previews are visible to everyone, but
+  // starting the sandbox/exam requires a paid plan.
+  isPaidUser: boolean;
+  onRequireUpgrade: () => void;
 }
 
-export default function SimulationView({ 
-  stats, 
-  onComplete, 
-  isUnlocked, 
-  onBypass, 
-  onBack, 
+export default function SimulationView({
+  stats,
+  onComplete,
+  isUnlocked,
+  onBypass,
+  onBack,
   simulationTasks,
   isExamUnlocked,
   examQuestions,
   onExamComplete,
-  initialMode = "sandbox"
+  initialMode = "sandbox",
+  isPaidUser,
+  onRequireUpgrade,
 }: SimulationViewProps) {
   const [simMode, setSimMode] = useState<"sandbox" | "exam" | "interview">(initialMode || "sandbox");
   const [hasStarted, setHasStarted] = useState(false);
@@ -290,7 +297,72 @@ export default function SimulationView({
           </button>
         </div>
 
-        {!isCurrentModeUnlocked ? (
+        {!isPaidUser ? (
+          /* Membership paywall preview: show real content, disable the
+             interactive parts, and route "Start" to the upgrade flow
+             instead of a hard redirect at the nav level. */
+          simMode === "sandbox" ? (
+            <div className="space-y-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4 opacity-90">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] bg-slate-100 dark:bg-slate-850 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                    Preview — Task 1 of {tasks.length}
+                  </span>
+                  <Lock className="w-4 h-4 text-slate-400" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{tasks[0]?.title}</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed bg-slate-50 dark:bg-slate-850 rounded-xl p-4">
+                  {tasks[0]?.prompt}
+                </p>
+                <div className="flex items-center gap-1.5 pt-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star key={n} className="w-5 h-5 text-slate-300 dark:text-slate-700" />
+                  ))}
+                  <span className="text-[10px] text-slate-400 ml-2">Rating locked</span>
+                </div>
+              </div>
+              <button
+                onClick={onRequireUpgrade}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-6 py-3.5 text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                Upgrade to Professional to Start Practicing
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4 opacity-90">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] bg-slate-100 dark:bg-slate-850 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                    Preview — Question 1 of {questions.length}
+                  </span>
+                  <Lock className="w-4 h-4 text-slate-400" />
+                </div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                  {questions[0]?.question}
+                </p>
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  {questions[0]?.options.map((option, idx) => (
+                    <div
+                      key={idx}
+                      className="text-left p-4 rounded-xl border border-slate-150 dark:border-slate-800 text-xs bg-slate-50/60 dark:bg-slate-850/60 text-slate-400 dark:text-slate-500 flex items-center justify-between cursor-not-allowed"
+                    >
+                      <span>{option}</span>
+                      <Lock className="w-3.5 h-3.5 shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={onRequireUpgrade}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-6 py-3.5 text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                Upgrade to Professional to Start the Exam
+              </button>
+            </div>
+          )
+        ) : !isCurrentModeUnlocked ? (
           /* Render Gate/Lock Screen for the selected mode */
           simMode === "sandbox" ? (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-10 shadow-sm text-center space-y-6">

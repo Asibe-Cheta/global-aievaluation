@@ -586,15 +586,12 @@ export default function App({
               Learn
             </button>
 
-            {/* Real World Practice group: collapsible parent, entirely paid-tier gated */}
+            {/* Real World Practice group: collapsible parent. Free users can
+                still open it and preview content — the paywall shows up
+                when they try to actually start/answer, not on navigation. */}
             <button
               id="tab-btn-practice-group"
               onClick={() => {
-                if (!isPaidTier(stats.membershipTier)) {
-                  setActiveTab("membership");
-                  setMobileMenuOpen(false);
-                  return;
-                }
                 setPracticeGroupOpen((v) => !v);
               }}
               className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
@@ -607,16 +604,19 @@ export default function App({
                 <Briefcase className="w-4 h-4" />
                 Real World Practice
               </div>
-              {!isPaidTier(stats.membershipTier) ? (
-                <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-              ) : practiceGroupOpen ? (
-                <ChevronUp className="w-3.5 h-3.5 shrink-0" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-              )}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {!isPaidTier(stats.membershipTier) && (
+                  <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                )}
+                {practiceGroupOpen ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </div>
             </button>
 
-            {practiceGroupOpen && isPaidTier(stats.membershipTier) && (
+            {practiceGroupOpen && (
               <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-slate-850 ml-4">
                 <button
                   id="tab-btn-simulations"
@@ -633,7 +633,7 @@ export default function App({
                   }`}
                 >
                   <span>Simulation Tasks</span>
-                  {!isSimUnlocked && (
+                  {(!isPaidTier(stats.membershipTier) || !isSimUnlocked) && (
                     <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
                 </button>
@@ -645,13 +645,16 @@ export default function App({
                     setActiveLessonId(null);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                     activeTab === "annotation"
                       ? "bg-[#4F46E5] text-white shadow-sm font-bold"
                       : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
                   }`}
                 >
-                  Data Annotation
+                  <span>Data Annotation</span>
+                  {!isPaidTier(stats.membershipTier) && (
+                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                  )}
                 </button>
 
                 <button
@@ -661,13 +664,16 @@ export default function App({
                     setActiveLessonId(null);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                     activeTab === "exam_practice"
                       ? "bg-[#4F46E5] text-white shadow-sm font-bold"
                       : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
                   }`}
                 >
-                  Exam Practice
+                  <span>Exam Practice</span>
+                  {!isPaidTier(stats.membershipTier) && (
+                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                  )}
                 </button>
               </div>
             )}
@@ -675,11 +681,6 @@ export default function App({
             <button
               id="tab-btn-interview"
               onClick={() => {
-                if (!isPaidTier(stats.membershipTier)) {
-                  setActiveTab("membership");
-                  setMobileMenuOpen(false);
-                  return;
-                }
                 setActiveTab("interview");
                 setActiveLessonId(null);
                 setMobileMenuOpen(false);
@@ -1483,6 +1484,8 @@ export default function App({
                   examQuestions={examPracticeQuestions}
                   onExamComplete={handleExamComplete}
                   initialMode={activeTab === "exam_practice" ? "exam" : simViewInitialMode}
+                  isPaidUser={isPaidTier(stats.membershipTier)}
+                  onRequireUpgrade={() => setActiveTab("membership")}
                 />
               )}
 
@@ -1492,6 +1495,8 @@ export default function App({
                   stats={stats}
                   onSubmit={handleAnnotationSubmit}
                   onBack={() => setActiveTab("dashboard")}
+                  isPaidUser={isPaidTier(stats.membershipTier)}
+                  onRequireUpgrade={() => setActiveTab("membership")}
                 />
               )}
 
