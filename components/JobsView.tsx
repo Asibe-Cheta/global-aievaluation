@@ -14,9 +14,10 @@ interface JobsViewProps {
   onBack: () => void;
   setActiveTab?: (tab: string) => void;
   setSimSubMode?: (mode: "sandbox" | "exam") => void;
+  onStartInterviewForJob?: (job: JobOpportunity) => void;
 }
 
-export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubMode }: JobsViewProps) {
+export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubMode, onStartInterviewForJob }: JobsViewProps) {
   const jobsList = jobs && jobs.length > 0 ? jobs : DEFAULT_JOBS;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -370,6 +371,7 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
                               </button>
                               <button
                                 onClick={() => {
+                                  if (onStartInterviewForJob) onStartInterviewForJob(job);
                                   if (setActiveTab) setActiveTab("interview");
                                 }}
                                 className="font-bold py-2 px-3 rounded-lg text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer transition-all bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-150/40 dark:border-indigo-900/30"

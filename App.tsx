@@ -80,6 +80,25 @@ function applySkillBoosts(
   return updated;
 }
 
+// When a user launches the AI Interview Simulator directly from a job
+// listing, we skip the domain-picker step and pre-select the domain/role
+// that best matches that job's field, so the interview is tailored to the
+// job they're actually going for.
+function mapJobFieldToInterviewRoleId(field: string): string {
+  switch (field) {
+    case "AI Safety":
+      return "safety";
+    case "Coding & SWE":
+      return "coding";
+    case "Medical & Bio":
+      return "domain";
+    case "Consulting":
+      return "reasoning";
+    default:
+      return "evaluator";
+  }
+}
+
 interface AppProps {
   userId: string;
   moduleCurriculum: Module[];
@@ -104,6 +123,8 @@ export default function App({
   const [simViewInitialMode, setSimViewInitialMode] = useState<
     "sandbox" | "exam" | "interview"
   >("sandbox");
+  const [interviewInitialRoleId, setInterviewInitialRoleId] = useState<string | null>(null);
+  const [interviewJobTitle, setInterviewJobTitle] = useState<string | null>(null);
 
   const activeModule = useMemo(() => {
     return (
@@ -679,6 +700,8 @@ export default function App({
             <button
               id="tab-btn-interview"
               onClick={() => {
+                setInterviewInitialRoleId(null);
+                setInterviewJobTitle(null);
                 setActiveTab("interview");
                 setActiveLessonId(null);
                 setMobileMenuOpen(false);
@@ -1546,6 +1569,8 @@ export default function App({
                       stats={stats}
                       onComplete={handleSimulationComplete}
                       onBack={() => setActiveTab("dashboard")}
+                      initialRoleId={interviewInitialRoleId}
+                      jobTitle={interviewJobTitle}
                     />
                   )}
                 </div>
@@ -1591,6 +1616,10 @@ export default function App({
                   onBack={() => setActiveTab("dashboard")}
                   setActiveTab={setActiveTab}
                   setSimSubMode={setSimViewInitialMode}
+                  onStartInterviewForJob={(job) => {
+                    setInterviewInitialRoleId(mapJobFieldToInterviewRoleId(job.field));
+                    setInterviewJobTitle(job.title);
+                  }}
                 />
               )}
 

@@ -13,7 +13,14 @@ interface InterviewSimulatorProps {
   stats: UserStats;
   onComplete: (score: number, strengths: string[], weaknesses: string[]) => void;
   onBack: () => void;
+  // Set when the user launched the interview from a specific job listing
+  // (Explore Opportunities): the matching domain/role is pre-selected and
+  // the domain-picker step is skipped entirely.
+  initialRoleId?: string | null;
+  jobTitle?: string | null;
 }
+
+const MAX_INTERVIEW_SECONDS = 10 * 60;
 
 interface InterviewQuestion {
   id: string;
@@ -201,12 +208,35 @@ function TypewriterText({ text, isLast, onComplete, speed = 40 }: TypewriterText
   return <span>{displayedText}</span>;
 }
 
-export default function InterviewSimulator({ stats, onComplete, onBack }: InterviewSimulatorProps) {
-  const [interviewStep, setInterviewStep] = useState<"setup_platform" | "setup_role" | "setup_profile" | "analysis" | "interviewing" | "report">("setup_platform");
-  
-  // Selection States
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
-  const [selectedRole, setSelectedRole] = useState<string>("");
+export default function InterviewSimulator({ stats, onComplete, onBack, initialRoleId, jobTitle }: InterviewSimulatorProps) {
+  const [interviewStep, setInterviewStep] = useState<"setup_role" | "setup_profile" | "analysis" | "interviewing" | "report">(
+    initialRoleId ? "setup_profile" : "setup_role",
+  );
+
+  // Selection States. Platform is no longer a user choice — every
+  // interview runs against a generic "General AI Evaluator" profile,
+  // with the domain/role doing the real tailoring.
+  const [selectedPlatform] = useState<string>("general");
+  const [selectedRole, setSelectedRole] = useState<string>(initialRoleId ?? "");
+
+  const [secondsRemaining, setSecondsRemaining] = useState(MAX_INTERVIEW_SECONDS);
+  const autoFinishedRef = useRef(false);
+
+  // Hard cap: interviews auto-finish and generate a report at 10 minutes,
+  // scored on whatever's been answered so far.
+  useEffect(() => {
+    if (interviewStep !== "interviewing") return;
+    if (secondsRemaining <= 0) {
+      if (!autoFinishedRef.current) {
+        autoFinishedRef.current = true;
+        handleGenerateReport();
+      }
+      return;
+    }
+    const timeout = setTimeout(() => setSecondsRemaining((s) => s - 1), 1000);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interviewStep, secondsRemaining]);
   
   // Questionnaire Onboarding Fields
   const [profile, setProfile] = useState({
@@ -788,12 +818,14 @@ I have fully calibrated our virtual assessment loop to test your specific transi
     setActivePhaseIndex(0);
     setHasRespondedToMainQuestion(false);
     setUserAnswers({});
-    
+    setSecondsRemaining(MAX_INTERVIEW_SECONDS);
+    autoFinishedRef.current = false;
+
     // Welcome message
     setIsInterviewerTyping(true);
     setTimeout(() => {
       const firstQ = interviewQuestions[0];
-      const initialGreeting = `Welcome to the virtual assessment board, ${profile.name}. I am your automated lead interviewer for today. I will guide you through five phases of progressive assessment to test your suitability for ${PLATFORMS.find(p => p.id === selectedPlatform)?.name} as a ${ROLES.find(r => r.id === selectedRole)?.name}.
+      const initialGreeting = `Welcome to the virtual assessment board, ${profile.name}. I am your automated lead interviewer for today. I will guide you through five phases of progressive assessment to test your suitability as a ${ROLES.find(r => r.id === selectedRole)?.name}.
 
 We will begin with Phase 1: ${firstQ.phaseName} (Weight: ${firstQ.weight}). 
 
@@ -1121,9 +1153,8 @@ ${p4ChallengeIntro}`,
 
   // Helper: Reset Interview State for retakes
   const handleRetakeInterview = () => {
-    setInterviewStep("setup_platform");
-    setSelectedPlatform("");
-    setSelectedRole("");
+    setInterviewStep(initialRoleId ? "setup_profile" : "setup_role");
+    setSelectedRole(initialRoleId ?? "");
     setP4SelectedModel("");
     setP4Ratings({ A: 0, B: 0 });
     setP4Rationale("");
@@ -1132,101 +1163,19 @@ ${p4ChallengeIntro}`,
     setReportData(null);
   };
 
-  // --- RENDER PLATFORM SELECTION SCREEN ---
-  if (interviewStep === "setup_platform") {
-    return (
-      <div className="space-y-6 max-w-4xl mx-auto p-1 animate-fade-in">
-        <div className="space-y-2">
-          <span className="text-[10px] uppercase font-bold text-indigo-650 dark:text-indigo-400 tracking-wider font-mono">
-            Step 1 of 3 &bull; Configuration
-          </span>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Select Your Target Hiring Platform
-          </h2>
-          <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-            The AI interview engine adapts its pacing, questions, challenge severity, and rubric constraints to replicate the exact hiring screens of leading platforms.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {PLATFORMS.map((plat) => {
-            const isSelected = selectedPlatform === plat.id;
-            return (
-              <button
-                key={plat.id}
-                onClick={() => setSelectedPlatform(plat.id)}
-                className={`text-left p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
-                  isSelected 
-                    ? "border-indigo-600 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-md ring-2 ring-indigo-500/20 scale-[1.01]" 
-                    : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-slate-300 hover:shadow-sm"
-                }`}
-              >
-                <div className="space-y-2 w-full">
-                  <div className="flex items-center justify-between w-full">
-                    <span className="p-2 bg-slate-50 dark:bg-slate-850 rounded-xl">
-                      {plat.id === "mercor" && <Brain className="w-5 h-5 text-purple-500" />}
-                      {plat.id === "micro1" && <Zap className="w-5 h-5 text-blue-500" />}
-                      {plat.id === "scale" && <Award className="w-5 h-5 text-emerald-500" />}
-                      {plat.id === "outlier" && <Terminal className="w-5 h-5 text-orange-500" />}
-                      {plat.id === "alignerr" && <Sparkles className="w-5 h-5 text-pink-500" />}
-                      {plat.id === "invisible" && <Sliders className="w-5 h-5 text-cyan-500" />}
-                      {plat.id === "general" && <Cpu className="w-5 h-5 text-indigo-500" />}
-                    </span>
-                    <span className="text-[9px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded uppercase">
-                      {plat.difficulty}
-                    </span>
-                  </div>
-
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">{plat.name}</h3>
-                  <p className="text-[11px] text-slate-500 leading-normal">{plat.style}</p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 w-full flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                  <span>FOCUS:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{plat.focus}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-850">
-          <button
-            onClick={onBack}
-            className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Arenas
-          </button>
-          
-          <button
-            disabled={!selectedPlatform}
-            onClick={() => setInterviewStep("setup_role")}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
-              selectedPlatform 
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow" 
-                : "bg-slate-100 text-slate-400 cursor-not-allowed"
-            }`}
-          >
-            Next: Select Role <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // --- RENDER ROLE SELECTION SCREEN ---
+  // --- RENDER DOMAIN SELECTION SCREEN ---
   if (interviewStep === "setup_role") {
     return (
       <div className="space-y-6 max-w-4xl mx-auto p-1 animate-fade-in">
         <div className="space-y-2">
           <span className="text-[10px] uppercase font-bold text-indigo-650 dark:text-indigo-400 tracking-wider font-mono">
-            Step 2 of 3 &bull; Configuration
+            Step 1 of 2 &bull; Configuration
           </span>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Choose Your Target Evaluation Role
+            Choose Your Domain
           </h2>
           <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-            Your role determines the technical depth, scenario exercises (Phase 4 coding/general options), and score weighting standards.
+            Your domain determines the technical depth, scenario exercises (Phase 4 coding/general options), and score weighting standards.
           </p>
         </div>
 
@@ -1259,12 +1208,12 @@ ${p4ChallengeIntro}`,
 
         <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-850">
           <button
-            onClick={() => setInterviewStep("setup_platform")}
+            onClick={onBack}
             className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Platform
+            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </button>
-          
+
           <button
             disabled={!selectedRole}
             onClick={() => setInterviewStep("setup_profile")}
@@ -1287,7 +1236,7 @@ ${p4ChallengeIntro}`,
       <div className="space-y-6 max-w-3xl mx-auto p-1 animate-fade-in">
         <div className="space-y-2">
           <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider font-mono">
-            Step 3 of 3 &bull; Onboarding Profile
+            Step 2 of 2 &bull; Onboarding Profile
           </span>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             Build Your Assessment Profile
@@ -1295,6 +1244,11 @@ ${p4ChallengeIntro}`,
           <p className="text-xs text-slate-500 leading-relaxed">
             Upload your resume or CV. Our alignment parsing engine will analyze your background to dynamically calibrate prompt scenarios, difficulty levels, and role-specific constraints.
           </p>
+          {jobTitle && (
+            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+              Interviewing for: {jobTitle}
+            </p>
+          )}
         </div>
 
         {/* Drag & Drop Upload Container */}
@@ -1546,12 +1500,12 @@ ${p4ChallengeIntro}`,
         {/* Action Controls */}
         <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-850">
           <button
-            onClick={() => setInterviewStep("setup_role")}
+            onClick={() => (initialRoleId ? onBack() : setInterviewStep("setup_role"))}
             className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Role
+            <ArrowLeft className="w-4 h-4" /> {initialRoleId ? "Back to Dashboard" : "Back to Domain"}
           </button>
-          
+
           <button
             onClick={handleRunProfileAnalysis}
             disabled={!uploadedFile && !profile.name}
@@ -1647,20 +1601,31 @@ ${p4ChallengeIntro}`,
   // --- RENDER RUNNING ACTIVE INTERVIEW CONSOLE ---
   if (interviewStep === "interviewing") {
     const currentQ = interviewQuestions[activePhaseIndex];
+    const timerMinutes = Math.floor(secondsRemaining / 60);
+    const timerSeconds = secondsRemaining % 60;
+    const timerLow = secondsRemaining <= 60;
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fade-in pl-1">
-        
+
         {/* 1. Left Progress Panel */}
         <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm h-fit space-y-6">
           <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-            <span className="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-450 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider block w-fit">
-              Hiring Portal Simulation
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-450 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider block w-fit">
+                Hiring Portal Simulation
+              </span>
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
+                timerLow ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400" : "bg-slate-100 text-slate-500 dark:bg-slate-850 dark:text-slate-400"
+              }`}>
+                <Clock className="w-3 h-3" />
+                {timerMinutes}:{timerSeconds.toString().padStart(2, "0")}
+              </span>
+            </div>
             <h3 className="text-sm font-black text-slate-900 dark:text-white mt-1.5 leading-tight uppercase font-sans tracking-tight">
-              {PLATFORMS.find(p => p.id === selectedPlatform)?.name} Assessment
+              AI Evaluator Assessment
             </h3>
-            <span className="text-[10px] text-slate-400 block mt-1">Role: {ROLES.find(r => r.id === selectedRole)?.name}</span>
+            <span className="text-[10px] text-slate-400 block mt-1">Domain: {ROLES.find(r => r.id === selectedRole)?.name}</span>
           </div>
 
           <div className="space-y-4">
@@ -2156,7 +2121,7 @@ ${p4ChallengeIntro}`,
               </h2>
               
               <p className="text-xs text-indigo-200/80 max-w-lg leading-relaxed font-sans">
-                Completed assessment for <span className="font-bold text-white">{PLATFORMS.find(p => p.id === selectedPlatform)?.name}</span> as a <span className="font-bold text-white">{ROLES.find(r => r.id === selectedRole)?.name}</span>. Diagnostic grades compiled in core RLHF competencies.
+                Completed assessment as a <span className="font-bold text-white">{ROLES.find(r => r.id === selectedRole)?.name}</span>. Diagnostic grades compiled in core RLHF competencies.
               </p>
               
               <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-1 font-mono text-[11px] text-indigo-305">
