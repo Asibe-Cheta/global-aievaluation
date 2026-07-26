@@ -80,6 +80,10 @@ function applySkillBoosts(
   return updated;
 }
 
+// TEMP: paywall for the AI Interview Simulator disabled for testing.
+// Flip back to false to restore the Professional/Career Accelerator gate.
+const TEMP_DISABLE_INTERVIEW_PAYWALL = true;
+
 // When a user launches the AI Interview Simulator directly from a job
 // listing, we skip the domain-picker step and pre-select the domain/role
 // that best matches that job's field, so the interview is tailored to the
@@ -1527,7 +1531,7 @@ export default function App({
                     <ArrowLeft className="w-4 h-4" />
                     Back to Dashboard
                   </button>
-                  {stats.membershipTier === "starter" ? (
+                  {stats.membershipTier === "starter" && !TEMP_DISABLE_INTERVIEW_PAYWALL ? (
                     <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 border-2 border-slate-200 dark:border-slate-800 shadow-lg text-center max-w-3xl mx-auto space-y-6 relative overflow-hidden">
                       <div className="absolute right-0 top-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-2xl"></div>
                       <div className="inline-flex p-4.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
