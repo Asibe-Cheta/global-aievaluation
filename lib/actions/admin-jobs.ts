@@ -8,14 +8,7 @@ export interface JobFormInput {
   title: string;
   payRate: string;
   payRateMinCents: number | null;
-  referralReward: string;
-  badge: string;
-  hiredText: string;
-  category: "project-based" | "one-time" | "talent-network";
   field: string;
-  avatars: string; // comma-separated in the form, split into an array here
-  requiredLessonId: string;
-  requiredLessonName: string;
   description: string;
   skillsNeeded: string; // comma-separated in the form, split into an array here
   applicationUrl: string;
@@ -35,14 +28,7 @@ function toRow(input: JobFormInput) {
     title: input.title,
     pay_rate: input.payRate || null,
     pay_rate_min_cents: input.payRateMinCents,
-    referral_reward: input.referralReward || null,
-    badge: input.badge || null,
-    hired_text: input.hiredText || null,
-    category: input.category,
     field: input.field,
-    avatars: splitList(input.avatars),
-    required_lesson_id: input.requiredLessonId || null,
-    required_lesson_name: input.requiredLessonName || null,
     description: input.description || null,
     skills_needed: splitList(input.skillsNeeded),
     application_url: input.applicationUrl,

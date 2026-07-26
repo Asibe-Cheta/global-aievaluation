@@ -21,16 +21,7 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
   const [payRateMinCents, setPayRateMinCents] = useState<string>(
     job?.pay_rate_min_cents != null ? String(job.pay_rate_min_cents) : "",
   );
-  const [referralReward, setReferralReward] = useState(job?.referral_reward ?? "");
-  const [badge, setBadge] = useState(job?.badge ?? "");
-  const [hiredText, setHiredText] = useState(job?.hired_text ?? "");
-  const [category, setCategory] = useState<JobFormInput["category"]>(
-    job?.category ?? "project-based",
-  );
   const [field, setField] = useState(job?.field ?? "");
-  const [avatars, setAvatars] = useState((job?.avatars ?? []).join(", "));
-  const [requiredLessonId, setRequiredLessonId] = useState(job?.required_lesson_id ?? "");
-  const [requiredLessonName, setRequiredLessonName] = useState(job?.required_lesson_name ?? "");
   const [description, setDescription] = useState(job?.description ?? "");
   const [skillsNeeded, setSkillsNeeded] = useState((job?.skills_needed ?? []).join(", "));
   const [applicationUrl, setApplicationUrl] = useState(
@@ -51,14 +42,7 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
       title,
       payRate,
       payRateMinCents: payRateMinCents ? Number(payRateMinCents) : null,
-      referralReward,
-      badge,
-      hiredText,
-      category,
       field,
-      avatars,
-      requiredLessonId,
-      requiredLessonName,
       description,
       skillsNeeded,
       applicationUrl,
@@ -121,47 +105,6 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
         </div>
 
         <div>
-          <label className={labelClass}>Referral Reward</label>
-          <input
-            className={inputClass}
-            value={referralReward}
-            onChange={(e) => setReferralReward(e.target.value)}
-            placeholder="$280"
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Badge (optional)</label>
-          <input
-            className={inputClass}
-            value={badge}
-            onChange={(e) => setBadge(e.target.value)}
-            placeholder="1-click apply"
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Hired Text (optional)</label>
-          <input
-            className={inputClass}
-            value={hiredText}
-            onChange={(e) => setHiredText(e.target.value)}
-            placeholder="98 hired this month"
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Category</label>
-          <select
-            className={inputClass}
-            value={category}
-            onChange={(e) => setCategory(e.target.value as JobFormInput["category"])}
-          >
-            <option value="project-based">project-based</option>
-            <option value="one-time">one-time</option>
-            <option value="talent-network">talent-network</option>
-          </select>
-        </div>
-
-        <div>
           <label className={labelClass}>Field</label>
           <input
             className={inputClass}
@@ -169,32 +112,6 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
             onChange={(e) => setField(e.target.value)}
             placeholder="Generalist, AI Safety, Coding & SWE, ..."
             required
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Avatars (comma-separated initials)</label>
-          <input
-            className={inputClass}
-            value={avatars}
-            onChange={(e) => setAvatars(e.target.value)}
-            placeholder="F, A, P"
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Required Lesson ID (optional)</label>
-          <input
-            className={inputClass}
-            value={requiredLessonId}
-            onChange={(e) => setRequiredLessonId(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Required Lesson Name (optional)</label>
-          <input
-            className={inputClass}
-            value={requiredLessonName}
-            onChange={(e) => setRequiredLessonName(e.target.value)}
           />
         </div>
 

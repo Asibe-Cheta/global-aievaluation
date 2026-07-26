@@ -182,6 +182,7 @@ export async function getJobs(): Promise<JobOpportunity[]> {
     id: j.id,
     title: j.title,
     payRate: j.pay_rate ?? "",
+    applicationUrl: j.application_url ?? undefined,
     referralReward: j.referral_reward ?? "",
     badge: j.badge ?? undefined,
     hiredText: j.hired_text ?? undefined,

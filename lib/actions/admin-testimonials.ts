@@ -4,36 +4,82 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export interface TestimonialFormInput {
-  name: string;
-  role: string;
-  quote: string;
-  avatarUrl: string;
-  rating: number | null;
-  isActive: boolean;
-  sortOrder: number;
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
+const BUCKET = "testimonial-media";
+
+function slugFileName(name: string) {
+  return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
 }
 
-function toRow(input: TestimonialFormInput) {
+async function uploadAvatar(
+  supabase: SupabaseServerClient,
+  id: string,
+  file: File,
+): Promise<string> {
+  if (file.size > MAX_FILE_BYTES) {
+    throw new Error(`${file.name} is too large (max 5MB).`);
+  }
+
+  const path = `${id}/${Date.now()}-${slugFileName(file.name)}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { contentType: file.type || undefined });
+
+  if (error) throw new Error(`Upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function readFields(formData: FormData) {
   return {
-    name: input.name,
-    role: input.role || null,
-    quote: input.quote,
-    avatar_url: input.avatarUrl || null,
-    rating: input.rating,
-    is_active: input.isActive,
-    sort_order: input.sortOrder,
+    name: String(formData.get("name") ?? ""),
+    role: String(formData.get("role") ?? ""),
+    quote: String(formData.get("quote") ?? ""),
+    avatarUrl: String(formData.get("avatarUrl") ?? ""),
+    rating: formData.get("rating") ? Number(formData.get("rating")) : null,
+    isActive: formData.get("isActive") === "true",
+    sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
   };
+}
+
+function readFile(formData: FormData, key: string): File | null {
+  const file = formData.get(key);
+  return file instanceof File && file.size > 0 ? file : null;
 }
 
 export async function createTestimonial(
   id: string,
-  input: TestimonialFormInput,
+  formData: FormData,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("testimonials")
-    .insert({ id, ...toRow(input) });
+  const fields = readFields(formData);
+
+  if (!fields.name) return { error: "Name is required." };
+  if (!fields.quote) return { error: "Quote is required." };
+
+  let avatarUrl = fields.avatarUrl || null;
+  const image = readFile(formData, "avatarImage");
+  if (image) {
+    try {
+      avatarUrl = await uploadAvatar(supabase, id, image);
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Upload failed." };
+    }
+  }
+
+  const { error } = await supabase.from("testimonials").insert({
+    id,
+    name: fields.name,
+    role: fields.role || null,
+    quote: fields.quote,
+    avatar_url: avatarUrl,
+    rating: fields.rating,
+    is_active: fields.isActive,
+    sort_order: fields.sortOrder,
+  });
 
   if (error) return { error: error.message };
 
@@ -44,12 +90,35 @@ export async function createTestimonial(
 
 export async function updateTestimonial(
   id: string,
-  input: TestimonialFormInput,
+  formData: FormData,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
+  const fields = readFields(formData);
+
+  if (!fields.name) return { error: "Name is required." };
+  if (!fields.quote) return { error: "Quote is required." };
+
+  let avatarUrl = fields.avatarUrl || null;
+  const image = readFile(formData, "avatarImage");
+  if (image) {
+    try {
+      avatarUrl = await uploadAvatar(supabase, id, image);
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Upload failed." };
+    }
+  }
+
   const { error } = await supabase
     .from("testimonials")
-    .update(toRow(input))
+    .update({
+      name: fields.name,
+      role: fields.role || null,
+      quote: fields.quote,
+      avatar_url: avatarUrl,
+      rating: fields.rating,
+      is_active: fields.isActive,
+      sort_order: fields.sortOrder,
+    })
     .eq("id", id);
 
   if (error) return { error: error.message };

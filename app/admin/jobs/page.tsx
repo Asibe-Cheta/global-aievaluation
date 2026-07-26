@@ -27,7 +27,7 @@ export default async function AdminJobsPage() {
           <thead className="bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">
             <tr>
               <th className="text-left px-4 py-3">Title</th>
-              <th className="text-left px-4 py-3">Category</th>
+              <th className="text-left px-4 py-3">Field</th>
               <th className="text-left px-4 py-3">Active</th>
               <th className="text-left px-4 py-3">Order</th>
               <th className="text-right px-4 py-3">Actions</th>
@@ -41,7 +41,7 @@ export default async function AdminJobsPage() {
                   <div className="text-slate-400 font-normal">{job.id}</div>
                 </td>
                 <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                  {job.category}
+                  {job.field}
                 </td>
                 <td className="px-4 py-3">
                   {job.is_active ? (

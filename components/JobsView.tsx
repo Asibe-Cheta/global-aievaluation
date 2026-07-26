@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
-  Search, SlidersHorizontal, ArrowRight, ExternalLink, Share2, 
-  Sparkles, Check, Edit3, AlertCircle, Briefcase, 
+  Search, SlidersHorizontal, ArrowRight, ExternalLink, Share2,
+  Sparkles, Edit3, AlertCircle, Briefcase,
   ChevronRight, Info, Globe, Award, HelpCircle, X, DollarSign, Users, MessageSquare,
   Activity, ShieldCheck, Lock, Sparkle, ArrowLeft
 } from "lucide-react";
@@ -19,27 +19,12 @@ interface JobsViewProps {
 export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubMode }: JobsViewProps) {
   const jobsList = jobs && jobs.length > 0 ? jobs : DEFAULT_JOBS;
 
-  // Active Tab: project-based, one-time, talent-network
-  const [activeSubTab, setActiveSubTab] = useState<"project-based" | "one-time" | "talent-network">("project-based");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedField, setSelectedField] = useState<string>("All Fields");
-  const [sortBy, setSortBy] = useState<"priority" | "pay-high" | "reward-high">("priority");
-  
+  const [sortBy, setSortBy] = useState<"priority" | "pay-high">("priority");
+
   // Track which job is expanded inline. Default to the first one so they see the gorgeous layout!
   const [expandedJobId, setExpandedJobId] = useState<string | null>("generalist-expert");
-
-  // Referral links state - saved to localStorage so the owner/contractor can customize them
-  const [referralLinks, setReferralLinks] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem("academy_referral_links");
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return {}; }
-    }
-    return {
-      "generalist-expert": "https://outlier.ai/expert-roles/?ref=academy",
-      "cybersecurity-swe": "https://outlier.ai/software-engineering/?ref=academy",
-      "cuda-engineering-expert": "https://outlier.ai/cuda/?ref=academy"
-    };
-  });
 
   const getJobSkillKey = (jobId: string): keyof UserStats["skills"] => {
     switch (jobId) {
@@ -87,25 +72,23 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
   const getJobReadiness = (job: JobOpportunity) => {
     const skillKey = getJobSkillKey(job.id);
     const skillValue = stats.skills[skillKey] || 0;
-    
-    // Base: 60% from the specific skill value, 20% from total lessons, 10% from completed req-lesson, 10% passedExams
+
+    // Base: 70% from the specific skill value, 20% from total lessons, 10% passedExams
     const lessonProgress = Math.min(100, (stats.completedLessons.length / 5) * 100);
-    const hasReqLesson = job.requiredLessonId ? stats.completedLessons.includes(job.requiredLessonId) : true;
     const examPassed = stats.passedExams.length > 0;
-    
-    let score = Math.round(skillValue * 0.6 + lessonProgress * 0.2 + (hasReqLesson ? 10 : 0) + (examPassed ? 10 : 0));
+
+    let score = Math.round(skillValue * 0.7 + lessonProgress * 0.2 + (examPassed ? 10 : 0));
     score = Math.max(15, Math.min(100, score));
     return score;
   };
 
   // Filter and sort logic
   const filteredJobs = jobsList.filter(job => {
-    const matchesTab = job.category === activeSubTab;
-    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           job.field.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           job.skillsNeeded.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesField = selectedField === "All Fields" || job.field === selectedField;
-    return matchesTab && matchesSearch && matchesField;
+    return matchesSearch && matchesField;
   }).sort((a, b) => {
     if (sortBy === "pay-high") {
       const getNum = (str: string) => {
@@ -114,30 +97,8 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
       };
       return getNum(b.payRate) - getNum(a.payRate);
     }
-    if (sortBy === "reward-high") {
-      const getNum = (str: string) => {
-        const matches = str.match(/\$(\d+)/);
-        return matches ? parseInt(matches[1], 10) : 0;
-      };
-      return getNum(b.referralReward) - getNum(a.referralReward);
-    }
     return 0;
   });
-
-  const getRequiredSkillMet = (job: JobOpportunity) => {
-    if (!job.requiredLessonId) return true;
-    
-    // Check direct matching
-    if (stats.completedLessons.includes(job.requiredLessonId)) return true;
-    
-    // Check mapped matching from training activities
-    if (job.requiredLessonId === "lesson-intro" && (stats.completedLessons.includes("l1") || stats.completedLessons.includes("les_foundations"))) return true;
-    if (job.requiredLessonId === "lesson-reasoning" && (stats.completedLessons.includes("l2") || stats.completedLessons.includes("les_ranking") || stats.completedLessons.includes("m4_l1"))) return true;
-    if (job.requiredLessonId === "lesson-safety" && (stats.completedLessons.includes("l3") || stats.completedLessons.includes("les_safety"))) return true;
-    if (job.requiredLessonId === "lesson-coding" && (stats.completedLessons.includes("l5") || stats.completedLessons.includes("les_instruction_following"))) return true;
-
-    return false;
-  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pl-1">
@@ -205,51 +166,6 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
         </div>
       )}
 
-      {/* Sub-Tabs Selector matching the Inspiration image */}
-      <div className="border-b border-slate-200 dark:border-slate-800">
-        <div className="flex gap-8">
-          <button
-            onClick={() => { setActiveSubTab("project-based"); setSelectedField("All Fields"); }}
-            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all relative cursor-pointer ${
-              activeSubTab === "project-based" 
-                ? "text-indigo-650 dark:text-indigo-400" 
-                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            }`}
-          >
-            Project-based
-            {activeSubTab === "project-based" && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-500 rounded-full"></span>
-            )}
-          </button>
-          <button
-            onClick={() => { setActiveSubTab("one-time"); setSelectedField("All Fields"); }}
-            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all relative cursor-pointer ${
-              activeSubTab === "one-time" 
-                ? "text-indigo-650 dark:text-indigo-400" 
-                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            }`}
-          >
-            One-time
-            {activeSubTab === "one-time" && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-500 rounded-full"></span>
-            )}
-          </button>
-          <button
-            onClick={() => { setActiveSubTab("talent-network"); setSelectedField("All Fields"); }}
-            className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all relative cursor-pointer ${
-              activeSubTab === "talent-network" 
-                ? "text-indigo-650 dark:text-indigo-400" 
-                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            }`}
-          >
-            Talent Network
-            {activeSubTab === "talent-network" && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-500 rounded-full"></span>
-            )}
-          </button>
-        </div>
-      </div>
-
       {/* Controls Bar: Search, Filters, Sort */}
       <div className="flex flex-col md:flex-row gap-3">
         {/* Search Input */}
@@ -296,7 +212,6 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
           >
             <option value="priority">Priority</option>
             <option value="pay-high">Pay: High to Low</option>
-            <option value="reward-high">Referral Reward</option>
           </select>
         </div>
       </div>
@@ -312,8 +227,6 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
         <div className="space-y-4">
           {filteredJobs.map((job) => {
             const isExpanded = expandedJobId === job.id;
-            const hasRequiredSkill = getRequiredSkillMet(job);
-            const userLink = referralLinks[job.id] || "https://outlier.ai/?ref=academy";
             const firstLetter = job.title.charAt(0);
 
             // Compute precise readiness
@@ -362,22 +275,6 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
                         <h2 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-normal">
                           {job.title}
                         </h2>
-                        {job.badge && (
-                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30">
-                            {job.badge}
-                          </span>
-                        )}
-                        {hasRequiredSkill && job.requiredLessonId && (
-                          <span className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-150 dark:border-emerald-900/30 flex items-center gap-1">
-                            <Check className="w-2.5 h-2.5 text-emerald-500" />
-                            CORE MET
-                          </span>
-                        )}
-                        {!hasRequiredSkill && (
-                          <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-amber-150 dark:border-amber-900/30">
-                            PREREQ NOT MET
-                          </span>
-                        )}
                       </div>
                       
                       {/* Entire Job Description displayed directly on the card */}
@@ -446,7 +343,7 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
 
                         <div className="space-y-2">
                           <a
-                            href={userLink}
+                            href={job.applicationUrl || "https://outlier.ai/?ref=academy"}
                             target="_blank"
                             rel="noreferrer noopener"
                             className="w-full font-black py-2.5 px-4 rounded-xl text-xs text-center flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-all bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/10"
@@ -473,12 +370,11 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
                               </button>
                               <button
                                 onClick={() => {
-                                  if (setSimSubMode) setSimSubMode("exam");
-                                  if (setActiveTab) setActiveTab("simulations");
+                                  if (setActiveTab) setActiveTab("interview");
                                 }}
                                 className="font-bold py-2 px-3 rounded-lg text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer transition-all bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-150/40 dark:border-indigo-900/30"
                               >
-                                <span>Exam Prep</span>
+                                <span>AI Interview</span>
                               </button>
                             </div>
                           </div>

@@ -8,7 +8,7 @@ export interface AdminJobRow {
   referral_reward: string | null;
   badge: string | null;
   hired_text: string | null;
-  category: "project-based" | "one-time" | "talent-network";
+  category: "project-based" | "one-time" | "talent-network" | null;
   field: string;
   avatars: string[];
   required_lesson_id: string | null;

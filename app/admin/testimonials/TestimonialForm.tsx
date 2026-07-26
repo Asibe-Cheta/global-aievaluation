@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, Upload } from "lucide-react";
 import {
   createTestimonial,
   updateTestimonial,
-  type TestimonialFormInput,
 } from "@/lib/actions/admin-testimonials";
 import type { AdminTestimonialRow } from "@/lib/admin/queries";
 
@@ -28,6 +27,7 @@ export default function TestimonialForm({
   const [role, setRole] = useState(testimonial?.role ?? "");
   const [quote, setQuote] = useState(testimonial?.quote ?? "");
   const [avatarUrl, setAvatarUrl] = useState(testimonial?.avatar_url ?? "");
+  const [avatarImage, setAvatarImage] = useState<File | null>(null);
   const [rating, setRating] = useState(String(testimonial?.rating ?? 5));
   const [isActive, setIsActive] = useState(testimonial?.is_active ?? true);
   const [sortOrder, setSortOrder] = useState(String(testimonial?.sort_order ?? 0));
@@ -40,19 +40,19 @@ export default function TestimonialForm({
     setError("");
     setIsSubmitting(true);
 
-    const input: TestimonialFormInput = {
-      name,
-      role,
-      quote,
-      avatarUrl,
-      rating: rating ? Number(rating) : null,
-      isActive,
-      sortOrder: Number(sortOrder) || 0,
-    };
+    const formData = new FormData();
+    formData.set("name", name);
+    formData.set("role", role);
+    formData.set("quote", quote);
+    formData.set("avatarUrl", avatarUrl);
+    formData.set("rating", rating);
+    formData.set("isActive", String(isActive));
+    formData.set("sortOrder", sortOrder);
+    if (avatarImage) formData.set("avatarImage", avatarImage);
 
     const result = isEdit
-      ? await updateTestimonial(testimonial!.id, input)
-      : await createTestimonial(id, input);
+      ? await updateTestimonial(testimonial!.id, formData)
+      : await createTestimonial(id, formData);
 
     setIsSubmitting(false);
 
@@ -95,12 +95,29 @@ export default function TestimonialForm({
           />
         </div>
         <div>
-          <label className={labelClass}>Avatar URL (optional)</label>
+          <label className={labelClass}>Photo</label>
+          {(avatarImage || avatarUrl) && (
+            <img
+              src={avatarImage ? URL.createObjectURL(avatarImage) : avatarUrl}
+              alt="Preview"
+              className="w-12 h-12 rounded-full object-cover mb-2"
+            />
+          )}
+          <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline mb-2">
+            <Upload className="w-3.5 h-3.5" />
+            {avatarUrl || avatarImage ? "Replace photo" : "Upload photo"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setAvatarImage(e.target.files?.[0] ?? null)}
+            />
+          </label>
           <input
             className={inputClass}
             value={avatarUrl}
             onChange={(e) => setAvatarUrl(e.target.value)}
-            placeholder="https://..."
+            placeholder="...or paste an image URL"
           />
         </div>
 

@@ -2,10 +2,11 @@ export interface JobOpportunity {
   id: string;
   title: string;
   payRate: string;
-  referralReward: string;
+  applicationUrl?: string;
+  referralReward?: string;
   badge?: string;
   hiredText?: string;
-  category: "project-based" | "one-time" | "talent-network";
+  category?: "project-based" | "one-time" | "talent-network";
   field: "Generalist" | "AI Safety" | "Coding & SWE" | "Medical & Bio" | "Consulting" | "Other";
   avatars?: string[];
   requiredLessonId?: string;
