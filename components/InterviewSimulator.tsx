@@ -186,22 +186,32 @@ function TypewriterText({ text, isLast, onComplete, speed = 40 }: TypewriterText
       return;
     }
 
+    // Cancellation flag instead of relying solely on the interval handle —
+    // guarantees a stale tick can never write to state after this effect
+    // re-runs, which is what previously caused duplicated/skipped words and
+    // a trailing "undefined" (an out-of-bounds array read racing another
+    // in-flight tick).
+    let cancelled = false;
     const words = text.split(" ");
     let currentWordIndex = 0;
     setDisplayedText("");
 
-    const interval = setInterval(() => {
-      if (currentWordIndex < words.length) {
-        setDisplayedText(prev => prev + (prev ? " " : "") + words[currentWordIndex]);
-        currentWordIndex++;
-      } else {
-        clearInterval(interval);
-        if (onComplete) onComplete();
+    const tick = () => {
+      if (cancelled || currentWordIndex >= words.length) {
+        if (!cancelled && onComplete) onComplete();
+        return;
       }
-    }, speed);
+      const word = words[currentWordIndex];
+      setDisplayedText(prev => (prev ? `${prev} ${word}` : word));
+      currentWordIndex++;
+      timeoutId = window.setTimeout(tick, speed);
+    };
+
+    let timeoutId = window.setTimeout(tick, speed);
 
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      window.clearTimeout(timeoutId);
     };
   }, [text, isLast, speed]);
 
@@ -298,6 +308,7 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
   
   const lastSpokenIndex = useRef(-1);
   const recognitionRef = useRef<any>(null);
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Helper: Request and Check Microphone Permission
   const requestMicrophonePermission = async () => {
@@ -337,31 +348,22 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
   }, []);
 
   // Helper: Speak Text using TTS with natural male voice named John
-  const speakText = (text: string) => {
+  // Fallback used only if the Gemini TTS call fails (missing key, network
+  // error, etc.) — the browser's built-in voice, same as before.
+  const speakTextBrowserFallback = (cleanText: string) => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    setIsAiSpeaking(false);
-    
-    if (!isVoiceEnabled) return;
-
-    // Remove markdown-like indicators or brackets for clearer speech
-    const cleanText = text
-      .replace(/\[ADAPTIVE CHALLENGE TRIGGER\]/g, "Adaptive Challenge Trigger")
-      .replace(/\[Live pair assessment submitted\]/g, "Live evaluation submitted")
-      .replace(/\*\*/g, "") // remove bold asterisks
-      .replace(/"/g, "")
-      .trim();
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    
+
     // Choose voice: prioritize natural male voice John/David/George
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(
-      v => v.lang.startsWith("en") && 
+      v => v.lang.startsWith("en") &&
       (
-        v.name.toLowerCase().includes("male") || 
-        v.name.toLowerCase().includes("david") || 
-        v.name.toLowerCase().includes("mark") || 
+        v.name.toLowerCase().includes("male") ||
+        v.name.toLowerCase().includes("david") ||
+        v.name.toLowerCase().includes("mark") ||
         v.name.toLowerCase().includes("george") ||
         v.name.toLowerCase().includes("john") ||
         v.name.toLowerCase().includes("guy") ||
@@ -369,7 +371,7 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
         (v.name.toLowerCase().includes("natural") && v.name.toLowerCase().includes("male"))
       )
     );
-    
+
     if (preferredVoice) {
       utterance.voice = preferredVoice;
     } else {
@@ -378,11 +380,11 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
         utterance.voice = anyEnVoice;
       }
     }
-    
+
     // Setup pitch & speed parameters to make John sound realistic & deep
     utterance.rate = 0.95;
     utterance.pitch = 0.92;
-    
+
     utterance.onstart = () => {
       setIsAiSpeaking(true);
     };
@@ -396,6 +398,49 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
     window.speechSynthesis.speak(utterance);
   };
 
+  const speakText = async (text: string) => {
+    // Stop anything currently playing (Gemini audio or browser fallback)
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setIsAiSpeaking(false);
+
+    if (!isVoiceEnabled) return;
+
+    // Remove markdown-like indicators or brackets for clearer speech
+    const cleanText = text
+      .replace(/\[ADAPTIVE CHALLENGE TRIGGER\]/g, "Adaptive Challenge Trigger")
+      .replace(/\[Live pair assessment submitted\]/g, "Live evaluation submitted")
+      .replace(/\*\*/g, "") // remove bold asterisks
+      .replace(/"/g, "")
+      .trim();
+
+    try {
+      const res = await fetch("/api/interview-voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: cleanText }),
+      });
+      const data = await res.json();
+
+      if (!data.success || !data.audioBase64) {
+        throw new Error(data.error || "No audio returned");
+      }
+
+      const audio = new Audio(`data:audio/wav;base64,${data.audioBase64}`);
+      activeAudioRef.current = audio;
+      audio.onplay = () => setIsAiSpeaking(true);
+      audio.onended = () => setIsAiSpeaking(false);
+      audio.onerror = () => setIsAiSpeaking(false);
+      await audio.play();
+    } catch (err) {
+      console.warn("Gemini voice unavailable, falling back to browser voice:", err);
+      speakTextBrowserFallback(cleanText);
+    }
+  };
+
   // Toggle voice output
   const handleVoiceToggle = () => {
     const nextVal = !isVoiceEnabled;
@@ -403,6 +448,10 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
     if (!nextVal) {
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
+      }
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
       }
       setIsAiSpeaking(false);
     } else {
@@ -476,6 +525,10 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
       }
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
+      }
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
       }
     };
   }, []);
@@ -803,9 +856,9 @@ export default function InterviewSimulator({ stats, onComplete, onBack, initialR
         setInterviewQuestions(INTERVIEW_QUESTIONS);
       }
 
-      const summary = `I have parsed your candidate profile, ${profile.name}. Given your background as a "${profile.workExperience}" combined with your "${profile.aiExperience}" and "${profile.programmingKnowledge}" skills, you present a highly strategic profile for alignment work.
+      const summary = `Thanks, ${profile.name} — I've reviewed your profile. Based on your experience in "${profile.workExperience}", I've tailored this session to test your fit as a ${roleName}.
 
-I have fully calibrated our virtual assessment loop to test your specific transition capabilities. This session will validate your motivation, technical RLHF foundations, pairwise scenario judgement, and safety red-teaming compliance. You will be evaluated against ${platformName}'s strict "${roleName}" criteria, with our live Adaptive Challenge Engine active. Ready? Let's enter the virtual boardroom.`;
+Ready? Let's get started.`;
 
       setAnalysisText(summary);
       setIsAnalyzing(false);
@@ -825,12 +878,11 @@ I have fully calibrated our virtual assessment loop to test your specific transi
     setIsInterviewerTyping(true);
     setTimeout(() => {
       const firstQ = interviewQuestions[0];
-      const initialGreeting = `Welcome to the virtual assessment board, ${profile.name}. I am your automated lead interviewer for today. I will guide you through five phases of progressive assessment to test your suitability as a ${ROLES.find(r => r.id === selectedRole)?.name}.
+      const initialGreeting = `Hi ${profile.name}, I'm John, your interviewer today. We'll go through five short phases to assess your fit as a ${ROLES.find(r => r.id === selectedRole)?.name}.
 
-We will begin with Phase 1: ${firstQ.phaseName} (Weight: ${firstQ.weight}). 
+Let's start with Phase 1: ${firstQ.phaseName}.
 
-Here is your first prompt:
-"${firstQ.question}"`;
+${firstQ.question}`;
       
       setChatHistory([{ sender: "interviewer", text: initialGreeting }]);
       setIsInterviewerTyping(false);
