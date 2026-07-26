@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  BookOpen, Play, Lock, ChevronRight, Gauge, ShieldAlert
+  BookOpen, Play, Lock, Gauge, ShieldAlert
 } from "lucide-react";
 import { UserStats, Rank, Module } from "../types";
 import { isModuleAccessible } from "../lib/access";
@@ -159,8 +159,8 @@ export default function DashboardView({
       </div>
 
       {/* 2. Dual Metrics Grid Rows */}
-      <div id="stats-grid" className="grid grid-cols-1 gap-4">
-        
+      <div id="stats-grid" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
         {/* Metric Card 1: Overall Progress */}
         <div className="bg-white dark:bg-slate-900 border border-[#DCE4FF] dark:border-slate-800 rounded-xl p-3.5 shadow-xs flex flex-col justify-center relative">
           <div className="flex items-center justify-between">
@@ -183,16 +183,52 @@ export default function DashboardView({
               </span>
             </div>
           </div>
-          
+
           <div className="mt-2.5">
             <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="bg-[#4F46E5] dark:bg-indigo-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${overallProgressPercent}%` }}
               ></div>
             </div>
           </div>
         </div>
+
+        {/* Metric Card 2: Readiness Score */}
+        <button
+          onClick={() => setActiveTab("readiness")}
+          className="text-left bg-white dark:bg-slate-900 border border-[#DCE4FF] dark:border-slate-800 rounded-xl p-3.5 shadow-xs hover:shadow-sm hover:border-indigo-300 dark:hover:border-indigo-700 transition-all flex flex-col justify-center relative cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#F2F5FF] dark:bg-indigo-950/30 flex items-center justify-center text-[#4F46E5] dark:text-indigo-400 shrink-0">
+                <Gauge className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block leading-none mb-1">
+                  Readiness Score
+                </span>
+                <span className="text-lg font-extrabold text-[#4F46E5] dark:text-indigo-400 block leading-none">
+                  {overallReadiness}%
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] text-slate-450 dark:text-slate-400 block font-medium">
+                Avg. across 8 skills
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2.5">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+              <div
+                className="bg-[#4F46E5] dark:bg-indigo-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${overallReadiness}%` }}
+              ></div>
+            </div>
+          </div>
+        </button>
 
       </div>
 
@@ -230,36 +266,6 @@ export default function DashboardView({
             {subsequentText}
           </p>
         </div>
-      </div>
-
-      {/* Subscription Tier — slim status banner, not competing with the learning CTA above */}
-      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-150 dark:border-slate-850 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shrink-0 ${
-            stats.membershipTier === "career_accelerator"
-              ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-              : stats.membershipTier === "professional"
-                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400"
-                : "bg-slate-150 text-slate-700 dark:bg-slate-800 dark:text-slate-350"
-          }`}>
-            {stats.membershipTier ? stats.membershipTier.replace("_", " ") : "starter"} plan
-          </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
-            {stats.membershipTier === "career_accelerator"
-              ? "Full access unlocked, including the Career Accelerator Hub."
-              : stats.membershipTier === "professional"
-                ? "Upgrade to Career Accelerator for human expert coaching."
-                : "Upgrade to unlock the AI Interview Simulator and practice platforms."}
-          </span>
-        </div>
-
-        <button
-          onClick={() => setActiveTab(stats.membershipTier === "career_accelerator" ? "accelerator" : "membership")}
-          className="shrink-0 py-1.5 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
-        >
-          <span>{stats.membershipTier === "career_accelerator" ? "Open Accelerator Hub" : "Upgrade Plan"}</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
       </div>
 
       {/* 4. Modules Overview Section */}

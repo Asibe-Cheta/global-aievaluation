@@ -20,15 +20,6 @@ export interface AdminJobRow {
   sort_order: number;
 }
 
-export interface AdminAchievementRow {
-  id: string;
-  title: string;
-  description: string | null;
-  icon: string | null;
-  req_metric: string | null;
-  sort_order: number;
-}
-
 export interface AdminModuleRow {
   id: string;
   title: string;
@@ -151,31 +142,6 @@ export async function getAdminJob(id: string): Promise<AdminJobRow | null> {
     .maybeSingle();
 
   if (error) throw new Error(`getAdminJob: ${error.message}`);
-  return data;
-}
-
-export async function getAdminAchievements(): Promise<AdminAchievementRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("achievements")
-    .select("*")
-    .order("sort_order");
-
-  if (error) throw new Error(`getAdminAchievements: ${error.message}`);
-  return data ?? [];
-}
-
-export async function getAdminAchievement(
-  id: string,
-): Promise<AdminAchievementRow | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("achievements")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw new Error(`getAdminAchievement: ${error.message}`);
   return data;
 }
 

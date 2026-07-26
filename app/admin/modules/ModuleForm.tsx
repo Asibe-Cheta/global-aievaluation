@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { createModule, updateModule, type ModuleFormInput } from "@/lib/actions/admin-modules";
 import type { AdminModuleRow } from "@/lib/admin/queries";
-import SkillBoostsEditor from "../SkillBoostsEditor";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -19,9 +18,6 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
   const [id, setId] = useState(mod?.id ?? "");
   const [title, setTitle] = useState(mod?.title ?? "");
   const [description, setDescription] = useState(mod?.description ?? "");
-  const [simSkillBoosts, setSimSkillBoosts] = useState<Record<string, number>>(
-    mod?.sim_skill_boosts ?? {},
-  );
   const [sortOrder, setSortOrder] = useState(String(mod?.sort_order ?? 0));
 
   const [error, setError] = useState("");
@@ -35,7 +31,6 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
     const input: ModuleFormInput = {
       title,
       description,
-      simSkillBoosts,
       sortOrder: Number(sortOrder) || 0,
     };
 
@@ -82,18 +77,6 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-        </div>
-
-        <div className="sm:col-span-2 space-y-1.5">
-          <label className={labelClass}>
-            Qualifying Simulation Skill Boosts
-          </label>
-          <p className="text-[10px] text-slate-400 -mt-1 mb-2">
-            Awarded once, when a user first scores 70%+ on this module&apos;s
-            qualifying simulation. Leave a field blank/0 for no boost to that
-            skill.
-          </p>
-          <SkillBoostsEditor value={simSkillBoosts} onChange={setSimSkillBoosts} />
         </div>
 
         <div>

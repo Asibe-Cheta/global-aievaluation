@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   User, Check, Trash2, LogOut,
-  Trophy, Clock, Globe, ShieldAlert, Award, Camera, RefreshCw,
-  Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, MapPin, Briefcase
+  Trophy, Clock, ShieldAlert, Award, Camera, RefreshCw,
+  Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, Briefcase
 } from "lucide-react";
 import { UserStats, Module } from "../types";
 import { createClient } from "../lib/supabase/client";
@@ -43,8 +43,6 @@ export default function ProfileView({
   // Local state for editing form
   const [nameInput, setNameInput] = useState(stats.displayName || "");
   const [roleInput, setRoleInput] = useState(stats.role || "");
-  const [locationInput, setLocationInput] = useState(stats.location || "");
-  const [timezoneInput, setTimezoneInput] = useState(stats.timezone || "");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Password fields
@@ -74,8 +72,6 @@ export default function ProfileView({
       ...prev,
       displayName: nameInput,
       role: roleInput,
-      location: locationInput,
-      timezone: timezoneInput
     }));
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
@@ -308,47 +304,6 @@ export default function ProfileView({
                   </div>
                 </div>
 
-                {/* Location */}
-                <div className="space-y-1.5">
-                  <label className="text-xs text-slate-455 font-bold uppercase tracking-wider block" htmlFor="profile-location">
-                    Location
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <MapPin className="w-4 h-4" />
-                    </span>
-                    <input
-                      id="profile-location"
-                      type="text"
-                      value={locationInput}
-                      onChange={(e) => setLocationInput(e.target.value)}
-                      placeholder="Enter location..."
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Timezone */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs text-slate-455 font-bold uppercase tracking-wider block" htmlFor="profile-timezone">
-                    Timezone Preference
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <Globe className="w-4 h-4" />
-                    </span>
-                    <input
-                      id="profile-timezone"
-                      type="text"
-                      value={timezoneInput}
-                      onChange={(e) => setTimezoneInput(e.target.value)}
-                      placeholder="Enter timezone..."
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                      required
-                    />
-                  </div>
-                </div>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-850">

@@ -431,7 +431,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
               className={`w-full py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer disabled:cursor-default flex items-center justify-center gap-2 ${
                 currentTier === "career_accelerator"
                   ? "bg-amber-50 text-amber-500 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-100 dark:border-amber-900 cursor-default"
-                  : "bg-amber-500 hover:bg-amber-600 text-white shadow-xs hover:shadow-md disabled:opacity-60"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:shadow-md disabled:opacity-60"
               }`}
             >
               {pendingTier === "career_accelerator" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   Module,
-  Achievement,
   UserStats,
   Testimonial,
 } from "@/types";
@@ -141,25 +140,6 @@ export async function getModuleCurriculum(
             })),
     };
   }) as Module[];
-}
-
-export async function getAchievements(): Promise<Achievement[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("achievements")
-    .select("*")
-    .order("sort_order");
-
-  if (error) throw new Error(`getAchievements: ${error.message}`);
-
-  return (data ?? []).map((a) => ({
-    id: a.id,
-    title: a.title,
-    description: a.description ?? "",
-    icon: a.icon ?? "",
-    reqMetric: a.req_metric ?? "",
-    unlocked: false,
-  }));
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {

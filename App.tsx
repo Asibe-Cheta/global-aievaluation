@@ -38,7 +38,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 
-import { UserStats, Rank, Module, Lesson, Achievement, AnnotationSubmission } from "./types";
+import { UserStats, Rank, Module, Lesson, AnnotationSubmission } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
@@ -83,7 +83,6 @@ function applySkillBoosts(
 interface AppProps {
   userId: string;
   moduleCurriculum: Module[];
-  achievements: Achievement[];
   jobs: JobOpportunity[];
   initialStats: UserStats;
   isAdmin: boolean;
@@ -92,7 +91,6 @@ interface AppProps {
 export default function App({
   userId,
   moduleCurriculum,
-  achievements,
   jobs,
   initialStats,
   isAdmin,
@@ -755,6 +753,8 @@ export default function App({
           {isAdmin && (
             <Link
               href="/admin"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer text-slate-650 hover:text-indigo-650 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
             >
               <Wrench className="w-4 h-4" />
