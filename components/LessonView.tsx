@@ -249,6 +249,20 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                   </div>
                 </div>
 
+                {activeCase.media && activeCase.media.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {activeCase.media.map((m) => (
+                      <div key={m.path} className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-150 dark:border-slate-800">
+                        {m.type === "video" ? (
+                          <video src={m.url} controls className="w-full rounded-lg bg-black max-h-56" />
+                        ) : (
+                          <audio src={m.url} controls className="w-full" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* MCQ Question segment */}
                 <div id="case-study-mcq" className="space-y-4">
                   <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">

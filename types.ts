@@ -54,6 +54,13 @@ export interface UserStats {
   };
 }
 
+export interface CaseStudyMediaItem {
+  type: "video" | "audio";
+  path: string;
+  url: string;
+  durationSeconds?: number;
+}
+
 export interface MiniCaseStudy {
   id: string;
   scenario: string;
@@ -64,6 +71,7 @@ export interface MiniCaseStudy {
   correctOptionIndex: number;
   explanation: string;
   reviewerNotes?: string;
+  media?: CaseStudyMediaItem[]; // max 2 videos + 2 audio clips, each <=10s
 }
 
 export interface Lesson {

@@ -63,6 +63,13 @@ export interface AdminExamQuestionRow {
   sort_order: number;
 }
 
+export interface AdminCaseStudyMediaItem {
+  type: "video" | "audio";
+  path: string;
+  url: string;
+  durationSeconds?: number;
+}
+
 export interface AdminMiniCaseStudy {
   id: string;
   scenario: string;
@@ -73,6 +80,7 @@ export interface AdminMiniCaseStudy {
   correctOptionIndex: number;
   explanation: string;
   reviewerNotes?: string;
+  media?: AdminCaseStudyMediaItem[];
 }
 
 export interface AdminLessonRow {

@@ -3,9 +3,84 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AdminMiniCaseStudy } from "@/lib/admin/queries";
+import type { AdminMiniCaseStudy, AdminCaseStudyMediaItem } from "@/lib/admin/queries";
 
-export interface LessonFormInput {
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB
+const MAX_CLIP_SECONDS = 10;
+const MAX_PER_TYPE = 2;
+const BUCKET = "lesson-media";
+
+function slugFileName(name: string) {
+  return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+}
+
+async function uploadClip(
+  supabase: SupabaseServerClient,
+  lessonId: string,
+  caseId: string,
+  type: "video" | "audio",
+  file: File,
+): Promise<AdminCaseStudyMediaItem> {
+  if (file.size > MAX_FILE_BYTES) {
+    throw new Error(`${file.name} is too large (max 20MB).`);
+  }
+
+  const path = `${lessonId}/${caseId}/${type}-${Date.now()}-${slugFileName(file.name)}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { contentType: file.type || undefined });
+
+  if (error) throw new Error(`Upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return { type, path, url: data.publicUrl };
+}
+
+async function mergeCaseStudyMedia(
+  supabase: SupabaseServerClient,
+  lessonId: string,
+  caseStudies: AdminMiniCaseStudy[],
+  formData: FormData,
+): Promise<AdminMiniCaseStudy[]> {
+  const result: AdminMiniCaseStudy[] = [];
+
+  for (const cs of caseStudies) {
+    const media = [...(cs.media ?? [])];
+    const existingVideos = media.filter((m) => m.type === "video").length;
+    const existingAudios = media.filter((m) => m.type === "audio").length;
+
+    let videoSlotsUsed = existingVideos;
+    let audioSlotsUsed = existingAudios;
+
+    for (let i = 0; i < MAX_PER_TYPE; i++) {
+      const videoFile = formData.get(`case_${cs.id}_video_${i}`);
+      if (videoFile instanceof File && videoFile.size > 0) {
+        if (videoSlotsUsed >= MAX_PER_TYPE) {
+          throw new Error(`Case study "${cs.question || cs.id}" has more than ${MAX_PER_TYPE} videos.`);
+        }
+        media.push(await uploadClip(supabase, lessonId, cs.id, "video", videoFile));
+        videoSlotsUsed++;
+      }
+
+      const audioFile = formData.get(`case_${cs.id}_audio_${i}`);
+      if (audioFile instanceof File && audioFile.size > 0) {
+        if (audioSlotsUsed >= MAX_PER_TYPE) {
+          throw new Error(`Case study "${cs.question || cs.id}" has more than ${MAX_PER_TYPE} audio clips.`);
+        }
+        media.push(await uploadClip(supabase, lessonId, cs.id, "audio", audioFile));
+        audioSlotsUsed++;
+      }
+    }
+
+    result.push({ ...cs, media });
+  }
+
+  return result;
+}
+
+export interface LessonFormFields {
   moduleId: string;
   title: string;
   description: string;
@@ -17,51 +92,88 @@ export interface LessonFormInput {
   sortOrder: number;
 }
 
-function toRow(input: LessonFormInput) {
+function readFields(formData: FormData): LessonFormFields {
   return {
-    module_id: input.moduleId,
-    title: input.title,
-    description: input.description || null,
-    duration: input.duration || null,
-    objectives: input.objectives,
-    content: input.content,
-    mini_case_studies: input.miniCaseStudies,
-    key_takeaways: input.keyTakeaways,
-    sort_order: input.sortOrder,
+    moduleId: String(formData.get("moduleId") ?? ""),
+    title: String(formData.get("title") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    duration: String(formData.get("duration") ?? ""),
+    objectives: JSON.parse(String(formData.get("objectives") ?? "[]")),
+    content: JSON.parse(String(formData.get("content") ?? "[]")),
+    miniCaseStudies: JSON.parse(String(formData.get("miniCaseStudies") ?? "[]")),
+    keyTakeaways: JSON.parse(String(formData.get("keyTakeaways") ?? "[]")),
+    sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
+  };
+}
+
+function toRow(fields: LessonFormFields, miniCaseStudies: AdminMiniCaseStudy[]) {
+  return {
+    module_id: fields.moduleId,
+    title: fields.title,
+    description: fields.description || null,
+    duration: fields.duration || null,
+    objectives: fields.objectives,
+    content: fields.content,
+    mini_case_studies: miniCaseStudies,
+    key_takeaways: fields.keyTakeaways,
+    sort_order: fields.sortOrder,
   };
 }
 
 export async function createLesson(
   id: string,
-  input: LessonFormInput,
+  formData: FormData,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
+  const fields = readFields(formData);
+
+  if (!id) return { error: "Slug/ID is required." };
+  if (!fields.title) return { error: "Title is required." };
+
+  let miniCaseStudies: AdminMiniCaseStudy[];
+  try {
+    miniCaseStudies = await mergeCaseStudyMedia(supabase, id, fields.miniCaseStudies, formData);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Upload failed." };
+  }
+
   const { error } = await supabase
     .from("lessons")
-    .insert({ id, ...toRow(input) });
+    .insert({ id, ...toRow(fields, miniCaseStudies) });
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/modules/${input.moduleId}/lessons`);
+  revalidatePath(`/admin/modules/${fields.moduleId}/lessons`);
   revalidatePath("/");
-  redirect(`/admin/modules/${input.moduleId}/lessons`);
+  redirect(`/admin/modules/${fields.moduleId}/lessons`);
 }
 
 export async function updateLesson(
   id: string,
-  input: LessonFormInput,
+  formData: FormData,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
+  const fields = readFields(formData);
+
+  if (!fields.title) return { error: "Title is required." };
+
+  let miniCaseStudies: AdminMiniCaseStudy[];
+  try {
+    miniCaseStudies = await mergeCaseStudyMedia(supabase, id, fields.miniCaseStudies, formData);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Upload failed." };
+  }
+
   const { error } = await supabase
     .from("lessons")
-    .update(toRow(input))
+    .update(toRow(fields, miniCaseStudies))
     .eq("id", id);
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/modules/${input.moduleId}/lessons`);
+  revalidatePath(`/admin/modules/${fields.moduleId}/lessons`);
   revalidatePath("/");
-  redirect(`/admin/modules/${input.moduleId}/lessons`);
+  redirect(`/admin/modules/${fields.moduleId}/lessons`);
 }
 
 export async function deleteLesson(

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert } from "lucide-react";
-import { createLesson, updateLesson, type LessonFormInput } from "@/lib/actions/admin-lessons";
+import { createLesson, updateLesson } from "@/lib/actions/admin-lessons";
 import type { AdminLessonRow } from "@/lib/admin/queries";
 import StringListEditor from "../../../StringListEditor";
-import MiniCaseStudiesEditor from "./MiniCaseStudiesEditor";
+import MiniCaseStudiesEditor, { type MiniCaseStudiesEditorHandle } from "./MiniCaseStudiesEditor";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -37,27 +37,33 @@ export default function LessonForm({
 
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const caseStudiesRef = useRef<MiniCaseStudiesEditorHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
 
-    const input: LessonFormInput = {
-      moduleId,
-      title,
-      description,
-      duration,
-      objectives,
-      content,
-      miniCaseStudies,
-      keyTakeaways,
-      sortOrder: Number(sortOrder) || 0,
-    };
+    const formData = new FormData();
+    formData.set("moduleId", moduleId);
+    formData.set("title", title);
+    formData.set("description", description);
+    formData.set("duration", duration);
+    formData.set("objectives", JSON.stringify(objectives));
+    formData.set("content", JSON.stringify(content));
+    formData.set("miniCaseStudies", JSON.stringify(miniCaseStudies));
+    formData.set("keyTakeaways", JSON.stringify(keyTakeaways));
+    formData.set("sortOrder", sortOrder);
+
+    const pendingMedia = caseStudiesRef.current?.getPendingMedia() ?? {};
+    for (const [caseId, files] of Object.entries(pendingMedia)) {
+      files.video.forEach((file, i) => formData.set(`case_${caseId}_video_${i}`, file));
+      files.audio.forEach((file, i) => formData.set(`case_${caseId}_audio_${i}`, file));
+    }
 
     const result = isEdit
-      ? await updateLesson(lesson!.id, input)
-      : await createLesson(id, input);
+      ? await updateLesson(lesson!.id, formData)
+      : await createLesson(id, formData);
 
     setIsSubmitting(false);
 
@@ -135,7 +141,11 @@ export default function LessonForm({
 
       <div>
         <label className={sectionLabelClass}>Mini Case Studies</label>
-        <MiniCaseStudiesEditor caseStudies={miniCaseStudies} onChange={setMiniCaseStudies} />
+        <MiniCaseStudiesEditor
+          ref={caseStudiesRef}
+          caseStudies={miniCaseStudies}
+          onChange={setMiniCaseStudies}
+        />
       </div>
 
       <div>
