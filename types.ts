@@ -150,6 +150,7 @@ export interface ExamQuestion {
   explanation: string;
   part?: string;
   scenario?: string;
+  media?: CaseStudyMediaItem[];
 }
 
 export interface Module {

@@ -60,6 +60,7 @@ export interface AdminExamQuestionRow {
   explanation: string | null;
   part: string | null;
   scenario: string | null;
+  media: AdminCaseStudyMediaItem[];
   sort_order: number;
 }
 

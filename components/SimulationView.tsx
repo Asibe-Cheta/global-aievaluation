@@ -827,6 +827,16 @@ export default function SimulationView({
                 </div>
               )}
 
+              {activeQuestion.media && activeQuestion.media.length > 0 && (
+                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-150 dark:border-slate-800">
+                  {activeQuestion.media[0].type === "video" ? (
+                    <video src={activeQuestion.media[0].url} controls className="w-full max-h-56 rounded-lg bg-black" />
+                  ) : (
+                    <audio src={activeQuestion.media[0].url} controls className="w-full" />
+                  )}
+                </div>
+              )}
+
               <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
                 {activeQuestion.question}
               </p>

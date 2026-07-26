@@ -113,6 +113,7 @@ export async function getModuleCurriculum(
               explanation: q.explanation,
               part: q.part ?? undefined,
               scenario: q.scenario ?? undefined,
+              media: q.media ?? [],
             })),
       annotationTasks: !canPractice
         ? []

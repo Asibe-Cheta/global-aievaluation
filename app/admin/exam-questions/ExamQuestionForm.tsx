@@ -2,14 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, Upload, Trash2 } from "lucide-react";
 import {
   createExamQuestion,
   updateExamQuestion,
-  type ExamQuestionFormInput,
 } from "@/lib/actions/admin-exam-questions";
 import type { AdminExamQuestionRow, AdminModuleRow } from "@/lib/admin/queries";
 import OptionsEditor from "../OptionsEditor";
+
+const MAX_CLIP_SECONDS = 10;
+
+function readClipDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const isVideo = file.type.startsWith("video");
+    const el = document.createElement(isVideo ? "video" : "audio");
+    el.preload = "metadata";
+    el.onloadedmetadata = () => {
+      URL.revokeObjectURL(el.src);
+      resolve(el.duration);
+    };
+    el.onerror = () => {
+      URL.revokeObjectURL(el.src);
+      reject(new Error("Could not read that file's duration."));
+    };
+    el.src = URL.createObjectURL(file);
+  });
+}
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -39,8 +57,8 @@ export default function ExamQuestionForm({
 
   const [id, setId] = useState(question?.id ?? "");
   const [moduleId, setModuleId] = useState(question?.module_id ?? modules[0]?.id ?? "");
-  const [type, setType] = useState<ExamQuestionFormInput["type"]>(
-    (question?.type as ExamQuestionFormInput["type"]) ?? "mcq",
+  const [type, setType] = useState<"mcq" | "tf" | "scenario">(
+    (question?.type as "mcq" | "tf" | "scenario") ?? "mcq",
   );
   const [category, setCategory] = useState(
     question?.category ?? "promptEvaluation",
@@ -55,30 +73,61 @@ export default function ExamQuestionForm({
   const [scenario, setScenario] = useState(question?.scenario ?? "");
   const [sortOrder, setSortOrder] = useState(String(question?.sort_order ?? 0));
 
+  const existingMedia = question?.media?.[0];
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaType, setMediaType] = useState<"video" | "audio">(existingMedia?.type ?? "video");
+  const [removeMedia, setRemoveMedia] = useState(false);
+  const [mediaError, setMediaError] = useState("");
+
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleMediaChange = async (file: File | null, kind: "video" | "audio") => {
+    setMediaError("");
+    if (!file) return;
+    try {
+      const duration = await readClipDuration(file);
+      if (duration > MAX_CLIP_SECONDS) {
+        setMediaError(`That clip is ${duration.toFixed(1)}s long. Clips must be ${MAX_CLIP_SECONDS}s or less.`);
+        return;
+      }
+    } catch {
+      setMediaError("Could not read that file's duration.");
+      return;
+    }
+    setMediaType(kind);
+    setMediaFile(file);
+    setRemoveMedia(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
 
-    const input: ExamQuestionFormInput = {
-      moduleId,
-      type,
-      category,
-      question: questionText,
-      options,
-      correctOptionIndex,
-      explanation,
-      part,
-      scenario,
-      sortOrder: Number(sortOrder) || 0,
-    };
+    const formData = new FormData();
+    formData.set("moduleId", moduleId);
+    formData.set("type", type);
+    formData.set("category", category);
+    formData.set("question", questionText);
+    formData.set("options", JSON.stringify(options));
+    formData.set("correctOptionIndex", String(correctOptionIndex));
+    formData.set("explanation", explanation);
+    formData.set("part", part);
+    formData.set("scenario", scenario);
+    formData.set("sortOrder", sortOrder);
+    formData.set("removeMedia", String(removeMedia));
+    if (mediaFile) {
+      formData.set(mediaType === "video" ? "mediaVideo" : "mediaAudio", mediaFile);
+    }
 
-    const result = isEdit
-      ? await updateExamQuestion(question!.id, input)
-      : await createExamQuestion(id, input);
+    let result: { error?: string } | undefined;
+    if (isEdit) {
+      formData.set("existingMedia", JSON.stringify(question!.media ?? []));
+      result = await updateExamQuestion(question!.id, formData);
+    } else {
+      result = await createExamQuestion(id, formData);
+    }
 
     setIsSubmitting(false);
 
@@ -122,7 +171,7 @@ export default function ExamQuestionForm({
           <select
             className={inputClass}
             value={type}
-            onChange={(e) => setType(e.target.value as ExamQuestionFormInput["type"])}
+            onChange={(e) => setType(e.target.value as "mcq" | "tf" | "scenario")}
           >
             <option value="mcq">mcq</option>
             <option value="tf">tf</option>
@@ -198,6 +247,60 @@ export default function ExamQuestionForm({
             value={scenario}
             onChange={(e) => setScenario(e.target.value)}
           />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className={labelClass}>Video / Audio Clip (optional, max {MAX_CLIP_SECONDS}s)</label>
+          <div className="border border-dashed border-slate-300 dark:border-slate-750 rounded-xl p-3 space-y-2 max-w-md">
+            {existingMedia && !mediaFile && !removeMedia && (
+              <div className="flex items-center gap-2">
+                {existingMedia.type === "video" ? (
+                  <video src={existingMedia.url} controls className="w-full max-h-40 rounded-lg bg-black" />
+                ) : (
+                  <audio src={existingMedia.url} controls className="w-full" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setRemoveMedia(true)}
+                  className="text-rose-500 hover:text-rose-600 shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            {mediaFile && (
+              <div>
+                {mediaType === "video" ? (
+                  <video src={URL.createObjectURL(mediaFile)} controls className="w-full max-h-40 rounded-lg bg-black" />
+                ) : (
+                  <audio src={URL.createObjectURL(mediaFile)} controls className="w-full" />
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+                <Upload className="w-3.5 h-3.5" />
+                {existingMedia || mediaFile ? "Replace video" : "Add video"}
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => handleMediaChange(e.target.files?.[0] ?? null, "video")}
+                />
+              </label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+                <Upload className="w-3.5 h-3.5" />
+                {existingMedia || mediaFile ? "Replace audio" : "Add audio"}
+                <input
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => handleMediaChange(e.target.files?.[0] ?? null, "audio")}
+                />
+              </label>
+            </div>
+            {mediaError && <p className="text-[11px] text-red-500 font-semibold">{mediaError}</p>}
+          </div>
         </div>
       </div>
 
