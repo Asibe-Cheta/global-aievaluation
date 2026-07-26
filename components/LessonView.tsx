@@ -3,7 +3,7 @@ import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, XCircle, 
   HelpCircle, RefreshCw, Send, Terminal, Key, ShieldAlert, BadgeCheck, AlertCircle
 } from "lucide-react";
-import { Lesson, UserStats, MiniCaseStudy, PracticeTask } from "../types";
+import { Lesson, UserStats, MiniCaseStudy } from "../types";
 
 interface LessonViewProps {
   lesson: Lesson;

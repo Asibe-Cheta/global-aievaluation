@@ -1429,11 +1429,6 @@ export default function App({
                                     <span>Duration: {lesson.duration}</span>
                                     <span>&bull;</span>
                                     <span>
-                                      {lesson.practiceLab.length} Practice
-                                      annotations
-                                    </span>
-                                    <span>&bull;</span>
-                                    <span>
                                       {lesson.miniCaseStudies.length} Expert
                                       Case studies
                                     </span>

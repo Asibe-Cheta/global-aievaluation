@@ -6,10 +6,7 @@ import { Loader2, ShieldAlert } from "lucide-react";
 import { createLesson, updateLesson, type LessonFormInput } from "@/lib/actions/admin-lessons";
 import type { AdminLessonRow } from "@/lib/admin/queries";
 import StringListEditor from "../../../StringListEditor";
-import ExamplesEditor from "./ExamplesEditor";
 import MiniCaseStudiesEditor from "./MiniCaseStudiesEditor";
-import PracticeLabEditor from "./PracticeLabEditor";
-import QuizEditor from "./QuizEditor";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -34,11 +31,8 @@ export default function LessonForm({
   const [duration, setDuration] = useState(lesson?.duration ?? "");
   const [objectives, setObjectives] = useState<string[]>(lesson?.objectives ?? []);
   const [content, setContent] = useState<string[]>(lesson?.content ?? []);
-  const [examples, setExamples] = useState(lesson?.examples ?? []);
   const [miniCaseStudies, setMiniCaseStudies] = useState(lesson?.mini_case_studies ?? []);
   const [keyTakeaways, setKeyTakeaways] = useState<string[]>(lesson?.key_takeaways ?? []);
-  const [practiceLab, setPracticeLab] = useState(lesson?.practice_lab ?? []);
-  const [quiz, setQuiz] = useState(lesson?.quiz ?? []);
   const [sortOrder, setSortOrder] = useState(String(lesson?.sort_order ?? 0));
 
   const [error, setError] = useState("");
@@ -56,11 +50,8 @@ export default function LessonForm({
       duration,
       objectives,
       content,
-      examples,
       miniCaseStudies,
       keyTakeaways,
-      practiceLab,
-      quiz,
       sortOrder: Number(sortOrder) || 0,
     };
 
@@ -143,11 +134,6 @@ export default function LessonForm({
       </div>
 
       <div>
-        <label className={sectionLabelClass}>Examples</label>
-        <ExamplesEditor examples={examples} onChange={setExamples} />
-      </div>
-
-      <div>
         <label className={sectionLabelClass}>Mini Case Studies</label>
         <MiniCaseStudiesEditor caseStudies={miniCaseStudies} onChange={setMiniCaseStudies} />
       </div>
@@ -155,16 +141,6 @@ export default function LessonForm({
       <div>
         <label className={sectionLabelClass}>Key Takeaways</label>
         <StringListEditor items={keyTakeaways} onChange={setKeyTakeaways} rows={1} />
-      </div>
-
-      <div>
-        <label className={sectionLabelClass}>Practice Lab</label>
-        <PracticeLabEditor tasks={practiceLab} onChange={setPracticeLab} />
-      </div>
-
-      <div>
-        <label className={sectionLabelClass}>Quiz</label>
-        <QuizEditor quiz={quiz} onChange={setQuiz} />
       </div>
 
       {error && (

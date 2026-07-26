@@ -63,14 +63,6 @@ export interface AdminExamQuestionRow {
   sort_order: number;
 }
 
-export interface AdminExample {
-  title: string;
-  prompt: string;
-  response: string;
-  rating: string;
-  justification: string;
-}
-
 export interface AdminMiniCaseStudy {
   id: string;
   scenario: string;
@@ -83,27 +75,6 @@ export interface AdminMiniCaseStudy {
   reviewerNotes?: string;
 }
 
-export interface AdminPracticeTask {
-  id: string;
-  client: string;
-  taskType: string;
-  instructions: string;
-  prompt: string;
-  response: string;
-  rubrics: string[];
-  idealResponseKeywords: string[];
-  idealResponseLength: number;
-}
-
-export interface AdminQuizQuestion {
-  id: string;
-  type: "mcq" | "tf" | "scenario";
-  question: string;
-  options: string[];
-  correctOptionIndex: number;
-  explanation: string;
-}
-
 export interface AdminLessonRow {
   id: string;
   module_id: string;
@@ -112,12 +83,9 @@ export interface AdminLessonRow {
   duration: string | null;
   objectives: string[];
   content: string[];
-  examples: AdminExample[];
   mini_case_studies: AdminMiniCaseStudy[];
   reflection_questions: string[];
   key_takeaways: string[];
-  practice_lab: AdminPracticeTask[];
-  quiz: AdminQuizQuestion[];
   skill_boosts: Record<string, number>;
   sort_order: number;
 }

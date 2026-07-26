@@ -3,12 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  AdminExample,
-  AdminMiniCaseStudy,
-  AdminPracticeTask,
-  AdminQuizQuestion,
-} from "@/lib/admin/queries";
+import type { AdminMiniCaseStudy } from "@/lib/admin/queries";
 
 export interface LessonFormInput {
   moduleId: string;
@@ -17,11 +12,8 @@ export interface LessonFormInput {
   duration: string;
   objectives: string[];
   content: string[];
-  examples: AdminExample[];
   miniCaseStudies: AdminMiniCaseStudy[];
   keyTakeaways: string[];
-  practiceLab: AdminPracticeTask[];
-  quiz: AdminQuizQuestion[];
   sortOrder: number;
 }
 
@@ -33,11 +25,8 @@ function toRow(input: LessonFormInput) {
     duration: input.duration || null,
     objectives: input.objectives,
     content: input.content,
-    examples: input.examples,
     mini_case_studies: input.miniCaseStudies,
     key_takeaways: input.keyTakeaways,
-    practice_lab: input.practiceLab,
-    quiz: input.quiz,
     sort_order: input.sortOrder,
   };
 }

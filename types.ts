@@ -66,27 +66,6 @@ export interface MiniCaseStudy {
   reviewerNotes?: string;
 }
 
-export interface PracticeTask {
-  id: string;
-  client: string;
-  taskType: string;
-  instructions: string;
-  prompt: string;
-  response: string;
-  rubrics: string[];
-  idealResponseKeywords: string[];
-  idealResponseLength: number;
-}
-
-export interface QuizQuestion {
-  id: string;
-  type: "mcq" | "tf" | "scenario";
-  question: string;
-  options: string[];
-  correctOptionIndex: number;
-  explanation: string;
-}
-
 export interface Lesson {
   id: string;
   moduleId: string;
@@ -95,18 +74,9 @@ export interface Lesson {
   duration: string;
   objectives: string[];
   content: string[]; // multi-step HTML paragraphs or text
-  examples: {
-    title: string;
-    prompt: string;
-    response: string;
-    rating: string;
-    justification: string;
-  }[];
   miniCaseStudies: MiniCaseStudy[]; // 5 items
   reflectionQuestions?: string[];
   keyTakeaways: string[];
-  practiceLab: PracticeTask[]; // 3 practice tasks
-  quiz: QuizQuestion[]; // 5 questions
   skillBoosts?: Partial<UserStats["skills"]>;
 }
 
