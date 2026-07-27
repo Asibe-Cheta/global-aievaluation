@@ -1424,7 +1424,8 @@ export default function App({
                             stats.completedLessons.includes(
                               viewedModule.lessons[idx - 1].id,
                             );
-                          const isLock = !completed && !isNextUnlocked;
+                          const isLock =
+                            !TEMP_UNLOCK_ALL_MODULES && !completed && !isNextUnlocked;
 
                           return (
                             <div
@@ -1477,7 +1478,7 @@ export default function App({
                                   >
                                     Review Class Notes
                                   </button>
-                                ) : isNextUnlocked || bypassLocks ? (
+                                ) : isNextUnlocked || bypassLocks || TEMP_UNLOCK_ALL_MODULES ? (
                                   <button
                                     onClick={() => handleStartLesson(lesson.id)}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-colors flex items-center gap-1 cursor-pointer"
