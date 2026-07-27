@@ -40,6 +40,24 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
     setCaseSubmitted(prev => ({ ...prev, [caseStudy.id]: true }));
   };
 
+  const retakeCaseAnswer = (caseStudy: MiniCaseStudy) => {
+    setCaseSubmitted(prev => {
+      const next = { ...prev };
+      delete next[caseStudy.id];
+      return next;
+    });
+    setSelectedCaseAnswers(prev => {
+      const next = { ...prev };
+      delete next[caseStudy.id];
+      return next;
+    });
+    setCaseRationales(prev => {
+      const next = { ...prev };
+      delete next[caseStudy.id];
+      return next;
+    });
+  };
+
   const isCasesDone = lesson.miniCaseStudies.every(cs => caseSubmitted[cs.id]);
 
   const handleFinishLesson = () => {
@@ -359,11 +377,20 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                           {isCorrect ? "Nice Job! That's Correct." : "Not Quite! Let's Learn Why."}
                         </p>
                         <p className="text-xs mt-1 opacity-90">
-                          {isCorrect 
-                            ? "Great job! You spotted the correct answer perfectly." 
+                          {isCorrect
+                            ? "Great job! You spotted the correct answer perfectly."
                             : "Don't worry! Mistakes are part of learning. Let's see why this answer is the right one."}
                         </p>
                       </div>
+                      {!isCorrect && (
+                        <button
+                          onClick={() => retakeCaseAnswer(activeCase)}
+                          className="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 hover:underline cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          Retake
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

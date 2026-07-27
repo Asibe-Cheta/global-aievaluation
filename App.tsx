@@ -84,6 +84,11 @@ function applySkillBoosts(
 // Flip back to false to restore the Professional/Career Accelerator gate.
 const TEMP_DISABLE_INTERVIEW_PAYWALL = true;
 
+// TEMP: mirrors lib/access.ts's TEMP_UNLOCK_ALL_MODULES so the client-side
+// per-lesson lock (separate from the server-side module gate) also opens up
+// while content is being built in admin. Flip back to false together.
+const TEMP_UNLOCK_ALL_MODULES = true;
+
 // When a user launches the AI Interview Simulator directly from a job
 // listing, we skip the domain-picker step and pre-select the domain/role
 // that best matches that job's field, so the interview is tailored to the
@@ -938,6 +943,7 @@ export default function App({
             (() => {
               // INTERCEPT LOCKED LESSONS FOR STARTER TIER
               if (
+                !TEMP_UNLOCK_ALL_MODULES &&
                 stats.membershipTier === "starter" &&
                 activeLessonId !== "l1" &&
                 activeLessonId !== "p2_intro" &&

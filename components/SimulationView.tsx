@@ -137,6 +137,18 @@ export default function SimulationView({
     setSandboxTimerActive(true);
   };
 
+  const handleRetakeSandbox = () => {
+    setActiveTaskIdx(0);
+    setRatings({});
+    setFlags({});
+    setJustifications({});
+    setSandboxTimers({});
+    setIsDone(false);
+    setFinalScoreMeta(null);
+    setHasStarted(true);
+    setSandboxTimerActive(true);
+  };
+
   const handleTaskRating = (taskId: string, stars: number) => {
     setRatings(prev => ({ ...prev, [taskId]: stars }));
   };
@@ -600,7 +612,16 @@ export default function SimulationView({
             </div>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-3">
+            {finalScoreMeta.score < 80 && (
+              <button
+                onClick={handleRetakeSandbox}
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-bold rounded-xl px-5 py-3 text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Retake Simulation
+              </button>
+            )}
             <button
               onClick={handleFinishAndSave}
               className="bg-indigo-650 hover:bg-indigo-705 text-white font-bold rounded-xl px-6 py-3 text-xs shadow-md transition-colors cursor-pointer"

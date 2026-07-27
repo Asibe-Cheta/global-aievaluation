@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Lock,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { Module, UserStats, AnnotationTask, AnnotationSubmission } from "../types";
 
@@ -58,6 +59,12 @@ function TaskReview({
       submittedAt: new Date().toISOString(),
     });
     setIsSubmitted(true);
+  };
+
+  const handleRetake = () => {
+    setSelectedOptionIndex(undefined);
+    setRationale("");
+    setIsSubmitted(false);
   };
 
   return (
@@ -216,6 +223,15 @@ function TaskReview({
               <p className="text-xs font-extrabold uppercase tracking-wider">
                 {isCorrect ? "Nice Job! That's Correct." : "Not Quite! Let's Learn Why."}
               </p>
+              {!isCorrect && isPaidUser && (
+                <button
+                  onClick={handleRetake}
+                  className="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 hover:underline cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retake
+                </button>
+              )}
             </div>
 
             {rationale && (
