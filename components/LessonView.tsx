@@ -419,15 +419,17 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                       </p>
                     </div>
 
-                    <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1">
-                        <ShieldAlert className="w-4 h-4" />
-                        Trainer Tip
-                      </p>
-                      <p className="text-xs italic text-amber-900 dark:text-amber-300 mt-1">
-                        {activeCase.reviewerNotes}
-                      </p>
-                    </div>
+                    {activeCase.reviewerNotes && (
+                      <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1">
+                          <ShieldAlert className="w-4 h-4" />
+                          Trainer Tip
+                        </p>
+                        <p className="text-xs italic text-amber-900 dark:text-amber-300 mt-1">
+                          {activeCase.reviewerNotes}
+                        </p>
+                      </div>
+                    )}
                     {/* Stepping controls */}
                     <div className="flex justify-between pt-2">
                       <button
