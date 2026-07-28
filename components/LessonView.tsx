@@ -79,8 +79,29 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
     );
   };
 
+  // Markdown-style headings: "## Subheading" or "### Smaller Subheading" on
+  // their own line, either as a whole content block or a line within one.
+  const headingMatch = (line: string): { level: 2 | 3; text: string } | null => {
+    const m = line.match(/^(#{2,3})\s+(.*)/);
+    if (!m) return null;
+    return { level: m[1].length === 2 ? 2 : 3, text: m[2] };
+  };
+
+  const renderHeading = (level: 2 | 3, text: string, key: number | string) =>
+    level === 2 ? (
+      <h3 key={key} className="text-base font-extrabold text-slate-900 dark:text-white pt-2">
+        {renderFormattedText(text)}
+      </h3>
+    ) : (
+      <h4 key={key} className="text-sm font-extrabold text-slate-800 dark:text-slate-100 pt-1">
+        {renderFormattedText(text)}
+      </h4>
+    );
+
   const renderParagraph = (p: string, pIndex: number) => {
     if (!p.includes('\n')) {
+      const asHeading = headingMatch(p.trim());
+      if (asHeading) return renderHeading(asHeading.level, asHeading.text, pIndex);
       return (
         <p key={pIndex} className="text-sm leading-relaxed text-slate-700 dark:text-slate-350">
           {renderFormattedText(p)}
@@ -94,6 +115,9 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
         {lines.map((line, lIndex) => {
           const trimmed = line.trim();
           if (!trimmed) return <div key={lIndex} className="h-2" />;
+
+          const asHeading = headingMatch(trimmed);
+          if (asHeading) return renderHeading(asHeading.level, asHeading.text, lIndex);
 
           // Check for bullet list (e.g. • or - or *)
           const bulletMatch = trimmed.match(/^([•\-\*])\s*(.*)/);
