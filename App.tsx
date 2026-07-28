@@ -1394,7 +1394,7 @@ export default function App({
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                           {viewedModule.title}
                         </h2>
-                        <p className="text-xs text-slate-450 mt-1 max-w-xl">
+                        <p className="text-xs text-slate-450 mt-1">
                           {viewedModule.description}
                         </p>
 
@@ -1456,7 +1456,7 @@ export default function App({
                                       </span>
                                     )}
                                   </h3>
-                                  <p className="text-xs text-slate-500 leading-normal truncate">
+                                  <p className="text-xs text-slate-500 leading-normal">
                                     {lesson.description}
                                   </p>
                                   <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400">
