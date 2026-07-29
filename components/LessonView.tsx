@@ -3,7 +3,7 @@ import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, XCircle, 
   HelpCircle, RefreshCw, Send, Terminal, Key, ShieldAlert, BadgeCheck, AlertCircle
 } from "lucide-react";
-import { Lesson, UserStats, MiniCaseStudy } from "../types";
+import { Lesson, UserStats, MiniCaseStudy, CaseStudyMediaItem } from "../types";
 
 interface LessonViewProps {
   lesson: Lesson;
@@ -98,14 +98,49 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
       </h4>
     );
 
-  const renderParagraph = (p: string, pIndex: number) => {
+  const renderBlockMedia = (media: CaseStudyMediaItem | undefined, key: number | string) => {
+    if (!media) return null;
+    if (media.type === "image") {
+      return (
+        <img
+          key={key}
+          src={media.url}
+          alt=""
+          className="rounded-xl max-h-80 w-auto object-contain"
+        />
+      );
+    }
+    if (media.type === "video") {
+      return (
+        <video
+          key={key}
+          src={media.url}
+          controls
+          className="rounded-xl max-h-80 w-auto bg-black"
+        />
+      );
+    }
+    return <audio key={key} src={media.url} controls className="w-full max-w-md" />;
+  };
+
+  const renderParagraph = (p: string, pIndex: number, media?: CaseStudyMediaItem) => {
     if (!p.includes('\n')) {
       const asHeading = headingMatch(p.trim());
-      if (asHeading) return renderHeading(asHeading.level, asHeading.text, pIndex);
+      if (asHeading) {
+        return (
+          <React.Fragment key={pIndex}>
+            {renderHeading(asHeading.level, asHeading.text, `${pIndex}-h`)}
+            {renderBlockMedia(media, `${pIndex}-m`)}
+          </React.Fragment>
+        );
+      }
       return (
-        <p key={pIndex} className="text-sm leading-relaxed text-slate-700 dark:text-slate-350">
-          {renderFormattedText(p)}
-        </p>
+        <div key={pIndex} className="space-y-3">
+          <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-350">
+            {renderFormattedText(p)}
+          </p>
+          {renderBlockMedia(media, `${pIndex}-m`)}
+        </div>
       );
     }
 
@@ -153,6 +188,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
             </p>
           );
         })}
+        {renderBlockMedia(media, `${pIndex}-m`)}
       </div>
     );
   };
@@ -209,7 +245,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
 
             {/* Lecture paragraph scroller */}
             <div className="prose prose-slate dark:prose-invert text-sm leading-relaxed text-slate-700 dark:text-slate-350 space-y-4">
-              {lesson.content.map((p, i) => renderParagraph(p, i))}
+              {lesson.content.map((block, i) => renderParagraph(block.text, i, block.media?.[0]))}
             </div>
 
             {/* Progress buttons */}

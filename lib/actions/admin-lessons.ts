@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AdminMiniCaseStudy, AdminCaseStudyMediaItem } from "@/lib/admin/queries";
+import type { AdminMiniCaseStudy, AdminCaseStudyMediaItem, AdminContentBlock } from "@/lib/admin/queries";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -20,7 +20,7 @@ async function uploadClip(
   supabase: SupabaseServerClient,
   lessonId: string,
   caseId: string,
-  type: "video" | "audio",
+  type: "image" | "video" | "audio",
   file: File,
 ): Promise<AdminCaseStudyMediaItem> {
   if (file.size > MAX_FILE_BYTES) {
@@ -80,13 +80,38 @@ async function mergeCaseStudyMedia(
   return result;
 }
 
+async function mergeContentBlockMedia(
+  supabase: SupabaseServerClient,
+  lessonId: string,
+  blocks: AdminContentBlock[],
+  formData: FormData,
+): Promise<AdminContentBlock[]> {
+  const result: AdminContentBlock[] = [];
+
+  for (const block of blocks) {
+    const media = [...(block.media ?? [])];
+
+    for (const type of ["image", "video", "audio"] as const) {
+      const file = formData.get(`content_${block.id}_${type}`);
+      if (file instanceof File && file.size > 0) {
+        media.length = 0;
+        media.push(await uploadClip(supabase, lessonId, block.id, type, file));
+      }
+    }
+
+    result.push({ ...block, media });
+  }
+
+  return result;
+}
+
 export interface LessonFormFields {
   moduleId: string;
   title: string;
   description: string;
   duration: string;
   objectives: string[];
-  content: string[];
+  content: AdminContentBlock[];
   miniCaseStudies: AdminMiniCaseStudy[];
   keyTakeaways: string[];
   sortOrder: number;
@@ -106,14 +131,18 @@ function readFields(formData: FormData): LessonFormFields {
   };
 }
 
-function toRow(fields: LessonFormFields, miniCaseStudies: AdminMiniCaseStudy[]) {
+function toRow(
+  fields: LessonFormFields,
+  miniCaseStudies: AdminMiniCaseStudy[],
+  content: AdminContentBlock[],
+) {
   return {
     module_id: fields.moduleId,
     title: fields.title,
     description: fields.description || null,
     duration: fields.duration || null,
     objectives: fields.objectives,
-    content: fields.content,
+    content,
     mini_case_studies: miniCaseStudies,
     key_takeaways: fields.keyTakeaways,
     sort_order: fields.sortOrder,
@@ -131,15 +160,17 @@ export async function createLesson(
   if (!fields.title) return { error: "Title is required." };
 
   let miniCaseStudies: AdminMiniCaseStudy[];
+  let content: AdminContentBlock[];
   try {
     miniCaseStudies = await mergeCaseStudyMedia(supabase, id, fields.miniCaseStudies, formData);
+    content = await mergeContentBlockMedia(supabase, id, fields.content, formData);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
 
   const { error } = await supabase
     .from("lessons")
-    .insert({ id, ...toRow(fields, miniCaseStudies) });
+    .insert({ id, ...toRow(fields, miniCaseStudies, content) });
 
   if (error) return { error: error.message };
 
@@ -158,15 +189,17 @@ export async function updateLesson(
   if (!fields.title) return { error: "Title is required." };
 
   let miniCaseStudies: AdminMiniCaseStudy[];
+  let content: AdminContentBlock[];
   try {
     miniCaseStudies = await mergeCaseStudyMedia(supabase, id, fields.miniCaseStudies, formData);
+    content = await mergeContentBlockMedia(supabase, id, fields.content, formData);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
 
   const { error } = await supabase
     .from("lessons")
-    .update(toRow(fields, miniCaseStudies))
+    .update(toRow(fields, miniCaseStudies, content))
     .eq("id", id);
 
   if (error) return { error: error.message };

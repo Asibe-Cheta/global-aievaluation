@@ -55,10 +55,16 @@ export interface UserStats {
 }
 
 export interface CaseStudyMediaItem {
-  type: "video" | "audio";
+  type: "image" | "video" | "audio";
   path: string;
   url: string;
   durationSeconds?: number;
+}
+
+export interface ContentBlock {
+  id: string;
+  text: string;
+  media?: CaseStudyMediaItem[]; // at most 1 attachment per block
 }
 
 export interface MiniCaseStudy {
@@ -81,7 +87,7 @@ export interface Lesson {
   description?: string;
   duration: string;
   objectives: string[];
-  content: string[]; // multi-step HTML paragraphs or text
+  content: ContentBlock[]; // multi-step paragraphs, each with an optional image/video/audio
   miniCaseStudies: MiniCaseStudy[]; // 5 items
   reflectionQuestions?: string[];
   keyTakeaways: string[];

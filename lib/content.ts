@@ -6,6 +6,7 @@ import type {
 } from "@/types";
 import type { JobOpportunity } from "@/data/jobs";
 import { isModuleAccessible, isPaidTier, type MembershipTier } from "@/lib/access";
+import { normalizeContentBlocks } from "@/lib/content-blocks";
 
 export async function getModuleCurriculum(
   membershipTier: MembershipTier,
@@ -69,7 +70,7 @@ export async function getModuleCurriculum(
                 description: l.description ?? undefined,
                 duration: l.duration ?? "",
                 objectives: l.objectives ?? [],
-                content: l.content ?? [],
+                content: normalizeContentBlocks(l.content),
                 miniCaseStudies: l.mini_case_studies ?? [],
                 reflectionQuestions: l.reflection_questions ?? [],
                 keyTakeaways: l.key_takeaways ?? [],

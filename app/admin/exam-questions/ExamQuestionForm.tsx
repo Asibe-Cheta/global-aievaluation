@@ -75,7 +75,9 @@ export default function ExamQuestionForm({
 
   const existingMedia = question?.media?.[0];
   const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState<"video" | "audio">(existingMedia?.type ?? "video");
+  const [mediaType, setMediaType] = useState<"video" | "audio">(
+    existingMedia?.type === "audio" ? "audio" : "video",
+  );
   const [removeMedia, setRemoveMedia] = useState(false);
   const [mediaError, setMediaError] = useState("");
 

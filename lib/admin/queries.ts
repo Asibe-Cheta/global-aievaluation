@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeContentBlocks } from "@/lib/content-blocks";
 
 export interface AdminJobRow {
   id: string;
@@ -65,7 +66,7 @@ export interface AdminExamQuestionRow {
 }
 
 export interface AdminCaseStudyMediaItem {
-  type: "video" | "audio";
+  type: "image" | "video" | "audio";
   path: string;
   url: string;
   durationSeconds?: number;
@@ -84,6 +85,12 @@ export interface AdminMiniCaseStudy {
   media?: AdminCaseStudyMediaItem[];
 }
 
+export interface AdminContentBlock {
+  id: string;
+  text: string;
+  media?: AdminCaseStudyMediaItem[]; // at most 1 attachment per block
+}
+
 export interface AdminLessonRow {
   id: string;
   module_id: string;
@@ -91,7 +98,7 @@ export interface AdminLessonRow {
   description: string | null;
   duration: string | null;
   objectives: string[];
-  content: string[];
+  content: AdminContentBlock[];
   mini_case_studies: AdminMiniCaseStudy[];
   reflection_questions: string[];
   key_takeaways: string[];
@@ -226,7 +233,10 @@ export async function getAdminLessons(
     .order("sort_order");
 
   if (error) throw new Error(`getAdminLessons: ${error.message}`);
-  return data ?? [];
+  return (data ?? []).map((row) => ({
+    ...row,
+    content: normalizeContentBlocks(row.content),
+  }));
 }
 
 export async function getAdminLesson(
@@ -240,7 +250,8 @@ export async function getAdminLesson(
     .maybeSingle();
 
   if (error) throw new Error(`getAdminLesson: ${error.message}`);
-  return data;
+  if (!data) return null;
+  return { ...data, content: normalizeContentBlocks(data.content) };
 }
 
 export interface AdminAnnotationMediaItem {

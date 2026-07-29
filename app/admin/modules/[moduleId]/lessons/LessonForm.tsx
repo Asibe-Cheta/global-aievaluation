@@ -7,6 +7,7 @@ import { createLesson, updateLesson } from "@/lib/actions/admin-lessons";
 import type { AdminLessonRow } from "@/lib/admin/queries";
 import StringListEditor from "../../../StringListEditor";
 import MiniCaseStudiesEditor, { type MiniCaseStudiesEditorHandle } from "./MiniCaseStudiesEditor";
+import ContentBlocksEditor, { type ContentBlocksEditorHandle } from "./ContentBlocksEditor";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -30,7 +31,7 @@ export default function LessonForm({
   const [description, setDescription] = useState(lesson?.description ?? "");
   const [duration, setDuration] = useState(lesson?.duration ?? "");
   const [objectives, setObjectives] = useState<string[]>(lesson?.objectives ?? []);
-  const [content, setContent] = useState<string[]>(lesson?.content ?? []);
+  const [content, setContent] = useState(lesson?.content ?? []);
   const [miniCaseStudies, setMiniCaseStudies] = useState(lesson?.mini_case_studies ?? []);
   const [keyTakeaways, setKeyTakeaways] = useState<string[]>(lesson?.key_takeaways ?? []);
   const [sortOrder, setSortOrder] = useState(String(lesson?.sort_order ?? 0));
@@ -38,6 +39,7 @@ export default function LessonForm({
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const caseStudiesRef = useRef<MiniCaseStudiesEditorHandle>(null);
+  const contentBlocksRef = useRef<ContentBlocksEditorHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +61,11 @@ export default function LessonForm({
     for (const [caseId, files] of Object.entries(pendingMedia)) {
       files.video.forEach((file, i) => formData.set(`case_${caseId}_video_${i}`, file));
       files.audio.forEach((file, i) => formData.set(`case_${caseId}_audio_${i}`, file));
+    }
+
+    const pendingBlockMedia = contentBlocksRef.current?.getPendingMedia() ?? {};
+    for (const [blockId, { type, file }] of Object.entries(pendingBlockMedia)) {
+      formData.set(`content_${blockId}_${type}`, file);
     }
 
     const result = isEdit
@@ -131,11 +138,10 @@ export default function LessonForm({
 
       <div>
         <label className={sectionLabelClass}>Content Blocks</label>
-        <StringListEditor
-          items={content}
+        <ContentBlocksEditor
+          ref={contentBlocksRef}
+          blocks={content}
           onChange={setContent}
-          rows={4}
-          placeholder="Lecture paragraph text..."
         />
       </div>
 
