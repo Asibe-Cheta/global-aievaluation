@@ -89,9 +89,12 @@ export async function createTestimonial(
 }
 
 export async function updateTestimonial(
-  id: string,
+  oldId: string,
+  newId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
+  if (!newId.trim()) return { error: "Slug/ID is required." };
+
   const supabase = await createClient();
   const fields = readFields(formData);
 
@@ -102,7 +105,7 @@ export async function updateTestimonial(
   const image = readFile(formData, "avatarImage");
   if (image) {
     try {
-      avatarUrl = await uploadAvatar(supabase, id, image);
+      avatarUrl = await uploadAvatar(supabase, newId, image);
     } catch (err) {
       return { error: err instanceof Error ? err.message : "Upload failed." };
     }
@@ -111,6 +114,7 @@ export async function updateTestimonial(
   const { error } = await supabase
     .from("testimonials")
     .update({
+      id: newId,
       name: fields.name,
       role: fields.role || null,
       quote: fields.quote,
@@ -119,7 +123,7 @@ export async function updateTestimonial(
       is_active: fields.isActive,
       sort_order: fields.sortOrder,
     })
-    .eq("id", id);
+    .eq("id", oldId);
 
   if (error) return { error: error.message };
 

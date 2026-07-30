@@ -68,14 +68,17 @@ export async function createSimulationTask(
 }
 
 export async function updateSimulationTask(
-  id: string,
+  oldId: string,
+  newId: string,
   input: SimulationTaskFormInput,
 ): Promise<{ error?: string }> {
+  if (!newId.trim()) return { error: "Slug/ID is required." };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("simulation_tasks")
-    .update(toRow(input))
-    .eq("id", id);
+    .update({ id: newId, ...toRow(input) })
+    .eq("id", oldId);
 
   if (error) return { error: error.message };
 

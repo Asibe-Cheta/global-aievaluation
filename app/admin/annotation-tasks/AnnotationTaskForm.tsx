@@ -145,7 +145,7 @@ export default function AnnotationTaskForm({
     let result: { error?: string } | undefined;
     if (isEdit) {
       formData.set("existingMedia", JSON.stringify(task!.media ?? []));
-      result = await updateAnnotationTask(task!.id, formData);
+      result = await updateAnnotationTask(task!.id, id, formData);
     } else {
       formData.set("id", id);
       result = await createAnnotationTask(formData);
@@ -165,7 +165,6 @@ export default function AnnotationTaskForm({
             value={id}
             onChange={(e) => setId(e.target.value)}
             placeholder="e.g. m1_ann_1"
-            disabled={isEdit}
             required
           />
         </div>

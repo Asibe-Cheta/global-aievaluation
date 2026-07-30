@@ -180,9 +180,12 @@ export async function createLesson(
 }
 
 export async function updateLesson(
-  id: string,
+  oldId: string,
+  newId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
+  if (!newId.trim()) return { error: "Slug/ID is required." };
+
   const supabase = await createClient();
   const fields = readFields(formData);
 
@@ -191,16 +194,16 @@ export async function updateLesson(
   let miniCaseStudies: AdminMiniCaseStudy[];
   let content: AdminContentBlock[];
   try {
-    miniCaseStudies = await mergeCaseStudyMedia(supabase, id, fields.miniCaseStudies, formData);
-    content = await mergeContentBlockMedia(supabase, id, fields.content, formData);
+    miniCaseStudies = await mergeCaseStudyMedia(supabase, newId, fields.miniCaseStudies, formData);
+    content = await mergeContentBlockMedia(supabase, newId, fields.content, formData);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
 
   const { error } = await supabase
     .from("lessons")
-    .update(toRow(fields, miniCaseStudies, content))
-    .eq("id", id);
+    .update({ id: newId, ...toRow(fields, miniCaseStudies, content) })
+    .eq("id", oldId);
 
   if (error) return { error: error.message };
 

@@ -51,7 +51,7 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
     };
 
     const result = isEdit
-      ? await updateJob(job!.id, input)
+      ? await updateJob(job!.id, id, input)
       : await createJob(id, input);
 
     setIsSubmitting(false);
@@ -71,7 +71,6 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
             value={id}
             onChange={(e) => setId(e.target.value)}
             placeholder="e.g. generalist-expert"
-            disabled={isEdit}
             required
           />
         </div>

@@ -104,7 +104,7 @@ export default function SimulationTaskForm({
     };
 
     const result = isEdit
-      ? await updateSimulationTask(task!.id, input)
+      ? await updateSimulationTask(task!.id, id, input)
       : await createSimulationTask(id, input);
 
     setIsSubmitting(false);
@@ -124,7 +124,6 @@ export default function SimulationTaskForm({
             value={id}
             onChange={(e) => setId(e.target.value)}
             placeholder="e.g. sim_m2_task1"
-            disabled={isEdit}
             required
           />
         </div>

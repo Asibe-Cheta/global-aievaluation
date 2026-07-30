@@ -173,9 +173,12 @@ export async function createAnnotationTask(
 }
 
 export async function updateAnnotationTask(
-  id: string,
+  oldId: string,
+  newId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
+  if (!newId.trim()) return { error: "Slug/ID is required." };
+
   const supabase = await createClient();
   const fields = readFields(formData);
   const existingMedia: AdminAnnotationMediaItem[] = JSON.parse(
@@ -192,10 +195,10 @@ export async function updateAnnotationTask(
       const image1 = readFile(formData, "image1");
       const image2 = readFile(formData, "image2");
       const slot1 = image1
-        ? await replaceMedia(supabase, id, image1, existingMedia[0])
+        ? await replaceMedia(supabase, newId, image1, existingMedia[0])
         : existingMedia[0];
       const slot2 = image2
-        ? await replaceMedia(supabase, id, image2, existingMedia[1])
+        ? await replaceMedia(supabase, newId, image2, existingMedia[1])
         : existingMedia[1];
       if (!slot1 || !slot2) {
         return { error: "Both images are required for an image pair task." };
@@ -213,14 +216,14 @@ export async function updateAnnotationTask(
         };
       }
       const slot = video
-        ? await replaceMedia(supabase, id, video, existingMedia[0])
+        ? await replaceMedia(supabase, newId, video, existingMedia[0])
         : existingMedia[0];
       if (!slot) return { error: "A video file is required." };
       media = [{ ...slot, durationSeconds }];
     } else {
       const audio = readFile(formData, "audio");
       const slot = audio
-        ? await replaceMedia(supabase, id, audio, existingMedia[0])
+        ? await replaceMedia(supabase, newId, audio, existingMedia[0])
         : existingMedia[0];
       if (!slot) return { error: "An audio file is required." };
       media = [slot];
@@ -232,6 +235,7 @@ export async function updateAnnotationTask(
   const { error } = await supabase
     .from("annotation_tasks")
     .update({
+      id: newId,
       module_id: fields.moduleId,
       type: fields.type,
       title: fields.title,
@@ -245,7 +249,7 @@ export async function updateAnnotationTask(
       reviewer_notes: fields.reviewerNotes,
       sort_order: fields.sortOrder,
     })
-    .eq("id", id);
+    .eq("id", oldId);
 
   if (error) return { error: error.message };
 

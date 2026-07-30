@@ -35,7 +35,7 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
     };
 
     const result = isEdit
-      ? await updateModule(mod!.id, input)
+      ? await updateModule(mod!.id, id, input)
       : await createModule(id, input);
 
     setIsSubmitting(false);
@@ -55,7 +55,6 @@ export default function ModuleForm({ module: mod }: { module?: AdminModuleRow })
             value={id}
             onChange={(e) => setId(e.target.value)}
             placeholder="e.g. m5"
-            disabled={isEdit}
             required
           />
         </div>

@@ -51,7 +51,7 @@ export default function TestimonialForm({
     if (avatarImage) formData.set("avatarImage", avatarImage);
 
     const result = isEdit
-      ? await updateTestimonial(testimonial!.id, formData)
+      ? await updateTestimonial(testimonial!.id, id, formData)
       : await createTestimonial(id, formData);
 
     setIsSubmitting(false);
@@ -71,7 +71,6 @@ export default function TestimonialForm({
             value={id}
             onChange={(e) => setId(e.target.value)}
             placeholder="e.g. testimonial-1"
-            disabled={isEdit}
             required
           />
         </div>

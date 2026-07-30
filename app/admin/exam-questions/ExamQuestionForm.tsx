@@ -126,7 +126,7 @@ export default function ExamQuestionForm({
     let result: { error?: string } | undefined;
     if (isEdit) {
       formData.set("existingMedia", JSON.stringify(question!.media ?? []));
-      result = await updateExamQuestion(question!.id, formData);
+      result = await updateExamQuestion(question!.id, id, formData);
     } else {
       result = await createExamQuestion(id, formData);
     }
@@ -148,7 +148,6 @@ export default function ExamQuestionForm({
             value={id}
             onChange={(e) => setId(e.target.value)}
             placeholder="e.g. exam_m2_q1"
-            disabled={isEdit}
             required
           />
         </div>

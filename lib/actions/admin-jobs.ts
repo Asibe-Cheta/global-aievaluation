@@ -54,14 +54,17 @@ export async function createJob(
 }
 
 export async function updateJob(
-  id: string,
+  oldId: string,
+  newId: string,
   input: JobFormInput,
 ): Promise<{ error?: string }> {
+  if (!newId.trim()) return { error: "Slug/ID is required." };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("jobs")
-    .update(toRow(input))
-    .eq("id", id);
+    .update({ id: newId, ...toRow(input) })
+    .eq("id", oldId);
 
   if (error) return { error: error.message };
 

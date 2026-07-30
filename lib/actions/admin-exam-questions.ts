@@ -125,9 +125,12 @@ export async function createExamQuestion(
 }
 
 export async function updateExamQuestion(
-  id: string,
+  oldId: string,
+  newId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
+  if (!newId.trim()) return { error: "Slug/ID is required." };
+
   const supabase = await createClient();
   const fields = readFields(formData);
   const existingMedia: AdminCaseStudyMediaItem[] = JSON.parse(
@@ -136,15 +139,15 @@ export async function updateExamQuestion(
 
   let media: AdminCaseStudyMediaItem[];
   try {
-    media = await resolveMedia(supabase, id, formData, existingMedia);
+    media = await resolveMedia(supabase, newId, formData, existingMedia);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
 
   const { error } = await supabase
     .from("exam_questions")
-    .update(toRow(fields, media))
-    .eq("id", id);
+    .update({ id: newId, ...toRow(fields, media) })
+    .eq("id", oldId);
 
   if (error) return { error: error.message };
 

@@ -69,7 +69,7 @@ export default function LessonForm({
     }
 
     const result = isEdit
-      ? await updateLesson(lesson!.id, formData)
+      ? await updateLesson(lesson!.id, id, formData)
       : await createLesson(id, formData);
 
     setIsSubmitting(false);
@@ -89,7 +89,6 @@ export default function LessonForm({
             value={id}
             onChange={(e) => setId(e.target.value)}
             placeholder="e.g. m1_l7"
-            disabled={isEdit}
             required
           />
         </div>
