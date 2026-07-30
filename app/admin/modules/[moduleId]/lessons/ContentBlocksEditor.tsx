@@ -4,6 +4,7 @@ import { useRef, useState, forwardRef, useImperativeHandle, type ClipboardEvent,
 import { Upload, Trash2, X, Image as ImageIcon, Video, Music, Bold } from "lucide-react";
 import type { AdminContentBlock } from "@/lib/admin/queries";
 import { htmlClipboardToMarkdown } from "@/lib/paste-to-markdown";
+import { renderLessonParagraph } from "@/components/LessonContentRenderer";
 
 const MAX_CLIP_SECONDS = 10;
 
@@ -196,6 +197,14 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
                     onKeyDown={(e) => handleKeyDown(idx, e)}
                     placeholder="Lecture paragraph text... (pasting from Word/ChatGPT/Claude keeps bold headings)"
                   />
+                  {block.text.trim() && (
+                    <div className="rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 px-3 py-2">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Preview (how this looks to students)
+                      </p>
+                      {renderLessonParagraph(block.text, block.id)}
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
