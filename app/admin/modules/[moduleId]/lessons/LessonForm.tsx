@@ -19,9 +19,11 @@ const sectionLabelClass =
 export default function LessonForm({
   moduleId,
   lesson,
+  nextSortOrder = 0,
 }: {
   moduleId: string;
   lesson?: AdminLessonRow;
+  nextSortOrder?: number;
 }) {
   const router = useRouter();
   const isEdit = !!lesson;
@@ -34,7 +36,7 @@ export default function LessonForm({
   const [content, setContent] = useState(lesson?.content ?? []);
   const [miniCaseStudies, setMiniCaseStudies] = useState(lesson?.mini_case_studies ?? []);
   const [keyTakeaways, setKeyTakeaways] = useState<string[]>(lesson?.key_takeaways ?? []);
-  const [sortOrder, setSortOrder] = useState(String(lesson?.sort_order ?? 0));
+  const [sortOrder, setSortOrder] = useState(String(lesson?.sort_order ?? nextSortOrder));
 
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

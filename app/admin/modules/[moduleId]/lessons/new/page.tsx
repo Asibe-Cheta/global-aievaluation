@@ -1,4 +1,5 @@
 import LessonForm from "../LessonForm";
+import { getAdminLessons } from "@/lib/admin/queries";
 
 export default async function NewLessonPage({
   params,
@@ -6,6 +7,7 @@ export default async function NewLessonPage({
   params: Promise<{ moduleId: string }>;
 }) {
   const { moduleId } = await params;
+  const existingLessons = await getAdminLessons(moduleId);
 
   return (
     <div className="space-y-6">
@@ -13,7 +15,7 @@ export default async function NewLessonPage({
         New Lesson
       </h2>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-        <LessonForm moduleId={moduleId} />
+        <LessonForm moduleId={moduleId} nextSortOrder={existingLessons.length} />
       </div>
     </div>
   );

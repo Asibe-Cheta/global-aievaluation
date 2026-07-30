@@ -22,7 +22,7 @@ export async function getModuleCurriculum(
     { data: annotationTasks, error: annotationError },
   ] = await Promise.all([
     supabase.from("modules").select("*").order("sort_order"),
-    supabase.from("lessons").select("*").order("sort_order"),
+    supabase.from("lessons").select("*").order("sort_order").order("created_at"),
     supabase.from("simulation_tasks").select("*").order("sort_order"),
     supabase.from("exam_questions").select("*").order("sort_order"),
     supabase.from("annotation_tasks").select("*").order("sort_order"),

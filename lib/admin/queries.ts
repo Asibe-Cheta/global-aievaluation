@@ -230,7 +230,8 @@ export async function getAdminLessons(
     .from("lessons")
     .select("*")
     .eq("module_id", moduleId)
-    .order("sort_order");
+    .order("sort_order")
+    .order("created_at");
 
   if (error) throw new Error(`getAdminLessons: ${error.message}`);
   return (data ?? []).map((row) => ({
