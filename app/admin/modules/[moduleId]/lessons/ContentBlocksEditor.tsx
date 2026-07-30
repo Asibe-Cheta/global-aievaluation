@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, forwardRef, useImperativeHandle, type ClipboardEvent } from "react";
-import { Upload, Trash2, X, Image as ImageIcon, Video, Music } from "lucide-react";
+import { useRef, useState, forwardRef, useImperativeHandle, type ClipboardEvent, type KeyboardEvent } from "react";
+import { Upload, Trash2, X, Image as ImageIcon, Video, Music, Bold } from "lucide-react";
 import type { AdminContentBlock } from "@/lib/admin/queries";
 import { htmlClipboardToMarkdown } from "@/lib/paste-to-markdown";
 
@@ -45,6 +45,7 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
       Record<string, { type: "image" | "video" | "audio"; file: File }>
     >({});
     const [mediaError, setMediaError] = useState<Record<string, string>>({});
+    const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
     useImperativeHandle(ref, () => ({
       getPendingMedia: () => pendingMedia,
@@ -73,6 +74,38 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
       const current = blocks[idx].text;
       const nextText = current.slice(0, start) + markdown + current.slice(end);
       updateBlock(idx, { text: nextText });
+    };
+
+    const toggleBold = (idx: number) => {
+      const textarea = textareaRefs.current[blocks[idx].id];
+      if (!textarea) return;
+
+      const { selectionStart: start, selectionEnd: end } = textarea;
+      if (start === end) return; // nothing highlighted
+
+      const text = blocks[idx].text;
+      const before = text.slice(0, start);
+      const selected = text.slice(start, end);
+      const after = text.slice(end);
+      const alreadyBold = before.endsWith("**") && after.startsWith("**");
+
+      const nextText = alreadyBold
+        ? before.slice(0, -2) + selected + after.slice(2)
+        : `${before}**${selected}**${after}`;
+      const shift = alreadyBold ? -2 : 2;
+
+      updateBlock(idx, { text: nextText });
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + shift, end + shift);
+      });
+    };
+
+    const handleKeyDown = (idx: number, e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleBold(idx);
+      }
     };
 
     const removeBlock = (idx: number) => {
@@ -140,14 +173,30 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
                 <span className="text-[10px] font-mono text-slate-400 mt-2.5 shrink-0 w-4 text-right">
                   {idx + 1}
                 </span>
-                <textarea
-                  className={inputClass}
-                  rows={4}
-                  value={block.text}
-                  onChange={(e) => updateBlock(idx, { text: e.target.value })}
-                  onPaste={(e) => handlePaste(idx, e)}
-                  placeholder="Lecture paragraph text... (pasting from Word/ChatGPT/Claude keeps bold headings)"
-                />
+                <div className="flex-1 space-y-1">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => toggleBold(idx)}
+                    className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-850"
+                    title="Bold selected text (Ctrl/Cmd+B)"
+                  >
+                    <Bold className="w-3 h-3" />
+                    Bold
+                  </button>
+                  <textarea
+                    ref={(el) => {
+                      textareaRefs.current[block.id] = el;
+                    }}
+                    className={inputClass}
+                    rows={4}
+                    value={block.text}
+                    onChange={(e) => updateBlock(idx, { text: e.target.value })}
+                    onPaste={(e) => handlePaste(idx, e)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    placeholder="Lecture paragraph text... (pasting from Word/ChatGPT/Claude keeps bold headings)"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => removeBlock(idx)}
