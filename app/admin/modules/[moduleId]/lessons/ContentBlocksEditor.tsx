@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, type ClipboardEvent } from "react";
 import { Upload, Trash2, X, Image as ImageIcon, Video, Music } from "lucide-react";
 import type { AdminContentBlock } from "@/lib/admin/queries";
+import { htmlClipboardToMarkdown } from "@/lib/paste-to-markdown";
 
 const MAX_CLIP_SECONDS = 10;
 
@@ -57,6 +58,22 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
 
     const addBlock = () =>
       onChange([...blocks, { id: newId("block"), text: "", media: [] }]);
+
+    const handlePaste = (idx: number, e: ClipboardEvent<HTMLTextAreaElement>) => {
+      const html = e.clipboardData.getData("text/html");
+      if (!html) return; // plain-text paste — let the browser handle it normally
+
+      const markdown = htmlClipboardToMarkdown(html);
+      if (!markdown) return;
+
+      e.preventDefault();
+      const target = e.currentTarget;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      const current = blocks[idx].text;
+      const nextText = current.slice(0, start) + markdown + current.slice(end);
+      updateBlock(idx, { text: nextText });
+    };
 
     const removeBlock = (idx: number) => {
       const blockId = blocks[idx].id;
@@ -128,7 +145,8 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
                   rows={4}
                   value={block.text}
                   onChange={(e) => updateBlock(idx, { text: e.target.value })}
-                  placeholder="Lecture paragraph text..."
+                  onPaste={(e) => handlePaste(idx, e)}
+                  placeholder="Lecture paragraph text... (pasting from Word/ChatGPT/Claude keeps bold headings)"
                 />
                 <button
                   type="button"
