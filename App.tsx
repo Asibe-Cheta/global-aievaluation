@@ -1364,30 +1364,6 @@ export default function App({
                           <ArrowLeft className="w-4 h-4" />
                           Back to Modules
                         </button>
-                        {/* Module Switcher */}
-                        <div className="flex bg-slate-100 dark:bg-slate-850 p-1 rounded-xl w-full md:max-w-md gap-1 border border-slate-200 dark:border-slate-800 overflow-x-auto">
-                          {moduleCurriculum.map((m) => (
-                            <button
-                              key={m.id}
-                              disabled={m.locked}
-                              onClick={() => {
-                                setActiveModuleId(m.id);
-                                setActivePartId(m.id);
-                              }}
-                              className={`flex-1 min-w-[70px] py-1.5 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
-                                m.locked
-                                  ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                                  : "cursor-pointer"
-                              } ${
-                                activePartId === m.id
-                                  ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
-                              }`}
-                            >
-                              {m.title.split(":")[0].trim()}
-                            </button>
-                          ))}
-                        </div>
                       </div>
                       {/* Module header card */}
                       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
