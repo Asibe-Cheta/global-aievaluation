@@ -145,7 +145,7 @@ const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseSt
           return (
             <CollapsibleCard
               key={cs.id}
-              title={`Case Study ${idx + 1}${cs.scenario ? `: ${cs.scenario.slice(0, 50)}` : ""}`}
+              title={`Case Study ${idx + 1}${cs.scenario ? `: ${cs.scenario}` : ""}`}
               onRemove={() => removeCase(idx)}
             >
               <div>
