@@ -88,17 +88,34 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
       const before = text.slice(0, start);
       const selected = text.slice(start, end);
       const after = text.slice(end);
-      const alreadyBold = before.endsWith("**") && after.startsWith("**");
 
-      const nextText = alreadyBold
-        ? before.slice(0, -2) + selected + after.slice(2)
-        : `${before}**${selected}**${after}`;
-      const shift = alreadyBold ? -2 : 2;
+      let nextText: string;
+      let newStart: number;
+      let newEnd: number;
+
+      if (selected.length >= 4 && selected.startsWith("**") && selected.endsWith("**")) {
+        // Selection includes the ** markers themselves (e.g. the admin
+        // triple-clicked the whole "**word**") — strip them from inside.
+        const inner = selected.slice(2, -2);
+        nextText = before + inner + after;
+        newStart = start;
+        newEnd = start + inner.length;
+      } else if (before.endsWith("**") && after.startsWith("**")) {
+        // Selection sits just inside existing markers — strip the adjacent ones.
+        nextText = before.slice(0, -2) + selected + after.slice(2);
+        newStart = start - 2;
+        newEnd = end - 2;
+      } else {
+        // Not bold yet — wrap it.
+        nextText = `${before}**${selected}**${after}`;
+        newStart = start + 2;
+        newEnd = end + 2;
+      }
 
       updateBlock(idx, { text: nextText });
       requestAnimationFrame(() => {
         textarea.focus();
-        textarea.setSelectionRange(start + shift, end + shift);
+        textarea.setSelectionRange(newStart, newEnd);
       });
     };
 

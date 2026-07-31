@@ -85,8 +85,10 @@ export function renderLessonParagraph(p: string, pIndex: number | string, media?
         const asHeading = headingMatch(trimmed);
         if (asHeading) return renderHeading(asHeading.level, asHeading.text, lIndex);
 
-        // Check for bullet list (e.g. • or - or *)
-        const bulletMatch = trimmed.match(/^([•\-\*])\s*(.*)/);
+        // Check for bullet list (e.g. "• text", "- text", "* text"). Requires
+        // a space after the marker so a bold-opening "**text**" line (no
+        // space between the two asterisks) is never mistaken for a bullet.
+        const bulletMatch = trimmed.match(/^([•\-\*])\s+(.*)/);
         if (bulletMatch) {
           return (
             <div key={lIndex} className="flex items-start gap-2.5 pl-4 animate-fade-in">
