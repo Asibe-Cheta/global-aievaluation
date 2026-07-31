@@ -4,20 +4,41 @@ export type MembershipTier = UserStats["membershipTier"];
 
 // TEMP: all modules/lessons unlocked for everyone so content can be
 // reviewed as it's built in admin. Flip back to false to restore the
-// starter-tier "Module 1 only" gate.
+// free-tier "Module 1 only" gate.
 const TEMP_UNLOCK_ALL_MODULES = true;
 
+// Any tier above the free preview tier — Starter, Professional, or Career
+// Accelerator all count as "paid" (Starter is a one-time purchase, not a
+// subscription, but it's still a paid tier).
 export function isPaidTier(tier: MembershipTier): boolean {
-  return tier === "professional" || tier === "career_accelerator";
+  return tier !== "free";
 }
 
 /**
- * Free (starter) accounts only get the first module in the curriculum as a
- * preview; everything else requires a paid plan. `index` is the module's
- * 0-based position in the curriculum's sort order.
+ * Full Academy access (all lessons/modules) — everything from Starter up.
+ * The free tier only gets Module 1 as a preview.
+ */
+export function hasAcademyAccess(tier: MembershipTier): boolean {
+  return tier !== "free";
+}
+
+/**
+ * Free accounts only get the first module in the curriculum as a preview;
+ * Starter and above unlock every module. `index` is the module's 0-based
+ * position in the curriculum's sort order.
  */
 export function isModuleAccessible(tier: MembershipTier, index: number): boolean {
   if (TEMP_UNLOCK_ALL_MODULES) return true;
-  if (isPaidTier(tier)) return true;
+  if (hasAcademyAccess(tier)) return true;
   return index === 0;
+}
+
+/**
+ * The full task-simulation bank (Simulation Tasks, Data Annotation, Exam
+ * Practice) is a Professional+ feature — Starter only includes the lesson
+ * content and (limited) interview simulator, not the practice bank.
+ */
+export function isSimulationPracticeAccessible(tier: MembershipTier): boolean {
+  if (TEMP_UNLOCK_ALL_MODULES) return true;
+  return tier === "professional" || tier === "career_accelerator";
 }

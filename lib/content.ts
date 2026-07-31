@@ -5,14 +5,14 @@ import type {
   Testimonial,
 } from "@/types";
 import type { JobOpportunity } from "@/data/jobs";
-import { isModuleAccessible, isPaidTier, type MembershipTier } from "@/lib/access";
+import { isModuleAccessible, isSimulationPracticeAccessible, type MembershipTier } from "@/lib/access";
 import { normalizeContentBlocks } from "@/lib/content-blocks";
 
 export async function getModuleCurriculum(
   membershipTier: MembershipTier,
 ): Promise<Module[]> {
   const supabase = await createClient();
-  const canPractice = isPaidTier(membershipTier);
+  const canPractice = isSimulationPracticeAccessible(membershipTier);
 
   const [
     { data: modules, error: modulesError },
@@ -240,7 +240,7 @@ export async function getUserStats(
     role: profile.job_role ?? undefined,
     location: profile.location ?? undefined,
     timezone: profile.timezone ?? undefined,
-    membershipTier: profile.membership_tier ?? "starter",
+    membershipTier: profile.membership_tier ?? "free",
     settings: profile.settings ?? {
       notificationsEnabled: true,
       audioFeedback: true,

@@ -22,7 +22,7 @@ export default async function Home() {
 
   const [moduleCurriculum, jobs, initialStats] =
     await Promise.all([
-      getModuleCurriculum(profile?.membership_tier ?? "starter"),
+      getModuleCurriculum(profile?.membership_tier ?? "free"),
       getJobs(),
       getUserStats(user.id, user.email!),
     ]);

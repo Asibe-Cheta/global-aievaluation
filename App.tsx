@@ -42,7 +42,7 @@ import { UserStats, Rank, Module, Lesson, AnnotationSubmission } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
-import { isModuleAccessible, isPaidTier } from "./lib/access";
+import { isModuleAccessible, isPaidTier, isSimulationPracticeAccessible } from "./lib/access";
 
 // Subcomponents
 import DashboardView from "./components/DashboardView";
@@ -633,7 +633,7 @@ export default function App({
                 Real World Practice
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {!isPaidTier(stats.membershipTier) && (
+                {!isSimulationPracticeAccessible(stats.membershipTier) && (
                   <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 )}
                 {practiceGroupOpen ? (
@@ -661,7 +661,7 @@ export default function App({
                   }`}
                 >
                   <span>Simulation Tasks</span>
-                  {(!isPaidTier(stats.membershipTier) || !isSimUnlocked) && (
+                  {(!isSimulationPracticeAccessible(stats.membershipTier) || !isSimUnlocked) && (
                     <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
                 </button>
@@ -680,7 +680,7 @@ export default function App({
                   }`}
                 >
                   <span>Data Annotation</span>
-                  {!isPaidTier(stats.membershipTier) && (
+                  {!isSimulationPracticeAccessible(stats.membershipTier) && (
                     <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
                 </button>
@@ -699,7 +699,7 @@ export default function App({
                   }`}
                 >
                   <span>Exam Practice</span>
-                  {!isPaidTier(stats.membershipTier) && (
+                  {!isSimulationPracticeAccessible(stats.membershipTier) && (
                     <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
                 </button>
@@ -941,10 +941,10 @@ export default function App({
           {/* Active Lesson Frame */}
           {activeLessonId !== null ? (
             (() => {
-              // INTERCEPT LOCKED LESSONS FOR STARTER TIER
+              // INTERCEPT LOCKED LESSONS FOR FREE TIER
               if (
                 !TEMP_UNLOCK_ALL_MODULES &&
-                stats.membershipTier === "starter" &&
+                stats.membershipTier === "free" &&
                 activeLessonId !== "l1" &&
                 activeLessonId !== "p2_intro" &&
                 activeLessonId !== "p2_m1_l1"
@@ -1489,7 +1489,7 @@ export default function App({
                   examQuestions={examPracticeQuestions}
                   onExamComplete={handleExamComplete}
                   initialMode={activeTab === "exam_practice" ? "exam" : simViewInitialMode}
-                  isPaidUser={isPaidTier(stats.membershipTier)}
+                  isPaidUser={isSimulationPracticeAccessible(stats.membershipTier)}
                   onRequireUpgrade={() => setActiveTab("membership")}
                 />
               )}
@@ -1500,7 +1500,7 @@ export default function App({
                   stats={stats}
                   onSubmit={handleAnnotationSubmit}
                   onBack={() => setActiveTab("dashboard")}
-                  isPaidUser={isPaidTier(stats.membershipTier)}
+                  isPaidUser={isSimulationPracticeAccessible(stats.membershipTier)}
                   onRequireUpgrade={() => setActiveTab("membership")}
                 />
               )}
@@ -1514,7 +1514,7 @@ export default function App({
                     <ArrowLeft className="w-4 h-4" />
                     Back to Dashboard
                   </button>
-                  {stats.membershipTier === "starter" && !TEMP_DISABLE_INTERVIEW_PAYWALL ? (
+                  {stats.membershipTier === "free" && !TEMP_DISABLE_INTERVIEW_PAYWALL ? (
                     <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 border-2 border-slate-200 dark:border-slate-800 shadow-lg text-center max-w-3xl mx-auto space-y-6 relative overflow-hidden">
                       <div className="absolute right-0 top-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-2xl"></div>
                       <div className="inline-flex p-4.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
