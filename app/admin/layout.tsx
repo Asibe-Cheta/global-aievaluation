@@ -27,6 +27,10 @@ export default async function AdminLayout({
     redirect("/");
   }
 
+  const { count: userCount } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true });
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <aside className="w-60 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 min-h-screen p-5 space-y-6">
@@ -37,6 +41,15 @@ export default async function AdminLayout({
           <h1 className="text-sm font-black text-slate-900 dark:text-white">
             Content Dashboard
           </h1>
+        </div>
+
+        <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 px-3 py-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
+            Total Users
+          </p>
+          <p className="text-lg font-black text-slate-900 dark:text-white">
+            {userCount ?? 0}
+          </p>
         </div>
 
         <nav className="space-y-1">
