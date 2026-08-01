@@ -2,11 +2,6 @@ import type { UserStats } from "@/types";
 
 export type MembershipTier = UserStats["membershipTier"];
 
-// TEMP: all modules/lessons unlocked for everyone so content can be
-// reviewed as it's built in admin. Flip back to false to restore the
-// free-tier "Module 1 only" gate.
-const TEMP_UNLOCK_ALL_MODULES = true;
-
 // Any tier above the free preview tier — Starter, Professional, or Career
 // Accelerator all count as "paid" (Starter is a one-time purchase, not a
 // subscription, but it's still a paid tier).
@@ -28,7 +23,6 @@ export function hasAcademyAccess(tier: MembershipTier): boolean {
  * position in the curriculum's sort order.
  */
 export function isModuleAccessible(tier: MembershipTier, index: number): boolean {
-  if (TEMP_UNLOCK_ALL_MODULES) return true;
   if (hasAcademyAccess(tier)) return true;
   return index === 0;
 }
@@ -39,6 +33,5 @@ export function isModuleAccessible(tier: MembershipTier, index: number): boolean
  * content and (limited) interview simulator, not the practice bank.
  */
 export function isSimulationPracticeAccessible(tier: MembershipTier): boolean {
-  if (TEMP_UNLOCK_ALL_MODULES) return true;
   return tier === "professional" || tier === "career_accelerator";
 }
