@@ -12,12 +12,13 @@ interface JobsViewProps {
   stats: UserStats;
   jobs?: JobOpportunity[];
   onBack: () => void;
+  backLabel?: string;
   setActiveTab?: (tab: string) => void;
   setSimSubMode?: (mode: "sandbox" | "exam") => void;
   onStartInterviewForJob?: (job: JobOpportunity) => void;
 }
 
-export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubMode, onStartInterviewForJob }: JobsViewProps) {
+export default function JobsView({ stats, jobs, onBack, backLabel = "Back to Dashboard", setActiveTab, setSimSubMode, onStartInterviewForJob }: JobsViewProps) {
   const jobsList = jobs && jobs.length > 0 ? jobs : DEFAULT_JOBS;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,7 +111,7 @@ export default function JobsView({ stats, jobs, onBack, setActiveTab, setSimSubM
           className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-sans"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
+          {backLabel}
         </button>
       </div>
 
