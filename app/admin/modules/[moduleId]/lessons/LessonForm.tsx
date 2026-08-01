@@ -8,6 +8,7 @@ import type { AdminLessonRow } from "@/lib/admin/queries";
 import StringListEditor from "../../../StringListEditor";
 import MiniCaseStudiesEditor, { type MiniCaseStudiesEditorHandle } from "./MiniCaseStudiesEditor";
 import ContentBlocksEditor, { type ContentBlocksEditorHandle } from "./ContentBlocksEditor";
+import BoldTextarea from "../../../BoldTextarea";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -61,6 +62,7 @@ export default function LessonForm({
 
     const pendingMedia = caseStudiesRef.current?.getPendingMedia() ?? {};
     for (const [caseId, files] of Object.entries(pendingMedia)) {
+      files.image.forEach((file, i) => formData.set(`case_${caseId}_image_${i}`, file));
       files.video.forEach((file, i) => formData.set(`case_${caseId}_video_${i}`, file));
       files.audio.forEach((file, i) => formData.set(`case_${caseId}_audio_${i}`, file));
     }
@@ -105,12 +107,7 @@ export default function LessonForm({
         </div>
         <div className="sm:col-span-2">
           <label className={labelClass}>Description</label>
-          <textarea
-            className={inputClass}
-            rows={2}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={2} value={description} onChange={setDescription} />
         </div>
         <div>
           <label className={labelClass}>Duration</label>

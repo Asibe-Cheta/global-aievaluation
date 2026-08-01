@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { Testimonial } from "@/types";
 import Reveal from "./Reveal";
+import { renderFormattedText } from "./LessonContentRenderer";
 
 interface LandingViewProps {
   onEnterPlatform: () => void;
@@ -685,7 +686,7 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
                 </div>
 
                 <p className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-100 leading-relaxed italic">
-                  "{testimonials[activeTestimonial].quote}"
+                  "{renderFormattedText(testimonials[activeTestimonial].quote)}"
                 </p>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">

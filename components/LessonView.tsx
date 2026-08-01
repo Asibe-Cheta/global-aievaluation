@@ -4,7 +4,7 @@ import {
   HelpCircle, RefreshCw, Send, Terminal, Key, ShieldAlert, BadgeCheck, AlertCircle
 } from "lucide-react";
 import { Lesson, UserStats, MiniCaseStudy } from "../types";
-import { renderLessonParagraph } from "./LessonContentRenderer";
+import { renderLessonParagraph, renderFormattedText } from "./LessonContentRenderer";
 
 interface LessonViewProps {
   lesson: Lesson;
@@ -183,10 +183,10 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                     <span className="text-[9px] bg-slate-200 dark:bg-slate-750 text-slate-650 dark:text-slate-400 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
                       Special Rules to Follow
                     </span>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 italic">{activeCase.scenario}</p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 italic">{renderFormattedText(activeCase.scenario)}</p>
                     <div className="pt-2">
                       <p className="text-[10px] text-slate-450 uppercase font-bold">User's Question:</p>
-                      <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold">{activeCase.prompt}</p>
+                      <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold">{renderFormattedText(activeCase.prompt)}</p>
                     </div>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-150 dark:border-slate-850 space-y-2">
@@ -203,7 +203,9 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {activeCase.media.map((m) => (
                       <div key={m.path} className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-150 dark:border-slate-800">
-                        {m.type === "video" ? (
+                        {m.type === "image" ? (
+                          <img src={m.url} alt="" className="w-full rounded-lg max-h-56 object-contain" />
+                        ) : m.type === "video" ? (
                           <video src={m.url} controls className="w-full rounded-lg bg-black max-h-56" />
                         ) : (
                           <audio src={m.url} controls className="w-full" />
@@ -217,7 +219,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                 <div id="case-study-mcq" className="space-y-4">
                   <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <HelpCircle className="w-5 h-5 text-indigo-550" />
-                    {activeCase.question}
+                    {renderFormattedText(activeCase.question)}
                   </p>
                   <div className="grid grid-cols-1 gap-2">
                     {activeCase.options.map((opt, idx) => {
@@ -347,7 +349,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-1">Why is this correct?</p>
                       <p className="text-xs text-slate-750 dark:text-slate-350 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                        {activeCase.explanation}
+                        {renderFormattedText(activeCase.explanation)}
                       </p>
                     </div>
 
@@ -358,7 +360,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                           Trainer Tip
                         </p>
                         <p className="text-xs italic text-amber-900 dark:text-amber-300 mt-1">
-                          {activeCase.reviewerNotes}
+                          {renderFormattedText(activeCase.reviewerNotes)}
                         </p>
                       </div>
                     )}

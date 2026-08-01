@@ -5,6 +5,7 @@ import { Upload, Trash2, X } from "lucide-react";
 import type { AdminMiniCaseStudy, AdminCaseStudyMediaItem } from "@/lib/admin/queries";
 import CollapsibleCard from "../../../CollapsibleCard";
 import OptionsEditor from "../../../OptionsEditor";
+import BoldTextarea from "../../../BoldTextarea";
 
 const MAX_CLIP_SECONDS = 10;
 const MAX_PER_TYPE = 2;
@@ -41,13 +42,13 @@ interface MiniCaseStudiesEditorProps {
 }
 
 export interface MiniCaseStudiesEditorHandle {
-  getPendingMedia: () => Record<string, { video: File[]; audio: File[] }>;
+  getPendingMedia: () => Record<string, { image: File[]; video: File[]; audio: File[] }>;
 }
 
 const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseStudiesEditorProps>(
   ({ caseStudies, onChange }, ref) => {
     const [pendingMedia, setPendingMedia] = useState<
-      Record<string, { video: File[]; audio: File[] }>
+      Record<string, { image: File[]; video: File[]; audio: File[] }>
     >({});
     const [mediaError, setMediaError] = useState<Record<string, string>>({});
 
@@ -94,10 +95,11 @@ const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseSt
       updateCase(idx, { media: nextMedia });
     };
 
-    const removePendingMedia = (caseId: string, type: "video" | "audio", fileIdx: number) => {
+    const removePendingMedia = (caseId: string, type: "image" | "video" | "audio", fileIdx: number) => {
       setPendingMedia((prev) => ({
         ...prev,
         [caseId]: {
+          image: type === "image" ? prev[caseId]?.image.filter((_, i) => i !== fileIdx) ?? [] : prev[caseId]?.image ?? [],
           video: type === "video" ? prev[caseId]?.video.filter((_, i) => i !== fileIdx) ?? [] : prev[caseId]?.video ?? [],
           audio: type === "audio" ? prev[caseId]?.audio.filter((_, i) => i !== fileIdx) ?? [] : prev[caseId]?.audio ?? [],
         },
@@ -106,27 +108,32 @@ const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseSt
 
     const handleAddMedia = async (
       caseId: string,
-      type: "video" | "audio",
+      type: "image" | "video" | "audio",
       file: File | null,
     ) => {
       if (!file) return;
       setMediaError((prev) => ({ ...prev, [caseId]: "" }));
-      try {
-        const duration = await readClipDuration(file);
-        if (duration > MAX_CLIP_SECONDS) {
-          setMediaError((prev) => ({
-            ...prev,
-            [caseId]: `That ${type} is ${duration.toFixed(1)}s long. Clips must be ${MAX_CLIP_SECONDS}s or less.`,
-          }));
+
+      if (type !== "image") {
+        try {
+          const duration = await readClipDuration(file);
+          if (duration > MAX_CLIP_SECONDS) {
+            setMediaError((prev) => ({
+              ...prev,
+              [caseId]: `That ${type} is ${duration.toFixed(1)}s long. Clips must be ${MAX_CLIP_SECONDS}s or less.`,
+            }));
+            return;
+          }
+        } catch {
+          setMediaError((prev) => ({ ...prev, [caseId]: "Could not read that file's duration." }));
           return;
         }
-      } catch {
-        setMediaError((prev) => ({ ...prev, [caseId]: "Could not read that file's duration." }));
-        return;
       }
+
       setPendingMedia((prev) => ({
         ...prev,
         [caseId]: {
+          image: type === "image" ? [...(prev[caseId]?.image ?? []), file] : prev[caseId]?.image ?? [],
           video: type === "video" ? [...(prev[caseId]?.video ?? []), file] : prev[caseId]?.video ?? [],
           audio: type === "audio" ? [...(prev[caseId]?.audio ?? []), file] : prev[caseId]?.audio ?? [],
         },
@@ -136,9 +143,11 @@ const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseSt
     return (
       <div className="space-y-2">
         {caseStudies.map((cs, idx) => {
+          const existingImages = (cs.media ?? []).filter((m) => m.type === "image");
           const existingVideos = (cs.media ?? []).filter((m) => m.type === "video");
           const existingAudios = (cs.media ?? []).filter((m) => m.type === "audio");
-          const pending = pendingMedia[cs.id] ?? { video: [], audio: [] };
+          const pending = pendingMedia[cs.id] ?? { image: [], video: [], audio: [] };
+          const imageCount = existingImages.length + pending.image.length;
           const videoCount = existingVideos.length + pending.video.length;
           const audioCount = existingAudios.length + pending.audio.length;
 
@@ -150,37 +159,62 @@ const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseSt
             >
               <div>
                 <label className={labelClass}>Scenario</label>
-                <textarea
-                  className={inputClass}
-                  rows={2}
-                  value={cs.scenario}
-                  onChange={(e) => updateCase(idx, { scenario: e.target.value })}
-                />
+                <BoldTextarea className={inputClass} rows={2} value={cs.scenario} onChange={(v) => updateCase(idx, { scenario: v })} />
               </div>
               <div>
                 <label className={labelClass}>Prompt</label>
-                <textarea
-                  className={inputClass}
-                  rows={2}
-                  value={cs.prompt}
-                  onChange={(e) => updateCase(idx, { prompt: e.target.value })}
-                />
+                <BoldTextarea className={inputClass} rows={2} value={cs.prompt} onChange={(v) => updateCase(idx, { prompt: v })} />
               </div>
               <div>
                 <label className={labelClass}>Response</label>
-                <textarea
-                  className={inputClass}
-                  rows={2}
-                  value={cs.response}
-                  onChange={(e) => updateCase(idx, { response: e.target.value })}
-                />
+                <BoldTextarea className={inputClass} rows={2} value={cs.response} onChange={(v) => updateCase(idx, { response: v })} />
               </div>
 
               <div>
                 <label className={labelClass}>
-                  Video / Audio Clips (optional — max {MAX_PER_TYPE} videos + {MAX_PER_TYPE} audio, each ≤{MAX_CLIP_SECONDS}s)
+                  Image / Video / Audio (optional — max {MAX_PER_TYPE} each, video/audio ≤{MAX_CLIP_SECONDS}s)
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="border border-dashed border-slate-300 dark:border-slate-750 rounded-xl p-3 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Images ({imageCount}/{MAX_PER_TYPE})</span>
+                    {existingImages.map((m) => (
+                      <div key={m.path} className="flex items-center gap-2">
+                        <img src={m.url} alt="" className="w-full max-h-28 rounded-lg object-contain" />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingMedia(idx, (cs.media ?? []).indexOf(m))}
+                          className="text-rose-500 hover:text-rose-600 shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {pending.image.map((file, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <img src={URL.createObjectURL(file)} alt="" className="w-full max-h-28 rounded-lg object-contain" />
+                        <button
+                          type="button"
+                          onClick={() => removePendingMedia(cs.id, "image", i)}
+                          className="text-rose-500 hover:text-rose-600 shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {imageCount < MAX_PER_TYPE && (
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+                        <Upload className="w-3.5 h-3.5" />
+                        Add image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleAddMedia(cs.id, "image", e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                    )}
+                  </div>
+
                   <div className="border border-dashed border-slate-300 dark:border-slate-750 rounded-xl p-3 space-y-2">
                     <span className="text-[10px] font-bold text-slate-500 uppercase">Videos ({videoCount}/{MAX_PER_TYPE})</span>
                     {existingVideos.map((m, i) => (
@@ -268,12 +302,7 @@ const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseSt
 
               <div>
                 <label className={labelClass}>Question</label>
-                <textarea
-                  className={inputClass}
-                  rows={2}
-                  value={cs.question}
-                  onChange={(e) => updateCase(idx, { question: e.target.value })}
-                />
+                <BoldTextarea className={inputClass} rows={2} value={cs.question} onChange={(v) => updateCase(idx, { question: v })} />
               </div>
               <div>
                 <label className={labelClass}>Options &amp; Correct Answer</label>
@@ -287,20 +316,15 @@ const MiniCaseStudiesEditor = forwardRef<MiniCaseStudiesEditorHandle, MiniCaseSt
               </div>
               <div>
                 <label className={labelClass}>Explanation</label>
-                <textarea
-                  className={inputClass}
-                  rows={2}
-                  value={cs.explanation}
-                  onChange={(e) => updateCase(idx, { explanation: e.target.value })}
-                />
+                <BoldTextarea className={inputClass} rows={2} value={cs.explanation} onChange={(v) => updateCase(idx, { explanation: v })} />
               </div>
               <div>
                 <label className={labelClass}>Reviewer Notes (optional)</label>
-                <textarea
+                <BoldTextarea
                   className={inputClass}
                   rows={2}
                   value={cs.reviewerNotes ?? ""}
-                  onChange={(e) => updateCase(idx, { reviewerNotes: e.target.value })}
+                  onChange={(v) => updateCase(idx, { reviewerNotes: v })}
                 />
               </div>
             </CollapsibleCard>

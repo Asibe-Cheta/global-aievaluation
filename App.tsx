@@ -53,6 +53,7 @@ import ReadinessView from "./components/ReadinessView";
 import FailReasonsView from "./components/FailReasonsView";
 import ProfileView from "./components/ProfileView";
 import JobsView from "./components/JobsView";
+import { renderFormattedText } from "./components/LessonContentRenderer";
 import InterviewSimulator from "./components/InterviewSimulator";
 import Part2IntroView from "./components/Part2IntroView";
 import Part2IntroLessonView from "./components/Part2IntroLessonView";
@@ -1235,8 +1236,8 @@ export default function App({
 
                         <hr className="border-slate-100 dark:border-slate-850" />
 
-                        {/* Grid of Modules */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Horizontally scrolling row of Modules */}
+                        <div className="flex gap-6 overflow-x-auto pb-4 -mx-1 px-1 snap-x snap-mandatory scroll-smooth">
                           {cards.map((card) => {
                             const progressPercent =
                               card.lessonsCount > 0
@@ -1253,7 +1254,7 @@ export default function App({
                             return (
                               <div
                                 key={card.id}
-                                className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-6 transition-all relative overflow-hidden ${
+                                className={`w-[300px] sm:w-[340px] shrink-0 snap-start bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-6 transition-all relative overflow-hidden ${
                                   card.locked
                                     ? "opacity-75"
                                     : "hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md"
@@ -1271,7 +1272,7 @@ export default function App({
                                   </h3>
 
                                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    {card.description}
+                                    {renderFormattedText(card.description)}
                                   </p>
 
                                   <div className="flex items-center gap-1 pt-1 text-[11px] text-slate-405 font-mono">

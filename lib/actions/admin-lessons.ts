@@ -48,13 +48,24 @@ async function mergeCaseStudyMedia(
 
   for (const cs of caseStudies) {
     const media = [...(cs.media ?? [])];
+    const existingImages = media.filter((m) => m.type === "image").length;
     const existingVideos = media.filter((m) => m.type === "video").length;
     const existingAudios = media.filter((m) => m.type === "audio").length;
 
+    let imageSlotsUsed = existingImages;
     let videoSlotsUsed = existingVideos;
     let audioSlotsUsed = existingAudios;
 
     for (let i = 0; i < MAX_PER_TYPE; i++) {
+      const imageFile = formData.get(`case_${cs.id}_image_${i}`);
+      if (imageFile instanceof File && imageFile.size > 0) {
+        if (imageSlotsUsed >= MAX_PER_TYPE) {
+          throw new Error(`Case study "${cs.question || cs.id}" has more than ${MAX_PER_TYPE} images.`);
+        }
+        media.push(await uploadClip(supabase, lessonId, cs.id, "image", imageFile));
+        imageSlotsUsed++;
+      }
+
       const videoFile = formData.get(`case_${cs.id}_video_${i}`);
       if (videoFile instanceof File && videoFile.size > 0) {
         if (videoSlotsUsed >= MAX_PER_TYPE) {

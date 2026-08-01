@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/admin-annotation-tasks";
 import type { AdminAnnotationTaskRow, AdminModuleRow } from "@/lib/admin/queries";
 import OptionsEditor from "../OptionsEditor";
+import BoldTextarea from "../BoldTextarea";
 
 const MAX_VIDEO_SECONDS = 10;
 
@@ -223,11 +224,11 @@ export default function AnnotationTaskForm({
         </div>
         <div className="sm:col-span-2">
           <label className={labelClass}>Instructions</label>
-          <textarea
+          <BoldTextarea
             className={inputClass}
             rows={2}
             value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
+            onChange={setInstructions}
             placeholder="What should the annotator look/listen for?"
           />
         </div>
@@ -334,24 +335,18 @@ export default function AnnotationTaskForm({
           (the media above stands in for that) */}
       <div>
         <label className={sectionLabelClass}>Scenario (optional)</label>
-        <textarea
+        <BoldTextarea
           className={inputClass}
           rows={2}
           value={scenario}
-          onChange={(e) => setScenario(e.target.value)}
+          onChange={setScenario}
           placeholder="Any context the annotator needs before reviewing the media..."
         />
       </div>
 
       <div>
         <label className={sectionLabelClass}>Question</label>
-        <textarea
-          className={inputClass}
-          rows={2}
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          required
-        />
+        <BoldTextarea className={inputClass} rows={2} value={question} onChange={setQuestion} required />
       </div>
 
       <div>
@@ -368,22 +363,12 @@ export default function AnnotationTaskForm({
 
       <div>
         <label className={sectionLabelClass}>Explanation</label>
-        <textarea
-          className={inputClass}
-          rows={2}
-          value={explanation}
-          onChange={(e) => setExplanation(e.target.value)}
-        />
+        <BoldTextarea className={inputClass} rows={2} value={explanation} onChange={setExplanation} />
       </div>
 
       <div>
         <label className={sectionLabelClass}>Reviewer Notes (optional)</label>
-        <textarea
-          className={inputClass}
-          rows={2}
-          value={reviewerNotes}
-          onChange={(e) => setReviewerNotes(e.target.value)}
-        />
+        <BoldTextarea className={inputClass} rows={2} value={reviewerNotes} onChange={setReviewerNotes} />
       </div>
 
       {error && (

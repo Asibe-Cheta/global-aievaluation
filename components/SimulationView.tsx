@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { UserStats, SimulationTask, ExamQuestion } from "../types";
 import { SIMULATION_TASKS, EXAM_QUESTIONS } from "../data/modules";
+import { renderFormattedText } from "./LessonContentRenderer";
 
 interface SimulationViewProps {
   stats: UserStats;
@@ -324,7 +325,7 @@ export default function SimulationView({
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">{tasks[0]?.title}</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed bg-slate-50 dark:bg-slate-850 rounded-xl p-4">
-                  {tasks[0]?.prompt}
+                  {tasks[0] && renderFormattedText(tasks[0].prompt)}
                 </p>
                 <div className="flex items-center gap-1.5 pt-1">
                   {[1, 2, 3, 4, 5].map((n) => (
@@ -351,7 +352,7 @@ export default function SimulationView({
                   <Lock className="w-4 h-4 text-slate-400" />
                 </div>
                 <p className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
-                  {questions[0]?.question}
+                  {questions[0] && renderFormattedText(questions[0].question)}
                 </p>
                 <div className="grid grid-cols-1 gap-2 pt-1">
                   {questions[0]?.options.map((option, idx) => (
@@ -844,7 +845,7 @@ export default function SimulationView({
               {activeQuestion.scenario && (
                 <div className="p-4 bg-slate-50 dark:bg-slate-850 border rounded-xl text-xs italic text-slate-700 dark:text-slate-300">
                   <span className="font-extrabold uppercase text-[10px] text-slate-450 block mb-1">AUDITING SCENARIO CASE</span>
-                  "{activeQuestion.scenario}"
+                  "{renderFormattedText(activeQuestion.scenario)}"
                 </div>
               )}
 
@@ -859,7 +860,7 @@ export default function SimulationView({
               )}
 
               <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
-                {activeQuestion.question}
+                {renderFormattedText(activeQuestion.question)}
               </p>
 
               <div className="grid grid-cols-1 gap-2 pt-2">
@@ -1022,7 +1023,7 @@ export default function SimulationView({
           <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-150 dark:border-slate-800">
             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">User Prompt Contract</p>
             <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold mt-1 leading-relaxed">
-              {activeTask.prompt}
+              {renderFormattedText(activeTask.prompt)}
             </p>
           </div>
           <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-150 dark:border-slate-800">

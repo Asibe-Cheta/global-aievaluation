@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "tsx --env-file=.env.local --experimental-websocket scripts/seed.ts"
+    "seed": "tsx --env-file=.env.local --experimental-websocket scripts/seed.ts",
+    "grant-admin": "tsx --env-file=.env.local --experimental-websocket scripts/grant-admin.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

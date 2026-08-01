@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/admin-exam-questions";
 import type { AdminExamQuestionRow, AdminModuleRow } from "@/lib/admin/queries";
 import OptionsEditor from "../OptionsEditor";
+import BoldTextarea from "../BoldTextarea";
 
 const MAX_CLIP_SECONDS = 10;
 
@@ -196,12 +197,7 @@ export default function ExamQuestionForm({
 
         <div className="sm:col-span-2">
           <label className={labelClass}>Question</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={questionText}
-            onChange={(e) => setQuestionText(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={3} value={questionText} onChange={setQuestionText} />
         </div>
 
         <div className="sm:col-span-2 space-y-1.5">
@@ -218,12 +214,7 @@ export default function ExamQuestionForm({
 
         <div className="sm:col-span-2">
           <label className={labelClass}>Explanation</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={explanation}
-            onChange={(e) => setExplanation(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={3} value={explanation} onChange={setExplanation} />
         </div>
 
         <div>
@@ -242,12 +233,7 @@ export default function ExamQuestionForm({
 
         <div className="sm:col-span-2">
           <label className={labelClass}>Scenario (optional)</label>
-          <textarea
-            className={inputClass}
-            rows={2}
-            value={scenario}
-            onChange={(e) => setScenario(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={2} value={scenario} onChange={setScenario} />
         </div>
 
         <div className="sm:col-span-2">

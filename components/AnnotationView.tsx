@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Module, UserStats, AnnotationTask, AnnotationSubmission } from "../types";
+import { renderFormattedText } from "./LessonContentRenderer";
 
 interface AnnotationViewProps {
   moduleCurriculum: Module[];
@@ -86,7 +87,7 @@ function TaskReview({
         </h1>
         {task.instructions && (
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            {task.instructions}
+            {renderFormattedText(task.instructions)}
           </p>
         )}
       </div>
@@ -118,14 +119,14 @@ function TaskReview({
             <span className="text-[9px] bg-slate-200 dark:bg-slate-750 text-slate-650 dark:text-slate-400 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
               Context
             </span>
-            <p className="text-xs text-slate-700 dark:text-slate-300 italic mt-2">{task.scenario}</p>
+            <p className="text-xs text-slate-700 dark:text-slate-300 italic mt-2">{renderFormattedText(task.scenario)}</p>
           </div>
         )}
 
         <div className="space-y-4">
           <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-indigo-550" />
-            {task.question}
+            {renderFormattedText(task.question)}
           </p>
           <div className="grid grid-cols-1 gap-2">
             {task.options.map((opt, idx) => {
@@ -245,7 +246,7 @@ function TaskReview({
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-1">Why is this correct?</p>
                 <p className="text-xs text-slate-750 dark:text-slate-350 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                  {task.explanation}
+                  {renderFormattedText(task.explanation)}
                 </p>
               </div>
             )}
@@ -256,7 +257,7 @@ function TaskReview({
                   <ShieldAlert className="w-4 h-4" />
                   Trainer Tip
                 </p>
-                <p className="text-xs italic text-amber-900 dark:text-amber-300 mt-1">{task.reviewerNotes}</p>
+                <p className="text-xs italic text-amber-900 dark:text-amber-300 mt-1">{renderFormattedText(task.reviewerNotes)}</p>
               </div>
             )}
           </div>
@@ -363,7 +364,7 @@ export default function AnnotationView({
                 <h3 className="text-xs font-black text-slate-900 dark:text-white mb-1">{task.title}</h3>
                 {task.instructions && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mb-3 line-clamp-2">
-                    {task.instructions}
+                    {renderFormattedText(task.instructions)}
                   </p>
                 )}
                 <div className="flex items-center justify-between">

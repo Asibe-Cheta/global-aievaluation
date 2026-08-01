@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions/admin-simulation-tasks";
 import type { AdminSimulationTaskRow } from "@/lib/admin/queries";
 import OptionsEditor from "../../../OptionsEditor";
+import BoldTextarea from "../../../BoldTextarea";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -145,12 +146,7 @@ export default function SimulationTaskForm({
 
         <div className="sm:col-span-2">
           <label className={labelClass}>Prompt</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={3} value={prompt} onChange={setPrompt} />
         </div>
 
         {type === "ranking" ? (
@@ -164,12 +160,13 @@ export default function SimulationTaskForm({
                   onChange={(e) => updateResponse(idx, "letter", e.target.value)}
                   placeholder="A"
                 />
-                <textarea
+                <BoldTextarea
                   className={inputClass}
                   rows={2}
                   value={r.text}
-                  onChange={(e) => updateResponse(idx, "text", e.target.value)}
+                  onChange={(v) => updateResponse(idx, "text", v)}
                   placeholder="Response text..."
+                  showPreview={false}
                 />
                 <button
                   type="button"
@@ -192,21 +189,11 @@ export default function SimulationTaskForm({
           <>
             <div className="sm:col-span-2">
               <label className={labelClass}>Single Response</label>
-              <textarea
-                className={inputClass}
-                rows={3}
-                value={responseSingle}
-                onChange={(e) => setResponseSingle(e.target.value)}
-              />
+              <BoldTextarea className={inputClass} rows={3} value={responseSingle} onChange={setResponseSingle} />
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>Response (alternate field)</label>
-              <textarea
-                className={inputClass}
-                rows={3}
-                value={response}
-                onChange={(e) => setResponse(e.target.value)}
-              />
+              <BoldTextarea className={inputClass} rows={3} value={response} onChange={setResponse} />
             </div>
           </>
         )}
@@ -234,22 +221,12 @@ export default function SimulationTaskForm({
 
         <div className="sm:col-span-2">
           <label className={labelClass}>Rubric</label>
-          <textarea
-            className={inputClass}
-            rows={2}
-            value={rubric}
-            onChange={(e) => setRubric(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={2} value={rubric} onChange={setRubric} />
         </div>
 
         <div className="sm:col-span-2">
           <label className={labelClass}>Explanation</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={explanation}
-            onChange={(e) => setExplanation(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={3} value={explanation} onChange={setExplanation} />
         </div>
 
         <div>

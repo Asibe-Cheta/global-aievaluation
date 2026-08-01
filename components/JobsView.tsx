@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { UserStats } from "../types";
 import { JobOpportunity, DEFAULT_JOBS } from "../data/jobs";
+import { renderFormattedText } from "./LessonContentRenderer";
 
 interface JobsViewProps {
   stats: UserStats;
@@ -281,7 +282,7 @@ export default function JobsView({ stats, jobs, onBack, backLabel = "Back to Das
                       
                       {/* Entire Job Description displayed directly on the card */}
                       <p className="text-xs text-slate-650 dark:text-slate-300 my-2 leading-relaxed">
-                        {job.description}
+                        {renderFormattedText(job.description)}
                       </p>
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium">
@@ -315,7 +316,7 @@ export default function JobsView({ stats, jobs, onBack, backLabel = "Back to Das
                         <div className="space-y-1">
                           <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider block">Role Description</span>
                           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-                            {job.description}
+                            {renderFormattedText(job.description)}
                           </p>
                         </div>
                         

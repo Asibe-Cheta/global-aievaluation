@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { createJob, updateJob, type JobFormInput } from "@/lib/actions/admin-jobs";
 import type { AdminJobRow } from "@/lib/admin/queries";
+import BoldTextarea from "../BoldTextarea";
 
 const inputClass =
   "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500";
@@ -116,12 +117,7 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
 
         <div className="sm:col-span-2">
           <label className={labelClass}>Description</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <BoldTextarea className={inputClass} rows={3} value={description} onChange={setDescription} />
         </div>
 
         <div className="sm:col-span-2">
