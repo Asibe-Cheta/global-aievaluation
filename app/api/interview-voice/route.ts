@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Modality } from "@google/genai";
+import { createClient } from "@/lib/supabase/server";
 
 // Gemini TTS returns raw 16-bit PCM at 24kHz, mono — not directly playable
 // by a browser <audio> element, so we wrap it in a minimal WAV header.
@@ -29,6 +30,14 @@ function pcmToWav(pcmBase64: string, sampleRate = 24000, channels = 1, bitsPerSa
 const INTERVIEWER_VOICE = "Charon"; // Gemini prebuilt voice — informative/authoritative tone
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
+  }
+
   const { text } = await req.json();
 
   if (!text || typeof text !== "string") {

@@ -1561,6 +1561,7 @@ export default function App({
                       stats={stats}
                       onComplete={handleSimulationComplete}
                       onBack={() => setActiveTab("dashboard")}
+                      onNavigateToMembership={() => setActiveTab("membership")}
                       initialRoleId={interviewInitialRoleId}
                       jobTitle={interviewJobTitle}
                     />

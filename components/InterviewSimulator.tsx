@@ -8,11 +8,13 @@ import {
   Volume2, VolumeX, Mic, MicOff, Upload, FileText
 } from "lucide-react";
 import { UserStats } from "../types";
+import { getInterviewCreditBalance, startInterviewSession } from "../lib/actions/interviewCredits";
 
 interface InterviewSimulatorProps {
   stats: UserStats;
   onComplete: (score: number, strengths: string[], weaknesses: string[]) => void;
   onBack: () => void;
+  onNavigateToMembership: () => void;
   // Set when the user launched the interview from a specific job listing
   // (Explore Opportunities): the matching domain/role is pre-selected and
   // the domain-picker step is skipped entirely.
@@ -218,10 +220,28 @@ function TypewriterText({ text, isLast, onComplete, speed = 40 }: TypewriterText
   return <span>{displayedText}</span>;
 }
 
-export default function InterviewSimulator({ stats, onComplete, onBack, initialRoleId, jobTitle }: InterviewSimulatorProps) {
+export default function InterviewSimulator({ stats, onComplete, onBack, onNavigateToMembership, initialRoleId, jobTitle }: InterviewSimulatorProps) {
   const [interviewStep, setInterviewStep] = useState<"setup_role" | "setup_profile" | "analysis" | "interviewing" | "report">(
     initialRoleId ? "setup_profile" : "setup_role",
   );
+
+  // Interview session credits — checked on mount (blocks entry outright if
+  // already at zero) and spent atomically via startInterviewSession() right
+  // when the candidate actually enters the interview room.
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [isCheckingCredits, setIsCheckingCredits] = useState(true);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
+  const [creditError, setCreditError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getInterviewCreditBalance()
+      .then(setCreditBalance)
+      .catch((err) => {
+        console.error("Failed to load interview credit balance:", err);
+        setCreditBalance(null);
+      })
+      .finally(() => setIsCheckingCredits(false));
+  }, []);
 
   // Selection States. Platform is no longer a user choice — every
   // interview runs against a generic "General AI Evaluator" profile,
@@ -866,7 +886,27 @@ Ready? Let's get started.`;
   };
 
   // Helper: Start the actual Interview Live Loop
-  const handleStartInterview = () => {
+  const handleStartInterview = async () => {
+    setCreditError(null);
+    setIsStartingInterview(true);
+    let result;
+    try {
+      result = await startInterviewSession();
+    } catch (err) {
+      console.error("Failed to start interview session:", err);
+      setCreditError(err instanceof Error ? err.message : "Something went wrong starting your session. Please try again.");
+      setIsStartingInterview(false);
+      return;
+    }
+    setIsStartingInterview(false);
+
+    if (!result.ok) {
+      setCreditBalance(0);
+      setCreditError("You're out of interview sessions. Upgrade or grab a credit top-up to keep practicing.");
+      return;
+    }
+    setCreditBalance(result.remaining);
+
     setInterviewStep("interviewing");
     setActivePhaseIndex(0);
     setHasRespondedToMainQuestion(false);
@@ -1214,6 +1254,50 @@ ${p4ChallengeIntro}`,
     setUserAnswers({});
     setReportData(null);
   };
+
+  // --- BLOCK ENTRY ENTIRELY IF OUT OF SESSIONS ---
+  // Checked once on mount so a candidate with zero credits doesn't waste
+  // time on role/profile setup before hitting the wall. The real spend
+  // still happens atomically in handleStartInterview.
+  if (isCheckingCredits) {
+    return (
+      <div className="max-w-md mx-auto py-24 flex justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-indigo-100 dark:border-slate-800 border-t-indigo-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (creditBalance !== null && creditBalance <= 0) {
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 border-2 border-slate-200 dark:border-slate-800 shadow-lg text-center max-w-3xl mx-auto space-y-6 relative overflow-hidden animate-fade-in">
+        <div className="inline-flex p-4.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
+          <Zap className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          Out of Interview Sessions
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+          You've used all your available AI interview sessions. Upgrade your plan for a bigger monthly allotment, or grab a
+          credit top-up pack that never expires.
+        </p>
+        <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+          <button
+            onClick={onNavigateToMembership}
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            View Plans & Top-Ups
+          </button>
+          <button
+            onClick={onBack}
+            className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-xl transition-all cursor-pointer"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // --- RENDER DOMAIN SELECTION SCREEN ---
   if (interviewStep === "setup_role") {
@@ -1629,19 +1713,42 @@ ${p4ChallengeIntro}`,
               </div>
             </div>
 
+            {creditError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-sans flex items-center justify-between gap-3">
+                <span>{creditError}</span>
+                <button
+                  onClick={onNavigateToMembership}
+                  className="shrink-0 font-bold underline cursor-pointer whitespace-nowrap"
+                >
+                  View Plans
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <button
                 onClick={() => setInterviewStep("setup_profile")}
-                className="flex-1 py-3 border border-slate-250 dark:border-slate-800 text-slate-500 hover:text-slate-805 dark:text-slate-400 dark:hover:text-white rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 font-sans"
+                disabled={isStartingInterview}
+                className="flex-1 py-3 border border-slate-250 dark:border-slate-800 text-slate-500 hover:text-slate-805 dark:text-slate-400 dark:hover:text-white rounded-2xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-default flex items-center justify-center gap-1.5 font-sans"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Profile
               </button>
               <button
                 onClick={handleStartInterview}
-                className="flex-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow flex items-center justify-center gap-1.5 group font-sans"
+                disabled={isStartingInterview}
+                className="flex-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer disabled:opacity-60 disabled:cursor-default shadow flex items-center justify-center gap-1.5 group font-sans"
               >
-                Enter Virtual Interview Room <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                {isStartingInterview ? (
+                  <>
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                    Starting Session...
+                  </>
+                ) : (
+                  <>
+                    Enter Virtual Interview Room <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </>
+                )}
               </button>
             </div>
           </div>

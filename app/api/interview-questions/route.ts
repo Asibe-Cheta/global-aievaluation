@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
+import { createClient } from "@/lib/supabase/server";
 
 interface GeneratedQuestion {
   question: string;
@@ -34,6 +35,14 @@ const PHASE_BRIEFS = [
 ];
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
+  }
+
   const { platformName, platformStyle, roleName, roleDescription } = await req.json();
 
   if (!roleName || !platformName) {
