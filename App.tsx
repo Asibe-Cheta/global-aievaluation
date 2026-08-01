@@ -36,6 +36,7 @@ import {
   Tags,
   ChevronDown,
   ChevronUp,
+  Gift,
 } from "lucide-react";
 
 import { UserStats, Rank, Module, Lesson, AnnotationSubmission } from "./types";
@@ -857,10 +858,15 @@ export default function App({
                     <Zap className="w-2.5 h-2.5 text-indigo-500 shrink-0" />{" "}
                     Professional
                   </span>
-                ) : (
+                ) : stats.membershipTier === "starter" ? (
                   <span className="bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider inline-flex items-center gap-1">
                     <Shield className="w-2.5 h-2.5 text-slate-400 shrink-0" />{" "}
                     Starter
+                  </span>
+                ) : (
+                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider inline-flex items-center gap-1">
+                    <Gift className="w-2.5 h-2.5 text-slate-400 shrink-0" />{" "}
+                    Free
                   </span>
                 )}
               </div>
@@ -1005,7 +1011,7 @@ export default function App({
                     </div>
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest font-mono">
-                        Starter Tier Limit Reached
+                        Free Tier Limit Reached
                       </span>
                       <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                         {lockedLessonTitle}
@@ -1017,29 +1023,27 @@ export default function App({
                     <div className="bg-slate-50 dark:bg-slate-850/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/80 max-w-xl mx-auto text-left space-y-3.5">
                       <h4 className="text-xs font-bold text-slate-850 dark:text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />{" "}
-                        Professional Plan Unlocks:
+                        Starter Plan Unlocks (€17, one-time):
                       </h4>
                       <ul className="text-xs text-slate-600 dark:text-slate-350 space-y-2">
                         <li className="flex items-start gap-2">
                           <span className="text-indigo-500 font-bold">✓</span>
                           <span>
-                            Complete access to all{" "}
-                            <strong>12 professional lessons</strong> with
-                            interactive grading
+                            <strong>Full access to the AI Evaluation Academy</strong>{" "}
+                            — every lesson, with interactive grading
                           </span>
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-indigo-500 font-bold">✓</span>
                           <span>
-                            <strong>AI Interview Simulator</strong> with voice
-                            practice and platform-specific modes
+                            <strong>AI Interview Simulator</strong> — 10 sessions
+                            included
                           </span>
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-indigo-500 font-bold">✓</span>
                           <span>
-                            Comprehensive skills profiling &amp; verified
-                            performance readiness transcripts
+                            Unlimited practice exercises &amp; progress tracking
                           </span>
                         </li>
                       </ul>
@@ -1053,7 +1057,7 @@ export default function App({
                         className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                       >
                         <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
-                        Upgrade to Professional (€19.99/mo)
+                        Get Starter (€17 one-time)
                       </button>
                       <button
                         onClick={handleLessonBack}
@@ -1530,10 +1534,11 @@ export default function App({
                           Mercor, Micro1, Scale AI, Outlier, Alignerr,
                           Invisible,
                         </strong>{" "}
-                        and <strong>General AI Evaluator</strong>. Upgrade to{" "}
-                        <strong>Professional</strong> to unlock unlimited
-                        attempts, scenario-based questions, adaptive
-                        questioning, and your complete readiness score!
+                        and <strong>General AI Evaluator</strong>. Get{" "}
+                        <strong>Starter</strong> (€17, one-time) for 10
+                        interview sessions, or <strong>Professional</strong>{" "}
+                        for 30 sessions/month, adaptive questioning, and your
+                        complete readiness score!
                       </p>
                       <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
                         <button
@@ -1541,7 +1546,7 @@ export default function App({
                           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                         >
                           <Sparkles className="w-4 h-4" />
-                          Upgrade to Professional
+                          View Plans
                         </button>
                         <button
                           onClick={() => setActiveTab("dashboard")}

@@ -1,21 +1,23 @@
 import React from "react";
 import { ArrowLeft, ChevronRight, Check, Lock, BookOpen } from "lucide-react";
+import { hasAcademyAccess, type MembershipTier } from "../lib/access";
 
 interface Part2IntroViewProps {
   onBack: () => void;
   onBegin?: () => void;
   completedLessons?: string[];
   onStartLesson?: (lessonId: string) => void;
-  membershipTier?: string;
+  membershipTier?: MembershipTier;
 }
 
-export default function Part2IntroView({ 
-  onBack, 
-  onBegin, 
-  completedLessons = [], 
-  onStartLesson, 
-  membershipTier = "starter" 
+export default function Part2IntroView({
+  onBack,
+  onBegin,
+  completedLessons = [],
+  onStartLesson,
+  membershipTier = "free"
 }: Part2IntroViewProps) {
+  const locked = !hasAcademyAccess(membershipTier);
   
   const part2LessonIds = [
     "p2_intro",
@@ -201,12 +203,12 @@ export default function Part2IntroView({
                 <button
                   onClick={() => onStartLesson ? onStartLesson("p2_m1_l2") : onBegin?.()}
                   className={`w-full md:w-auto py-3 px-6 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                    membershipTier === "starter"
+                    locked
                       ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                       : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                   }`}
                 >
-                  {membershipTier === "starter" ? (
+                  {locked ? (
                     <>
                       <Lock className="w-3.5 h-3.5" />
                       <span>Upgrade to Unlock</span>
@@ -254,12 +256,12 @@ export default function Part2IntroView({
                 <button
                   onClick={() => onStartLesson ? onStartLesson("p2_m1_l3") : onBegin?.()}
                   className={`w-full md:w-auto py-3 px-6 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                    membershipTier === "starter"
+                    locked
                       ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                       : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                   }`}
                 >
-                  {membershipTier === "starter" ? (
+                  {locked ? (
                     <>
                       <Lock className="w-3.5 h-3.5" />
                       <span>Upgrade to Unlock</span>
@@ -307,12 +309,12 @@ export default function Part2IntroView({
                 <button
                   onClick={() => onStartLesson ? onStartLesson("p2_m1_l4") : onBegin?.()}
                   className={`w-full md:w-auto py-3 px-6 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                    membershipTier === "starter"
+                    locked
                       ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                       : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                   }`}
                 >
-                  {membershipTier === "starter" ? (
+                  {locked ? (
                     <>
                       <Lock className="w-3.5 h-3.5" />
                       <span>Upgrade to Unlock</span>
@@ -360,12 +362,12 @@ export default function Part2IntroView({
                 <button
                   onClick={() => onStartLesson ? onStartLesson("p2_m1_l5") : onBegin?.()}
                   className={`w-full md:w-auto py-3 px-6 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                    membershipTier === "starter"
+                    locked
                       ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                       : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                   }`}
                 >
-                  {membershipTier === "starter" ? (
+                  {locked ? (
                     <>
                       <Lock className="w-3.5 h-3.5" />
                       <span>Upgrade to Unlock</span>
@@ -413,12 +415,12 @@ export default function Part2IntroView({
                 <button
                   onClick={() => onStartLesson ? onStartLesson("p2_m1_l6") : onBegin?.()}
                   className={`w-full md:w-auto py-3 px-6 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                    membershipTier === "starter"
+                    locked
                       ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                       : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                   }`}
                 >
-                  {membershipTier === "starter" ? (
+                  {locked ? (
                     <>
                       <Lock className="w-3.5 h-3.5" />
                       <span>Upgrade to Unlock</span>
@@ -466,12 +468,12 @@ export default function Part2IntroView({
                 <button
                   onClick={() => onStartLesson ? onStartLesson("p2_m1_l7") : onBegin?.()}
                   className={`w-full md:w-auto py-3 px-6 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                    membershipTier === "starter"
+                    locked
                       ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                       : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
                   }`}
                 >
-                  {membershipTier === "starter" ? (
+                  {locked ? (
                     <>
                       <Lock className="w-3.5 h-3.5" />
                       <span>Upgrade to Unlock</span>

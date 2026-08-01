@@ -15,39 +15,47 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export type PaidTier = "professional" | "career_accelerator";
-export type BillingPeriod = "monthly" | "annually";
+// One-time purchases: Starter, Professional (founding or regular price),
+// and both AI credit top-up packs. Career Accelerator is the only
+// recurring subscription — kept separate below.
+export type OneTimeProduct =
+  | "tier_starter"
+  | "tier_professional_founding"
+  | "tier_professional_regular"
+  | "credit_pack_a"
+  | "credit_pack_b";
 
-const PRICE_IDS: Record<PaidTier, Record<BillingPeriod, string | undefined>> = {
-  professional: {
-    monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY,
-    annually: process.env.STRIPE_PRICE_PROFESSIONAL_ANNUAL,
-  },
-  career_accelerator: {
-    monthly: process.env.STRIPE_PRICE_ACCELERATOR_MONTHLY,
-    annually: process.env.STRIPE_PRICE_ACCELERATOR_ANNUAL,
-  },
+const ONE_TIME_PRICE_IDS: Record<OneTimeProduct, string | undefined> = {
+  tier_starter: process.env.STRIPE_PRICE_STARTER,
+  tier_professional_founding: process.env.STRIPE_PRICE_PROFESSIONAL_FOUNDING,
+  tier_professional_regular: process.env.STRIPE_PRICE_PROFESSIONAL_REGULAR,
+  credit_pack_a: process.env.STRIPE_PRICE_CREDIT_PACK_A,
+  credit_pack_b: process.env.STRIPE_PRICE_CREDIT_PACK_B,
 };
 
-export function getPriceId(tier: PaidTier, billingPeriod: BillingPeriod): string {
-  const priceId = PRICE_IDS[tier][billingPeriod];
+export function getOneTimePriceId(product: OneTimeProduct): string {
+  const priceId = ONE_TIME_PRICE_IDS[product];
   if (!priceId) {
-    throw new Error(
-      `Missing Stripe price ID for ${tier}/${billingPeriod}. Set it in .env.local.`,
-    );
+    throw new Error(`Missing Stripe price ID for ${product}. Set it in .env.local.`);
   }
   return priceId;
 }
 
-export function tierAndPeriodForPrice(
-  priceId: string,
-): { tier: PaidTier; billingPeriod: BillingPeriod } | null {
-  for (const tier of Object.keys(PRICE_IDS) as PaidTier[]) {
-    for (const billingPeriod of Object.keys(PRICE_IDS[tier]) as BillingPeriod[]) {
-      if (PRICE_IDS[tier][billingPeriod] === priceId) {
-        return { tier, billingPeriod };
-      }
-    }
+export function productForPrice(priceId: string): OneTimeProduct | null {
+  for (const product of Object.keys(ONE_TIME_PRICE_IDS) as OneTimeProduct[]) {
+    if (ONE_TIME_PRICE_IDS[product] === priceId) return product;
   }
   return null;
+}
+
+export function getAcceleratorPriceId(): string {
+  const priceId = process.env.STRIPE_PRICE_ACCELERATOR_MONTHLY;
+  if (!priceId) {
+    throw new Error("Missing STRIPE_PRICE_ACCELERATOR_MONTHLY. Set it in .env.local.");
+  }
+  return priceId;
+}
+
+export function isAcceleratorPrice(priceId: string): boolean {
+  return priceId === process.env.STRIPE_PRICE_ACCELERATOR_MONTHLY;
 }
