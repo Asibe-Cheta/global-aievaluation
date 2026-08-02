@@ -4,8 +4,25 @@ import type { CaseStudyMediaItem } from "../types";
 // Shared between LessonView (the live student-facing page) and the admin's
 // Content Blocks editor (as a live preview), so both agree on exactly what
 // "**bold**" / "## heading" / bullet syntax renders as.
+// Renders "\n" as line breaks so a blank line typed between two paragraphs
+// (e.g. "**Response A:**\n\n...\n\n**Response B:**\n\n...") stays visually
+// separated instead of collapsing onto one line — this is what plain HTML
+// does with whitespace by default, since callers pass raw multi-line text
+// straight through rather than pre-splitting it into lines first.
+function renderTextWithLineBreaks(part: string, keyPrefix: string) {
+  const lines = part.split("\n");
+  return lines.map((line, i) => (
+    <React.Fragment key={`${keyPrefix}-${i}`}>
+      {i > 0 && <br />}
+      {line}
+    </React.Fragment>
+  ));
+}
+
 export function renderFormattedText(text: string) {
-  if (!text.includes("**")) return <span>{text}</span>;
+  if (!text.includes("**")) {
+    return <span>{renderTextWithLineBreaks(text, "l")}</span>;
+  }
   const parts = text.split("**");
   return (
     <span>
@@ -13,11 +30,15 @@ export function renderFormattedText(text: string) {
         if (index % 2 === 1) {
           return (
             <strong key={index} className="font-extrabold text-slate-900 dark:text-white">
-              {part}
+              {renderTextWithLineBreaks(part, `${index}`)}
             </strong>
           );
         }
-        return part;
+        return (
+          <React.Fragment key={index}>
+            {renderTextWithLineBreaks(part, `${index}`)}
+          </React.Fragment>
+        );
       })}
     </span>
   );
