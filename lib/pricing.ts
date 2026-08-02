@@ -8,7 +8,7 @@ export interface TierMeta {
   id: TierId;
   label: string; // short badge/nav text, e.g. "Starter"
   displayName: string; // marketing name, e.g. "Independent Learner"
-  priceDisplay: string; // e.g. "€17 one-time"
+  priceDisplay: string; // e.g. "€20 one-time"
   billing: "free" | "one_time" | "subscription";
   features: string[];
 }
@@ -29,7 +29,7 @@ export const TIERS: Record<TierId, TierMeta> = {
     id: "starter",
     label: "Starter",
     displayName: "Independent Learner",
-    priceDisplay: "€17 one-time",
+    priceDisplay: "€20 one-time",
     billing: "one_time",
     features: [
       "Full access to the AI Evaluation Academy",

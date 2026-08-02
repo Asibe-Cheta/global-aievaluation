@@ -43,7 +43,12 @@ import { UserStats, Rank, Module, Lesson, AnnotationSubmission } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
-import { isModuleAccessible, isPaidTier, isSimulationPracticeAccessible } from "./lib/access";
+import {
+  isModuleAccessible,
+  isPaidTier,
+  isSimulationPracticeAccessible,
+  TEMP_DISABLE_ALL_PAYMENT_GATES,
+} from "./lib/access";
 
 // Subcomponents
 import DashboardView from "./components/DashboardView";
@@ -941,6 +946,7 @@ export default function App({
             (() => {
               // INTERCEPT LOCKED LESSONS FOR FREE TIER
               if (
+                !TEMP_DISABLE_ALL_PAYMENT_GATES &&
                 stats.membershipTier === "free" &&
                 activeLessonId !== "l1" &&
                 activeLessonId !== "p2_intro" &&
@@ -1014,7 +1020,7 @@ export default function App({
                     <div className="bg-slate-50 dark:bg-slate-850/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/80 max-w-xl mx-auto text-left space-y-3.5">
                       <h4 className="text-xs font-bold text-slate-850 dark:text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />{" "}
-                        Starter Plan Unlocks (€17, one-time):
+                        Starter Plan Unlocks (€20, one-time):
                       </h4>
                       <ul className="text-xs text-slate-600 dark:text-slate-350 space-y-2">
                         <li className="flex items-start gap-2">
@@ -1048,7 +1054,7 @@ export default function App({
                         className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                       >
                         <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
-                        Get Starter (€17 one-time)
+                        Get Starter (€20 one-time)
                       </button>
                       <button
                         onClick={handleLessonBack}
@@ -1236,8 +1242,8 @@ export default function App({
 
                         <hr className="border-slate-100 dark:border-slate-850" />
 
-                        {/* Horizontally scrolling row of Modules */}
-                        <div className="flex gap-6 overflow-x-auto pb-4 -mx-1 px-1 snap-x snap-mandatory scroll-smooth">
+                        {/* Module Card Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {cards.map((card) => {
                             const progressPercent =
                               card.lessonsCount > 0
@@ -1254,7 +1260,7 @@ export default function App({
                             return (
                               <div
                                 key={card.id}
-                                className={`w-[300px] sm:w-[340px] shrink-0 snap-start bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-6 transition-all relative overflow-hidden ${
+                                className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-6 transition-all relative overflow-hidden ${
                                   card.locked
                                     ? "opacity-75"
                                     : "hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md"
@@ -1508,7 +1514,8 @@ export default function App({
                     <ArrowLeft className="w-4 h-4" />
                     Back to Dashboard
                   </button>
-                  {stats.membershipTier === "free" ? (
+                  {!TEMP_DISABLE_ALL_PAYMENT_GATES &&
+                  stats.membershipTier === "free" ? (
                     <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 border-2 border-slate-200 dark:border-slate-800 shadow-lg text-center max-w-3xl mx-auto space-y-6 relative overflow-hidden">
                       <div className="absolute right-0 top-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-2xl"></div>
                       <div className="inline-flex p-4.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
@@ -1525,7 +1532,7 @@ export default function App({
                           Invisible,
                         </strong>{" "}
                         and <strong>General AI Evaluator</strong>. Get{" "}
-                        <strong>Starter</strong> (€17, one-time) for 10
+                        <strong>Starter</strong> (€20, one-time) for 10
                         interview sessions, or <strong>Professional</strong>{" "}
                         for 30 sessions/month, adaptive questioning, and your
                         complete readiness score!

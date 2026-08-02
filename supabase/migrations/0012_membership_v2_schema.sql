@@ -1,13 +1,18 @@
 -- Run this in the Supabase Dashboard SQL Editor after 0001-0011.
 --
 -- Replaces the 3-tier subscription-only membership model with the new
--- 4-tier model: free / starter (one-time) / professional (one-time,
+-- 4-tier model: free / starter  (one-time) / professional (one-time,
 -- founding-or-regular price) / career_accelerator (the only recurring
 -- subscription). See the "Replace pricing/membership model" plan for full
 -- context.
 
+-- Every statement below is written to be safely re-runnable (this file
+-- previously failed partway through on a re-run — "relation already
+-- exists" — because plain `create table`/`create policy` aren't
+-- idempotent; `if not exists` / `drop ... if exists` first fixes that).
+
 -- ============ profiles.membership_tier: add 'free', default to it ============
-alter table public.profiles drop constraint profiles_membership_tier_check;
+alter table public.profiles drop constraint if exists profiles_membership_tier_check;
 alter table public.profiles add constraint profiles_membership_tier_check
   check (membership_tier in ('free', 'starter', 'professional', 'career_accelerator'));
 alter table public.profiles alter column membership_tier set default 'free';
@@ -17,13 +22,14 @@ alter table public.profiles alter column membership_tier set default 'free';
 -- this was looked up via the `subscriptions` table, which only makes sense
 -- for a recurring subscriber. `subscriptions` now exists purely to track
 -- career_accelerator's recurring state.
-create table public.stripe_customers (
+create table if not exists public.stripe_customers (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   stripe_customer_id text not null unique,
   created_at timestamptz not null default now()
 );
 
 alter table public.stripe_customers enable row level security;
+drop policy if exists "stripe_customers_select_own" on public.stripe_customers;
 create policy "stripe_customers_select_own" on public.stripe_customers
   for select using (user_id = auth.uid() or is_admin());
 -- No insert/update policy for authenticated users — only service_role
@@ -33,7 +39,7 @@ create policy "stripe_customers_select_own" on public.stripe_customers
 -- One-time payment ledger: Starter, Professional (founding or regular
 -- price), and both AI credit top-up packs. The unique checkout-session-id
 -- constraint is the webhook idempotency guard (Stripe retries webhooks).
-create table public.purchases (
+create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   stripe_customer_id text,
@@ -53,6 +59,7 @@ create table public.purchases (
 );
 
 alter table public.purchases enable row level security;
+drop policy if exists "purchases_select_own" on public.purchases;
 create policy "purchases_select_own" on public.purchases
   for select using (user_id = auth.uid() or is_admin());
 -- No write policy for authenticated users — only service_role writes.
@@ -66,7 +73,7 @@ create policy "purchases_select_own" on public.purchases
 -- *effective* (30 for professional, 50 while career_accelerator is active;
 -- drops back to 30 automatically once accelerator lapses since professional
 -- ownership persists).
-create table public.interview_credits (
+create table if not exists public.interview_credits (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   one_time_balance integer not null default 0,
   monthly_allotment integer not null default 0,
@@ -77,6 +84,7 @@ create table public.interview_credits (
 );
 
 alter table public.interview_credits enable row level security;
+drop policy if exists "interview_credits_select_own" on public.interview_credits;
 create policy "interview_credits_select_own" on public.interview_credits
   for select using (user_id = auth.uid() or is_admin());
 -- No insert/update policy for authenticated users — only service_role
