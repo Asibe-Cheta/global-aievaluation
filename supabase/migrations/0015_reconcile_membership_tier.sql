@@ -2,7 +2,7 @@
 --
 -- One-off data fix: 0001_init.sql originally defaulted every new profile's
 -- membership_tier to 'starter' (there wasn't even a 'free' tier yet), and
--- handle_new_user() only ever inserted (id, display_name), relying on that
+-- handle_new_user() only ever inserted (id, display_vname), relying on that
 -- column default. So every account created before 0012_membership_v2_schema
 -- switched the default to 'free' still has the literal string 'starter'
 -- sitting in profiles.membership_tier — with no purchase behind it. That's

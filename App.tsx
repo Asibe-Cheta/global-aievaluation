@@ -106,6 +106,22 @@ function mapJobFieldToInterviewRoleId(field: string): string {
   }
 }
 
+const MODULE_CARD_DESCRIPTION_WORD_LIMIT = 35;
+
+// Truncates on a word boundary so cards in the same grid row settle at a
+// consistent height instead of stretching to whatever the longest module
+// description happens to be.
+function truncateDescription(
+  text: string,
+  maxWords: number = MODULE_CARD_DESCRIPTION_WORD_LIMIT,
+): { truncated: string; isTruncated: boolean } {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) {
+    return { truncated: text, isTruncated: false };
+  }
+  return { truncated: words.slice(0, maxWords).join(" ") + "…", isTruncated: true };
+}
+
 interface AppProps {
   userId: string;
   moduleCurriculum: Module[];
@@ -127,6 +143,7 @@ export default function App({
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeModuleId, setActiveModuleId] = useState<string>("m1");
   const [activePartId, setActivePartId] = useState<string | null>(null);
+  const [expandedModuleCardIds, setExpandedModuleCardIds] = useState<Set<string>>(new Set());
   const [simViewInitialMode, setSimViewInitialMode] = useState<
     "sandbox" | "exam" | "interview"
   >("sandbox");
@@ -458,6 +475,7 @@ export default function App({
 
   const isSimUnlocked =
     bypassLocks ||
+    TEMP_DISABLE_ALL_PAYMENT_GATES ||
     (activeModuleId === "m1"
       ? stats.completedLessons.filter(
           (id) => id.startsWith("l") && !id.includes("_"),
@@ -1257,6 +1275,11 @@ export default function App({
                                   )
                                 : 0;
 
+                            const isDescriptionExpanded =
+                              expandedModuleCardIds.has(card.id);
+                            const { truncated, isTruncated } =
+                              truncateDescription(card.description);
+
                             return (
                               <div
                                 key={card.id}
@@ -1278,7 +1301,31 @@ export default function App({
                                   </h3>
 
                                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    {renderFormattedText(card.description)}
+                                    {renderFormattedText(
+                                      isDescriptionExpanded
+                                        ? card.description
+                                        : truncated,
+                                    )}
+                                    {isTruncated && (
+                                      <button
+                                        onClick={() =>
+                                          setExpandedModuleCardIds((prev) => {
+                                            const next = new Set(prev);
+                                            if (isDescriptionExpanded) {
+                                              next.delete(card.id);
+                                            } else {
+                                              next.add(card.id);
+                                            }
+                                            return next;
+                                          })
+                                        }
+                                        className="ml-1 font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                                      >
+                                        {isDescriptionExpanded
+                                          ? "Read less"
+                                          : "Read more"}
+                                      </button>
+                                    )}
                                   </p>
 
                                   <div className="flex items-center gap-1 pt-1 text-[11px] text-slate-405 font-mono">
@@ -1397,6 +1444,7 @@ export default function App({
                             lesson.id,
                           );
                           const isNextUnlocked =
+                            TEMP_DISABLE_ALL_PAYMENT_GATES ||
                             idx === 0 ||
                             stats.completedLessons.includes(
                               viewedModule.lessons[idx - 1].id,
