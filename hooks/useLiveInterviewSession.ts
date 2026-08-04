@@ -239,6 +239,7 @@ export function useLiveInterviewSession(options: UseLiveInterviewSessionOptions)
         const tokenRes = await fetch("/api/interview-live-token", { method: "POST" });
         const tokenData = await tokenRes.json();
         if (!tokenData.success || !tokenData.token) {
+          console.error("Live interview token mint failed:", tokenData.error || tokenData.warning || tokenData);
           optionsRef.current.onStatusChange("error");
           return false;
         }

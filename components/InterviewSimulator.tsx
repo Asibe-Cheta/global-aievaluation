@@ -753,19 +753,22 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
         });
 
         const result = await response.json();
-        
-        clearInterval(progressInterval);
-        setParsingProgress(100);
-        setIsParsing(false);
 
         if (result.success && result.profile) {
+          clearInterval(progressInterval);
+          setParsingProgress(100);
+          setIsParsing(false);
           setProfile(result.profile);
-        } else if (result.profile) {
-          // Warning fallback with some extracted content
-          setProfile(result.profile);
-        } else {
-          throw new Error(result.error || "Failed to parse profile");
+          return;
         }
+
+        // The server's own catch block always attaches a `profile` even on
+        // failure — but it's derived purely from the filename (e.g. "My CV
+        // 3.pdf" -> "My CV 3"), not the document content. Treat any
+        // `success: false` as a real failure and fall through to the local
+        // text-scanning parser below, which at least reads the actual CV
+        // text, instead of silently accepting that filename-only guess.
+        throw new Error(result.error || result.warning || "Failed to parse profile");
 
       } catch (err) {
         console.error("Backend parsing error, falling back to local text scanner:", err);

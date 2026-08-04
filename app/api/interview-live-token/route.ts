@@ -24,7 +24,10 @@ export async function POST() {
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    // Ephemeral auth tokens are v1alpha-only — required here on the client
+    // that MINTS the token, not just on the browser client that later
+    // connects with it (per the SDK's own Tokens.create() JSDoc example).
+    const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1alpha" } });
 
     const now = Date.now();
     const token = await ai.authTokens.create({
