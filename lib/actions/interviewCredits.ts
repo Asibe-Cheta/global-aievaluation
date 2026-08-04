@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { TEMP_DISABLE_ALL_PAYMENT_GATES } from "@/lib/access";
 
 // Both RPCs run as the authenticated caller (auth.uid() internally, no
 // user-id argument) — see supabase/migrations/0014_lock_down_credit_rpcs.sql.
@@ -33,8 +34,13 @@ export async function startInterviewSession(): Promise<StartInterviewSessionResu
   if (!user) throw new Error("Not authenticated");
 
   const balance = await getInterviewCreditBalance();
-  if (balance <= 0) {
+  if (balance <= 0 && !TEMP_DISABLE_ALL_PAYMENT_GATES) {
     return { ok: false, remaining: 0 };
+  }
+  if (balance <= 0) {
+    // TEMP bypass: don't even attempt to spend a credit that isn't there —
+    // consume_interview_credit() would just no-op, so skip straight to "ok".
+    return { ok: true, remaining: 0 };
   }
 
   const { error } = await supabase.rpc("consume_interview_credit");

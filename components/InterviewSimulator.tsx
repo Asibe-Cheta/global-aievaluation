@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 import { UserStats } from "../types";
 import { getInterviewCreditBalance, startInterviewSession } from "../lib/actions/interviewCredits";
+import { TEMP_DISABLE_ALL_PAYMENT_GATES } from "../lib/access";
+import { useLiveInterviewSession, type LiveToolCallEvent } from "../hooks/useLiveInterviewSession";
+import { buildSystemInstruction, buildToolDeclarations } from "../lib/liveInterview/buildLiveConfig";
 
 interface InterviewSimulatorProps {
   stats: UserStats;
@@ -24,7 +27,7 @@ interface InterviewSimulatorProps {
 
 const MAX_INTERVIEW_SECONDS = 10 * 60;
 
-interface InterviewQuestion {
+export interface InterviewQuestion {
   id: string;
   phase: number;
   phaseName: string;
@@ -330,6 +333,86 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
   const recognitionRef = useRef<any>(null);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Live duplex voice mode: "checking" while handleStartInterview attempts
+  // to open a Gemini Live session, "live" once connected (Gemini itself
+  // conducts the interview), "fallback" if Live isn't available/fails and
+  // the interview runs on the original push-to-talk + REST TTS flow below.
+  const [voiceMode, setVoiceMode] = useState<"checking" | "live" | "fallback">("checking");
+  // Replaces the old chatHistory.length >= 10 heuristic for the Finalize
+  // gate — that assumed exactly 2 messages/phase, which live transcription
+  // chunking doesn't reliably produce. Set true once the model's final
+  // advance_phase tool call (past Phase 5) arrives.
+  const [interviewComplete, setInterviewComplete] = useState(false);
+  const [liveStatusMessage, setLiveStatusMessage] = useState<string | null>(null);
+  // Tracks whether the most recently appended interviewer chatHistory entry
+  // is a "challenge" follow-up, purely for styling continuity with the
+  // pre-existing orange "Interviewer Calibration Challenge" treatment.
+  const liveIsChallengeRef = useRef(false);
+  // Set right before every deliberate live.disconnect() call (report
+  // generation, retake, 10-min cap) so the live session's own onclose/onerror
+  // callback can tell "we did this on purpose" apart from "it dropped on its
+  // own" and only auto-fallback in the latter case.
+  const intentionalDisconnectRef = useRef(false);
+
+  const live = useLiveInterviewSession({
+    onTranscript: (e) => {
+      // MVP: only log finalized turns to the transcript — interim deltas
+      // would need in-place bubble updates to avoid duplicates, which isn't
+      // worth the complexity for the chat log (scoring never reads
+      // chatHistory; it reads live.consumeCandidateBuffer() at tool-call
+      // time regardless of how many interim deltas led up to it).
+      if (!e.isFinal) return;
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          sender: e.speaker,
+          text: e.text,
+          isChallenge: e.speaker === "interviewer" ? liveIsChallengeRef.current : undefined,
+        },
+      ]);
+    },
+    onToolCall: (call: LiveToolCallEvent) => {
+      const currentQ = interviewQuestions[activePhaseIndex];
+      if (call.name === "record_answer") {
+        const mainAnswer = live.consumeCandidateBuffer();
+        setUserAnswers((prev) => ({
+          ...prev,
+          [currentQ.id]: { mainAnswer, challengeAnswer: "" },
+        }));
+        setHasRespondedToMainQuestion(true);
+        liveIsChallengeRef.current = true;
+      } else if (call.name === "record_challenge_answer") {
+        const challengeAnswer = live.consumeCandidateBuffer();
+        setUserAnswers((prev) => {
+          const existing = prev[currentQ.id] ?? { mainAnswer: "", challengeAnswer: "" };
+          return { ...prev, [currentQ.id]: { ...existing, challengeAnswer } };
+        });
+        liveIsChallengeRef.current = false;
+      } else if (call.name === "advance_phase") {
+        const nextIndex = activePhaseIndex + 1;
+        if (nextIndex >= interviewQuestions.length) {
+          setInterviewComplete(true);
+        } else {
+          setHasRespondedToMainQuestion(false);
+          setActivePhaseIndex(nextIndex);
+          if (nextIndex === 3) {
+            // Phase 4 is the bespoke Model-A/B form — not voice-driven.
+            live.pauseMic();
+          }
+        }
+      }
+      live.ackToolCall(call.id, call.name);
+    },
+    onInterrupted: () => {},
+    onStatusChange: (status) => {
+      if ((status === "error" || status === "closed") && !intentionalDisconnectRef.current) {
+        setVoiceMode("fallback");
+        setLiveStatusMessage("Voice connection lost — switched to text mode. Your progress is saved.");
+        setIsInterviewerTyping(false);
+      }
+    },
+  });
+
   // Helper: Request and Check Microphone Permission
   const requestMicrophonePermission = async () => {
     try {
@@ -571,8 +654,12 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
     }
   };
 
-  // Listen for new interviewer messages to trigger speakText
+  // Listen for new interviewer messages to trigger speakText — fallback
+  // mode only. In live mode, audio already plays via the live session's own
+  // scheduled playback (hooks/useLiveInterviewSession.ts), so this must not
+  // also fire the REST TTS call for the same message.
   useEffect(() => {
+    if (voiceMode === "live") return;
     if (chatHistory.length > 0) {
       const lastMsg = chatHistory[chatHistory.length - 1];
       const lastIndex = chatHistory.length - 1;
@@ -585,7 +672,16 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
         }
       }
     }
-  }, [chatHistory, isVoiceEnabled]);
+  }, [chatHistory, isVoiceEnabled, voiceMode]);
+
+  // Mirror the live session's own speaking state into the existing
+  // isAiSpeaking state while live, so the pre-existing orb/equalizer JSX
+  // (driven off isAiSpeaking) works unchanged regardless of voice source.
+  useEffect(() => {
+    if (voiceMode === "live") {
+      setIsAiSpeaking(live.isAiSpeaking);
+    }
+  }, [voiceMode, live.isAiSpeaking]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -912,18 +1008,45 @@ Ready? Let's get started.`;
     setHasRespondedToMainQuestion(false);
     setUserAnswers({});
     setSecondsRemaining(MAX_INTERVIEW_SECONDS);
+    setInterviewComplete(false);
+    setLiveStatusMessage(null);
+    setChatHistory([]);
     autoFinishedRef.current = false;
+    intentionalDisconnectRef.current = false;
 
-    // Welcome message
+    const roleName = ROLES.find(r => r.id === selectedRole)?.name ?? "AI Evaluator";
+
+    const connected = await live.connect({
+      systemInstruction: buildSystemInstruction({
+        profileName: profile.name,
+        profileWorkExperience: profile.workExperience,
+        profileProgrammingKnowledge: profile.programmingKnowledge,
+        profileGoals: profile.goals,
+        roleName,
+        questions: interviewQuestions,
+      }),
+      tools: buildToolDeclarations(),
+      kickoffMessage: "(session start — greet the candidate by name and begin Phase 1)",
+    });
+
+    if (connected) {
+      setVoiceMode("live");
+      return;
+    }
+
+    // Live voice unavailable (unsupported browser, no mic permission, token
+    // mint failed, connect timed out, etc.) — fall back to the original
+    // push-to-talk + REST TTS flow.
+    setVoiceMode("fallback");
     setIsInterviewerTyping(true);
     setTimeout(() => {
       const firstQ = interviewQuestions[0];
-      const initialGreeting = `Hi ${profile.name}, I'm John, your interviewer today. We'll go through five short phases to assess your fit as a ${ROLES.find(r => r.id === selectedRole)?.name}.
+      const initialGreeting = `Hi ${profile.name}, I'm John, your interviewer today. We'll go through five short phases to assess your fit as a ${roleName}.
 
 Let's start with Phase 1: ${firstQ.phaseName}.
 
 ${firstQ.question}`;
-      
+
       setChatHistory([{ sender: "interviewer", text: initialGreeting }]);
       setIsInterviewerTyping(false);
     }, 1500);
@@ -1077,13 +1200,32 @@ Click the button below to generate your report.`
       return;
     }
     setP4Submitted(true);
-    
-    // Simulate user sending message
-    setChatHistory(prev => [
-      ...prev,
-      { sender: "candidate", text: `[Live pair assessment submitted] Rated Model A: ${p4Ratings.A} stars. Rated Model B: ${p4Ratings.B} stars. Preference choice: Model ${p4SelectedModel}. Rationale: "${p4Rationale}"` }
-    ]);
-    
+
+    const submissionSummary = `[Live pair assessment submitted] Rated Model A: ${p4Ratings.A} stars. Rated Model B: ${p4Ratings.B} stars. Preference choice: Model ${p4SelectedModel}. Rationale: "${p4Rationale}"`;
+
+    if (voiceMode === "live") {
+      // The form submission IS the main answer for this phase — there's no
+      // spoken main answer to capture, so set it directly (same content the
+      // fallback path would have produced) and let the model's own reaction
+      // + eventual record_challenge_answer/advance_phase tool calls (handled
+      // by the onToolCall handler above) fill in the rest.
+      const currentQ = interviewQuestions[3]; // Phase 4
+      setUserAnswers(prev => ({
+        ...prev,
+        [currentQ.id]: {
+          mainAnswer: `Choice: Model ${p4SelectedModel}. Ratings: A(${p4Ratings.A}), B(${p4Ratings.B}). Rationale: ${p4Rationale}`,
+          challengeAnswer: ""
+        }
+      }));
+      setChatHistory(prev => [...prev, { sender: "candidate", text: submissionSummary }]);
+      live.sendClientText(submissionSummary);
+      live.resumeMic();
+      return;
+    }
+
+    // Fallback (no live session): scripted candidate message + templated challenge.
+    setChatHistory(prev => [...prev, { sender: "candidate", text: submissionSummary }]);
+
     setIsInterviewerTyping(true);
     setTimeout(() => {
       const currentQ = interviewQuestions[3]; // Phase 4
@@ -1120,6 +1262,10 @@ ${p4ChallengeIntro}`,
 
   // Helper: Grade the entire interview and generate report metrics
   const handleGenerateReport = () => {
+    if (voiceMode === "live") {
+      intentionalDisconnectRef.current = true;
+      live.disconnect();
+    }
     setIsAnalyzing(true);
     setTimeout(() => {
       // Basic scoring algorithm
@@ -1245,6 +1391,13 @@ ${p4ChallengeIntro}`,
 
   // Helper: Reset Interview State for retakes
   const handleRetakeInterview = () => {
+    if (voiceMode === "live") {
+      intentionalDisconnectRef.current = true;
+      live.disconnect();
+    }
+    setVoiceMode("checking");
+    setInterviewComplete(false);
+    setLiveStatusMessage(null);
     setInterviewStep(initialRoleId ? "setup_profile" : "setup_role");
     setSelectedRole(initialRoleId ?? "");
     setP4SelectedModel("");
@@ -1267,7 +1420,7 @@ ${p4ChallengeIntro}`,
     );
   }
 
-  if (creditBalance !== null && creditBalance <= 0) {
+  if (!TEMP_DISABLE_ALL_PAYMENT_GATES && creditBalance !== null && creditBalance <= 0) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 border-2 border-slate-200 dark:border-slate-800 shadow-lg text-center max-w-3xl mx-auto space-y-6 relative overflow-hidden animate-fade-in">
         <div className="inline-flex p-4.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
@@ -1857,23 +2010,34 @@ ${p4ChallengeIntro}`,
           
           {/* Chat Feed Console */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-between min-h-[450px]">
+            {liveStatusMessage && (
+              <div className="mb-3 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-[11px] text-amber-700 dark:text-amber-400 font-semibold">
+                {liveStatusMessage}
+              </div>
+            )}
             <div className="border-b border-slate-100 dark:border-slate-850 pb-3 flex justify-between items-center">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
                 Live Assessment Chat Interface
               </span>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={handleVoiceToggle}
-                  className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border font-bold transition-all cursor-pointer ${
-                    isVoiceEnabled 
-                      ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-250 text-indigo-650 dark:text-indigo-400" 
-                      : "bg-slate-50 dark:bg-slate-850/50 border-slate-200 dark:border-slate-800 text-slate-450 hover:text-slate-650"
-                  }`}
-                  title={isVoiceEnabled ? "Mute AI Voice" : "Unmute AI Voice"}
-                >
-                  {isVoiceEnabled ? <Volume2 className="w-3.5 h-3.5 text-indigo-500 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
-                  <span className="hidden sm:inline">{isVoiceEnabled ? "AI Voice Active" : "AI Voice Muted"}</span>
-                </button>
+                {/* This mute toggle only controls the fallback REST-TTS/
+                    speechSynthesis playback path — it doesn't reach the live
+                    session's own audio, so it's hidden while live to avoid a
+                    button that looks like it does something it doesn't. */}
+                {voiceMode !== "live" && (
+                  <button
+                    onClick={handleVoiceToggle}
+                    className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border font-bold transition-all cursor-pointer ${
+                      isVoiceEnabled
+                        ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-250 text-indigo-650 dark:text-indigo-400"
+                        : "bg-slate-50 dark:bg-slate-850/50 border-slate-200 dark:border-slate-800 text-slate-450 hover:text-slate-650"
+                    }`}
+                    title={isVoiceEnabled ? "Mute AI Voice" : "Unmute AI Voice"}
+                  >
+                    {isVoiceEnabled ? <Volume2 className="w-3.5 h-3.5 text-indigo-500 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+                    <span className="hidden sm:inline">{isVoiceEnabled ? "AI Voice Active" : "AI Voice Muted"}</span>
+                  </button>
+                )}
                 <span className="text-xs text-slate-400">Phase {currentQ.phase} of 5</span>
               </div>
             </div>
@@ -2003,8 +2167,9 @@ ${p4ChallengeIntro}`,
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input Bar */}
-            {currentQ.phase !== 4 || p4Submitted ? (
+            {/* Input Bar — hidden in live mode; the model is listened to
+                continuously instead of via manual type/click turns. */}
+            {voiceMode !== "live" && (currentQ.phase !== 4 || p4Submitted) ? (
               <div className="border-t border-slate-100 dark:border-slate-850 pt-4 flex gap-2">
                 <textarea
                   value={currentInput}
@@ -2241,7 +2406,7 @@ ${p4ChallengeIntro}`,
           )}
 
           {/* Report compile triggering footer */}
-          {chatHistory.length >= 10 && (
+          {(voiceMode === "live" ? interviewComplete : chatHistory.length >= 10) && (
             <div className="flex justify-center p-4 bg-white dark:bg-slate-900 border rounded-3xl animate-fade-in shadow-sm">
               <button
                 onClick={handleGenerateReport}
