@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { validateSlugId } from "@/lib/admin/validateSlugId";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -54,6 +55,9 @@ export async function createTestimonial(
   id: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
+  const idError = validateSlugId(id);
+  if (idError) return { error: idError };
+
   const supabase = await createClient();
   const fields = readFields(formData);
 
@@ -93,7 +97,8 @@ export async function updateTestimonial(
   newId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
-  if (!newId.trim()) return { error: "Slug/ID is required." };
+  const idError = validateSlugId(newId);
+  if (idError) return { error: idError };
 
   const supabase = await createClient();
   const fields = readFields(formData);

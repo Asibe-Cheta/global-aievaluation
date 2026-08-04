@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { AdminAnnotationMediaItem } from "@/lib/admin/queries";
+import { validateSlugId } from "@/lib/admin/validateSlugId";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -135,7 +136,8 @@ export async function createAnnotationTask(
   const id = String(formData.get("id") ?? "").trim();
   const fields = readFields(formData);
 
-  if (!id) return { error: "Slug/ID is required." };
+  const idError = validateSlugId(id);
+  if (idError) return { error: idError };
   if (!fields.title) return { error: "Title is required." };
   if (!fields.question) return { error: "Question is required." };
   if (fields.options.length < 2) return { error: "At least 2 options are required." };
@@ -177,7 +179,8 @@ export async function updateAnnotationTask(
   newId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
-  if (!newId.trim()) return { error: "Slug/ID is required." };
+  const idError = validateSlugId(newId);
+  if (idError) return { error: idError };
 
   const supabase = await createClient();
   const fields = readFields(formData);

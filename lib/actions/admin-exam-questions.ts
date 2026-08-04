@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { AdminCaseStudyMediaItem } from "@/lib/admin/queries";
+import { validateSlugId } from "@/lib/admin/validateSlugId";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -104,7 +105,8 @@ export async function createExamQuestion(
   const supabase = await createClient();
   const fields = readFields(formData);
 
-  if (!id) return { error: "Slug/ID is required." };
+  const idError = validateSlugId(id);
+  if (idError) return { error: idError };
 
   let media: AdminCaseStudyMediaItem[];
   try {
@@ -129,7 +131,8 @@ export async function updateExamQuestion(
   newId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
-  if (!newId.trim()) return { error: "Slug/ID is required." };
+  const idError = validateSlugId(newId);
+  if (idError) return { error: idError };
 
   const supabase = await createClient();
   const fields = readFields(formData);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { validateSlugId } from "@/lib/admin/validateSlugId";
 
 export interface ModuleFormInput {
   title: string;
@@ -22,6 +23,9 @@ export async function createModule(
   id: string,
   input: ModuleFormInput,
 ): Promise<{ error?: string }> {
+  const idError = validateSlugId(id);
+  if (idError) return { error: idError };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("modules")
@@ -39,7 +43,8 @@ export async function updateModule(
   newId: string,
   input: ModuleFormInput,
 ): Promise<{ error?: string }> {
-  if (!newId.trim()) return { error: "Slug/ID is required." };
+  const idError = validateSlugId(newId);
+  if (idError) return { error: idError };
 
   const supabase = await createClient();
   const { error } = await supabase

@@ -61,7 +61,12 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
+    // `nextUrl.pathname` keeps its percent-encoding (e.g. a literal "%20"
+    // stays as those 3 characters, not a decoded space) — searchParams.set()
+    // then encodes the value again, turning "%20" into "%2520". Decode once
+    // first so the query string ends up with exactly the one level of
+    // encoding `searchParams.get("redirectTo")` expects on the other end.
+    loginUrl.searchParams.set("redirectTo", decodeURIComponent(request.nextUrl.pathname));
     return NextResponse.redirect(loginUrl);
   }
 

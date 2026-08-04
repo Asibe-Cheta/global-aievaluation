@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { validateSlugId } from "@/lib/admin/validateSlugId";
 
 export interface JobFormInput {
   title: string;
@@ -41,6 +42,9 @@ export async function createJob(
   id: string,
   input: JobFormInput,
 ): Promise<{ error?: string }> {
+  const idError = validateSlugId(id);
+  if (idError) return { error: idError };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("jobs")
@@ -58,7 +62,8 @@ export async function updateJob(
   newId: string,
   input: JobFormInput,
 ): Promise<{ error?: string }> {
-  if (!newId.trim()) return { error: "Slug/ID is required." };
+  const idError = validateSlugId(newId);
+  if (idError) return { error: idError };
 
   const supabase = await createClient();
   const { error } = await supabase
