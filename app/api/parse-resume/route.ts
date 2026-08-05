@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
+import mammoth from "mammoth";
+
+const DOCX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export async function POST(req: NextRequest) {
   const { base64Data, mimeType, fileName } = await req.json();
@@ -39,16 +42,20 @@ export async function POST(req: NextRequest) {
 
     console.log(`Starting Gemini resume parsing for ${fileName} (${mimeType})...`);
 
+    // Gemini's document understanding (inlineData) only accepts PDFs,
+    // images and plain text — NOT Word docs. .docx is the single most
+    // common resume format, so extract its text ourselves first and send
+    // that as a plain text part instead of the raw file.
+    const documentPart =
+      mimeType === DOCX_MIME_TYPE
+        ? { text: (await mammoth.extractRawText({ buffer: Buffer.from(base64Data, "base64") })).value }
+        : { inlineData: { data: base64Data, mimeType } };
+
     // Let's call gemini-3.5-flash (the best basic text and multimodal task model)
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: [
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType,
-          },
-        },
+        documentPart,
         {
           text: 'You are an expert resume parsing agent. Analyze this resume/CV document and extract candidate profile details to populate an onboarding questionnaire. Return a JSON object matching this schema exactly:\n{\n  "name": "Full name of candidate",\n  "education": "Brief degree/school details",\n  "workExperience": "Brief work history",\n  "aiExperience": "Brief AI/RLHF/prompting/annotation details",\n  "programmingKnowledge": "Brief coding proficiency summary",\n  "languages": "Languages spoken",\n  "remoteExperience": "Brief remote work experience details",\n  "goals": "Brief career/contract objectives"\n}\nDo not add any markup, tags or comments around the JSON.',
         },
