@@ -2083,11 +2083,17 @@ ${p4ChallengeIntro}`,
 
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isAiSpeaking ? "bg-indigo-500 animate-ping" : "bg-emerald-500"}`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isAiSpeaking ? "bg-indigo-500 animate-ping" : voiceMode === "live" ? "bg-emerald-500" : "bg-slate-400"}`}></span>
                     <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">John &bull; Lead Interviewer</h4>
                   </div>
                   <p className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                    {isAiSpeaking ? "Speaking natural voice..." : "Voice Connected & Ready"}
+                    {isAiSpeaking
+                      ? "Speaking natural voice..."
+                      : voiceMode === "live"
+                        ? "Voice Connected & Ready"
+                        : voiceMode === "checking"
+                          ? "Connecting..."
+                          : "Text Mode — Type Your Answer"}
                   </p>
                 </div>
 
