@@ -514,7 +514,7 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
 
     // Remove markdown-like indicators or brackets for clearer speech
     const cleanText = text
-      .replace(/\[ADAPTIVE CHALLENGE TRIGGER\]/g, "Adaptive Challenge Trigger")
+      .replace(/\[ADAPTIVE CHALLENGE TRIGGER\]\s*/g, "")
       .replace(/\[Live pair assessment submitted\]/g, "Live evaluation submitted")
       .replace(/\*\*/g, "") // remove bold asterisks
       .replace(/"/g, "")
@@ -1136,10 +1136,9 @@ ${firstQ.question}`;
         setChatHistory(prev => [
           ...prev, 
           { 
-            sender: "interviewer", 
-            text: `[ADAPTIVE CHALLENGE TRIGGER] 
-${pushbackIntro}${customChallenge}`,
-            isChallenge: true 
+            sender: "interviewer",
+            text: `${pushbackIntro}${customChallenge}`,
+            isChallenge: true
           }
         ]);
         setIsInterviewerTyping(false);
@@ -1254,8 +1253,7 @@ Click the button below to generate your report.`
         ...prev,
         {
           sender: "interviewer",
-          text: `[ADAPTIVE CHALLENGE TRIGGER]
-${p4ChallengeIntro}`,
+          text: p4ChallengeIntro,
           isChallenge: true
         }
       ]);
@@ -2146,11 +2144,6 @@ ${p4ChallengeIntro}`,
                           : "bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800"
                         : "bg-indigo-600 text-white font-medium"
                     }`}>
-                      {msg.isChallenge && (
-                        <span className="text-[9px] font-mono font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-widest block mb-1">
-                          ⚡ Interviewer Calibration Challenge
-                        </span>
-                      )}
                       {isInterviewer ? (
                         <TypewriterText text={msg.text} isLast={i === chatHistory.length - 1} speed={30} />
                       ) : (
