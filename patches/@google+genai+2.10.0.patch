@@ -1,0 +1,20 @@
+diff --git a/node_modules/@google/genai/dist/web/index.mjs b/node_modules/@google/genai/dist/web/index.mjs
+index 8240486..3d26ce5 100644
+--- a/node_modules/@google/genai/dist/web/index.mjs
++++ b/node_modules/@google/genai/dist/web/index.mjs
+@@ -13313,7 +13313,14 @@ class ApiClient {
+         const baseUrl = this.getBaseUrl();
+         const urlParts = new URL(baseUrl);
+         urlParts.protocol = urlParts.protocol == 'http:' ? 'ws' : 'wss';
+-        return urlParts.toString();
++        const result = urlParts.toString();
++        // Upstream bug: URL#toString() always adds a trailing slash for a
++        // bare-origin URL, and every call site below concatenates
++        // `${websocketBaseUrl}/ws/...` unconditionally, producing a
++        // double slash (`.../GenerativeService//ws/...`). Chrome tolerates
++        // that in a WebSocket URL; Safari does not and fails the whole
++        // connection with a bogus "hostname could not be found" error.
++        return result.endsWith('/') ? result.slice(0, -1) : result;
+     }
+     setBaseUrl(url) {
+         if (this.clientOptions.httpOptions) {
