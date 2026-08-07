@@ -2255,6 +2255,14 @@ Click the button below to generate your report.`
           {/* Phase 4 Live Evaluation Interactive Workspace Embed — in live
               mode this runs as a standalone written exercise once the
               spoken call has ended, rather than interleaved mid-call. */}
+          {voiceMode === "live" && liveCallEnded && !p4Submitted && (
+            <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 rounded-xl text-xs text-indigo-700 dark:text-indigo-300 font-sans flex items-start gap-2 animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>Spoken interview complete.</strong> One more step: finish the written exercise below, then your full report will be ready.
+              </span>
+            </div>
+          )}
           {(voiceMode === "live" ? liveCallEnded : currentQ.phase === 4) && !p4Submitted && (
             <div className="bg-white dark:bg-slate-900 border-2 border-indigo-500/20 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in">
               <div className="border-b border-slate-100 dark:border-slate-850 pb-3 flex justify-between items-center">
