@@ -10,8 +10,8 @@ import {
 import { UserStats } from "../types";
 import { getInterviewCreditBalance, startInterviewSession } from "../lib/actions/interviewCredits";
 import { TEMP_DISABLE_ALL_PAYMENT_GATES } from "../lib/access";
-import { useLiveInterviewSession, type LiveToolCallEvent } from "../hooks/useLiveInterviewSession";
-import { buildSystemInstruction, buildToolDeclarations } from "../lib/liveInterview/buildLiveConfig";
+import { useVapiInterviewSession } from "../hooks/useVapiInterviewSession";
+import { buildVapiAssistantConfig } from "../lib/liveInterview/buildLiveConfig";
 
 interface InterviewSimulatorProps {
   stats: UserStats;
@@ -334,77 +334,33 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Live duplex voice mode: "checking" while handleStartInterview attempts
-  // to open a Gemini Live session, "live" once connected (Gemini itself
-  // conducts the interview), "fallback" if Live isn't available/fails and
-  // the interview runs on the original push-to-talk + REST TTS flow below.
+  // to open a Vapi call, "live" once connected (Vapi conducts the spoken
+  // rounds), "fallback" if the call isn't available/fails and the interview
+  // runs on the original push-to-talk + REST TTS flow below.
   const [voiceMode, setVoiceMode] = useState<"checking" | "live" | "fallback">("checking");
-  // Replaces the old chatHistory.length >= 10 heuristic for the Finalize
-  // gate — that assumed exactly 2 messages/phase, which live transcription
-  // chunking doesn't reliably produce. Set true once the model's final
-  // advance_phase tool call (past Phase 5) arrives.
-  const [interviewComplete, setInterviewComplete] = useState(false);
   const [liveStatusMessage, setLiveStatusMessage] = useState<string | null>(null);
-  // Tracks whether the most recently appended interviewer chatHistory entry
-  // is a "challenge" follow-up, purely for styling continuity with the
-  // pre-existing orange "Interviewer Calibration Challenge" treatment.
-  const liveIsChallengeRef = useRef(false);
+  // Set once the live call itself has ended (candidate/AI hung up, or the
+  // 10-minute cap fired) — gates showing the standalone Phase 4 written
+  // evaluation exercise, which runs after the spoken rounds rather than
+  // interleaved into them (Vapi's tool-calling needs a webhook server we
+  // don't have, so phase progress isn't tracked mid-call anymore).
+  const [liveCallEnded, setLiveCallEnded] = useState(false);
   // Set right before every deliberate live.disconnect() call (report
   // generation, retake, 10-min cap) so the live session's own onclose/onerror
   // callback can tell "we did this on purpose" apart from "it dropped on its
   // own" and only auto-fallback in the latter case.
   const intentionalDisconnectRef = useRef(false);
 
-  const live = useLiveInterviewSession({
+  const live = useVapiInterviewSession({
     onTranscript: (e) => {
-      // MVP: only log finalized turns to the transcript — interim deltas
-      // would need in-place bubble updates to avoid duplicates, which isn't
-      // worth the complexity for the chat log (scoring never reads
-      // chatHistory; it reads live.consumeCandidateBuffer() at tool-call
-      // time regardless of how many interim deltas led up to it).
       if (!e.isFinal) return;
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          sender: e.speaker,
-          text: e.text,
-          isChallenge: e.speaker === "interviewer" ? liveIsChallengeRef.current : undefined,
-        },
-      ]);
+      setChatHistory((prev) => [...prev, { sender: e.speaker, text: e.text }]);
     },
-    onToolCall: (call: LiveToolCallEvent) => {
-      const currentQ = interviewQuestions[activePhaseIndex];
-      if (call.name === "record_answer") {
-        const mainAnswer = live.consumeCandidateBuffer();
-        setUserAnswers((prev) => ({
-          ...prev,
-          [currentQ.id]: { mainAnswer, challengeAnswer: "" },
-        }));
-        setHasRespondedToMainQuestion(true);
-        liveIsChallengeRef.current = true;
-      } else if (call.name === "record_challenge_answer") {
-        const challengeAnswer = live.consumeCandidateBuffer();
-        setUserAnswers((prev) => {
-          const existing = prev[currentQ.id] ?? { mainAnswer: "", challengeAnswer: "" };
-          return { ...prev, [currentQ.id]: { ...existing, challengeAnswer } };
-        });
-        liveIsChallengeRef.current = false;
-      } else if (call.name === "advance_phase") {
-        const nextIndex = activePhaseIndex + 1;
-        if (nextIndex >= interviewQuestions.length) {
-          setInterviewComplete(true);
-        } else {
-          setHasRespondedToMainQuestion(false);
-          setActivePhaseIndex(nextIndex);
-          if (nextIndex === 3) {
-            // Phase 4 is the bespoke Model-A/B form — not voice-driven.
-            live.pauseMic();
-          }
-        }
-      }
-      live.ackToolCall(call.id, call.name);
-    },
-    onInterrupted: () => {},
     onStatusChange: (status) => {
+      if (status === "closed" && voiceMode === "live") {
+        setLiveCallEnded(true);
+        return;
+      }
       if ((status === "error" || status === "closed") && !intentionalDisconnectRef.current) {
         setVoiceMode("fallback");
         setLiveStatusMessage("Voice connection lost — switched to text mode. Your progress is saved.");
@@ -655,9 +611,8 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
   };
 
   // Listen for new interviewer messages to trigger speakText — fallback
-  // mode only. In live mode, audio already plays via the live session's own
-  // scheduled playback (hooks/useLiveInterviewSession.ts), so this must not
-  // also fire the REST TTS call for the same message.
+  // mode only. In live mode, Vapi plays the interviewer's audio itself, so
+  // this must not also fire the REST TTS call for the same message.
   useEffect(() => {
     if (voiceMode === "live") return;
     if (chatHistory.length > 0) {
@@ -1011,7 +966,7 @@ Ready? Let's get started.`;
     setHasRespondedToMainQuestion(false);
     setUserAnswers({});
     setSecondsRemaining(MAX_INTERVIEW_SECONDS);
-    setInterviewComplete(false);
+    setLiveCallEnded(false);
     setLiveStatusMessage(null);
     setChatHistory([]);
     autoFinishedRef.current = false;
@@ -1019,8 +974,8 @@ Ready? Let's get started.`;
 
     const roleName = ROLES.find(r => r.id === selectedRole)?.name ?? "AI Evaluator";
 
-    const connected = await live.connect({
-      systemInstruction: buildSystemInstruction({
+    const connected = await live.connect(
+      buildVapiAssistantConfig({
         profileName: profile.name,
         profileWorkExperience: profile.workExperience,
         profileProgrammingKnowledge: profile.programmingKnowledge,
@@ -1028,9 +983,7 @@ Ready? Let's get started.`;
         roleName,
         questions: interviewQuestions,
       }),
-      tools: buildToolDeclarations(),
-      kickoffMessage: "(session start — greet the candidate by name and begin Phase 1)",
-    });
+    );
 
     if (connected) {
       setVoiceMode("live");
@@ -1206,11 +1159,10 @@ Click the button below to generate your report.`
     const submissionSummary = `[Live pair assessment submitted] Rated Model A: ${p4Ratings.A} stars. Rated Model B: ${p4Ratings.B} stars. Preference choice: Model ${p4SelectedModel}. Rationale: "${p4Rationale}"`;
 
     if (voiceMode === "live") {
-      // The form submission IS the main answer for this phase — there's no
-      // spoken main answer to capture, so set it directly (same content the
-      // fallback path would have produced) and let the model's own reaction
-      // + eventual record_challenge_answer/advance_phase tool calls (handled
-      // by the onToolCall handler above) fill in the rest.
+      // Phase 4 runs as a standalone written exercise after the spoken
+      // call has already ended (see liveCallEnded) — just record it and
+      // let the "Finalize Assessment" footer (gated on liveCallEnded &&
+      // p4Submitted) take the candidate to the report.
       const currentQ = interviewQuestions[3]; // Phase 4
       setUserAnswers(prev => ({
         ...prev,
@@ -1220,8 +1172,6 @@ Click the button below to generate your report.`
         }
       }));
       setChatHistory(prev => [...prev, { sender: "candidate", text: submissionSummary }]);
-      live.sendClientText(submissionSummary);
-      live.resumeMic();
       return;
     }
 
@@ -1287,10 +1237,21 @@ Click the button below to generate your report.`
       if (p4Rationale.toLowerCase().includes("negative constraint")) finalScore += 5;
       if (p4Rationale.toLowerCase().includes("present tense")) finalScore += 5;
 
-      // Keyword density in other answers
+      // Keyword density in other answers. Live mode never populated
+      // userAnswers per-phase (no more tool calls to do that bookkeeping
+      // mid-call), so score off the candidate's side of the full live
+      // transcript instead — same keyword-matching logic either way.
       let textLength = 0;
       let matchedKeywordsCount = 0;
-      const allText = (Object.values(userAnswers) as Array<{ mainAnswer: string; challengeAnswer: string }>).map(a => a.mainAnswer + " " + a.challengeAnswer).join(" ");
+      const allText =
+        voiceMode === "live"
+          ? chatHistory
+              .filter((m) => m.sender === "candidate")
+              .map((m) => m.text)
+              .join(" ")
+          : (Object.values(userAnswers) as Array<{ mainAnswer: string; challengeAnswer: string }>)
+              .map((a) => a.mainAnswer + " " + a.challengeAnswer)
+              .join(" ");
       textLength = allText.split(/\s+/).filter(Boolean).length;
 
       const criticalKeywords = [
@@ -1397,7 +1358,7 @@ Click the button below to generate your report.`
       live.disconnect();
     }
     setVoiceMode("checking");
-    setInterviewComplete(false);
+    setLiveCallEnded(false);
     setLiveStatusMessage(null);
     setInterviewStep(initialRoleId ? "setup_profile" : "setup_role");
     setSelectedRole(initialRoleId ?? "");
@@ -2039,7 +2000,9 @@ Click the button below to generate your report.`
                     <span className="hidden sm:inline">{isVoiceEnabled ? "AI Voice Active" : "AI Voice Muted"}</span>
                   </button>
                 )}
-                <span className="text-xs text-slate-400">Phase {currentQ.phase} of 5</span>
+                <span className="text-xs text-slate-400">
+                  {voiceMode === "live" ? (liveCallEnded ? "Written Exercise" : "Live Conversation") : `Phase ${currentQ.phase} of 5`}
+                </span>
               </div>
             </div>
 
@@ -2215,8 +2178,10 @@ Click the button below to generate your report.`
             ) : null}
           </div>
 
-          {/* Phase 4 Live Evaluation Interactive Workspace Embed */}
-          {currentQ.phase === 4 && !p4Submitted && (
+          {/* Phase 4 Live Evaluation Interactive Workspace Embed — in live
+              mode this runs as a standalone written exercise once the
+              spoken call has ended, rather than interleaved mid-call. */}
+          {(voiceMode === "live" ? liveCallEnded : currentQ.phase === 4) && !p4Submitted && (
             <div className="bg-white dark:bg-slate-900 border-2 border-indigo-500/20 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in">
               <div className="border-b border-slate-100 dark:border-slate-850 pb-3 flex justify-between items-center">
                 <div>
@@ -2408,7 +2373,7 @@ Click the button below to generate your report.`
           )}
 
           {/* Report compile triggering footer */}
-          {(voiceMode === "live" ? interviewComplete : chatHistory.length >= 10) && (
+          {(voiceMode === "live" ? liveCallEnded && p4Submitted : chatHistory.length >= 10) && (
             <div className="flex justify-center p-4 bg-white dark:bg-slate-900 border rounded-3xl animate-fade-in shadow-sm">
               <button
                 onClick={handleGenerateReport}
