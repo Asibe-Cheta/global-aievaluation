@@ -59,7 +59,7 @@ export interface VapiAssistantConfig {
   transcriber: { provider: "deepgram"; model: "nova-2"; language: "en" };
   model: {
     provider: "google";
-    model: "gemini-2.5-flash";
+    model: string;
     messages: Array<{ role: "system"; content: string }>;
     temperature?: number;
   };
@@ -79,7 +79,13 @@ export function buildVapiAssistantConfig(params: {
     transcriber: { provider: "deepgram", model: "nova-2", language: "en" },
     model: {
       provider: "google",
-      model: "gemini-2.5-flash",
+      // gemini-2.5-flash is deprecated for new API keys (confirmed via
+      // Vapi's own credential-validation error). gemini-2.5-flash-lite is
+      // the closest model Vapi's SDK has documented support for that isn't
+      // the specific one flagged as gone — swap to gemini-3.5-flash (what
+      // /api/interview-questions and /api/parse-resume already use
+      // successfully) if Vapi's platform turns out to support it too.
+      model: "gemini-2.5-flash-lite",
       messages: [{ role: "system", content: buildSystemInstruction(params) }],
       temperature: 0.7,
     },
