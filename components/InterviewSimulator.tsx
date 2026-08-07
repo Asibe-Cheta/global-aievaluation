@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { UserStats } from "../types";
 import { getInterviewCreditBalance, startInterviewSession } from "../lib/actions/interviewCredits";
+import { saveInterviewAttempt, getInterviewAttempts, type InterviewAttemptRecord } from "../lib/actions/interviewAttempts";
 import { TEMP_DISABLE_ALL_PAYMENT_GATES } from "../lib/access";
 import { useVapiInterviewSession } from "../hooks/useVapiInterviewSession";
 import { buildVapiAssistantConfig } from "../lib/liveInterview/buildLiveConfig";
@@ -323,6 +324,18 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
   const [reportScore, setReportScore] = useState(0);
   const [reportData, setReportData] = useState<any>(null);
   const [expandedReplayIndex, setExpandedReplayIndex] = useState<number | null>(null);
+
+  // Past interview history — shown on the domain-selection screen so a
+  // candidate can review previous reports or retake a role.
+  const [pastAttempts, setPastAttempts] = useState<InterviewAttemptRecord[]>([]);
+  const [isLoadingPastAttempts, setIsLoadingPastAttempts] = useState(true);
+
+  useEffect(() => {
+    getInterviewAttempts()
+      .then(setPastAttempts)
+      .catch((err) => console.error("Failed to load past interview attempts:", err))
+      .finally(() => setIsLoadingPastAttempts(false));
+  }, []);
 
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [isListening, setIsListening] = useState(false);
@@ -1346,6 +1359,27 @@ Click the button below to generate your report.`
       setInterviewStep("report");
       setIsAnalyzing(false);
 
+      // Best-effort persistence — a failed save shouldn't block the
+      // candidate from seeing their report, just log it.
+      saveInterviewAttempt({
+        roleId: selectedRole,
+        roleName: ROLES.find(r => r.id === selectedRole)?.name ?? "AI Evaluator",
+        score: finalScore,
+        competencies: compScores,
+        strengths,
+        growthAreas,
+        platforms: platformPredictions,
+        transcript: chatHistory.map(({ sender, text }) => ({ sender, text })),
+      })
+        .then((result) => {
+          if (!result.success) {
+            console.error("Failed to save interview attempt:", result.error);
+            return;
+          }
+          getInterviewAttempts().then(setPastAttempts).catch(() => {});
+        })
+        .catch((err) => console.error("Failed to save interview attempt:", err));
+
       // Post completion to main Academy stats
       onComplete(finalScore, strengths, growthAreas.map(g => g.topic));
     }, 2800);
@@ -1456,6 +1490,36 @@ Click the button below to generate your report.`
             );
           })}
         </div>
+
+        {!isLoadingPastAttempts && pastAttempts.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <span className="text-[10px] font-mono font-bold uppercase text-slate-450 block">
+              Past Interviews
+            </span>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl divide-y divide-slate-100 dark:divide-slate-850 overflow-hidden">
+              {pastAttempts.map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-3 p-3.5">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{a.roleName}</p>
+                    <p className="text-[10px] text-slate-450 mt-0.5">
+                      {new Date(a.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                      {" · "}Score: <span className="font-bold text-indigo-600 dark:text-indigo-400">{a.score}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedRole(a.roleId);
+                      setInterviewStep("setup_profile");
+                    }}
+                    className="shrink-0 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Retake
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-850">
           <button
