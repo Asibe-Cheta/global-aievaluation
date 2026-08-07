@@ -956,23 +956,33 @@ Ready? Let's get started.`;
   const handleStartInterview = async () => {
     setCreditError(null);
     setIsStartingInterview(true);
-    let result;
-    try {
-      result = await startInterviewSession();
-    } catch (err) {
-      console.error("Failed to start interview session:", err);
-      setCreditError(err instanceof Error ? err.message : "Something went wrong starting your session. Please try again.");
-      setIsStartingInterview(false);
-      return;
+
+    // While every payment gate is disabled for testing, skip the credit
+    // spend entirely — this round-trip has no bearing on the outcome
+    // (TEMP_DISABLE_ALL_PAYMENT_GATES makes it a no-op balance-permitting
+    // anyway) and its only real effect right now is that any transient
+    // failure — including an unrelated "server action not found" after a
+    // fresh deploy — surfaces as a scary, misleading paywall-flavored error.
+    if (!TEMP_DISABLE_ALL_PAYMENT_GATES) {
+      let result;
+      try {
+        result = await startInterviewSession();
+      } catch (err) {
+        console.error("Failed to start interview session:", err);
+        setCreditError(err instanceof Error ? err.message : "Something went wrong starting your session. Please try again.");
+        setIsStartingInterview(false);
+        return;
+      }
+
+      if (!result.ok) {
+        setIsStartingInterview(false);
+        setCreditBalance(0);
+        setCreditError("You're out of interview sessions. Upgrade or grab a credit top-up to keep practicing.");
+        return;
+      }
+      setCreditBalance(result.remaining);
     }
     setIsStartingInterview(false);
-
-    if (!result.ok) {
-      setCreditBalance(0);
-      setCreditError("You're out of interview sessions. Upgrade or grab a credit top-up to keep practicing.");
-      return;
-    }
-    setCreditBalance(result.remaining);
 
     setInterviewStep("interviewing");
     setActivePhaseIndex(0);
