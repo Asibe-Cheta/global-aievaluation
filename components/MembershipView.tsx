@@ -113,7 +113,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
           className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors uppercase tracking-wider cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
+          Back to AI Career Hub
         </button>
 
         {currentTier === "career_accelerator" && (

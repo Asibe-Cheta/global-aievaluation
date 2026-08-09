@@ -167,6 +167,7 @@ export interface AdminPracticeTaskRow {
   module_id: string;
   task_type: string;
   category: string | null;
+  difficulty: "beginner" | "intermediate" | "expert";
   sort_order: number;
   guideline: AdminPracticeTaskContentBlock;
   item: AdminPracticeTaskContentBlock;

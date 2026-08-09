@@ -112,6 +112,7 @@ export interface PracticeTask {
   moduleId: string;
   taskType: string;
   category?: string;
+  difficulty: "beginner" | "intermediate" | "expert";
   guideline: PracticeTaskContentBlock;
   item: PracticeTaskContentBlock;
   responseA: PracticeTaskContentBlock;

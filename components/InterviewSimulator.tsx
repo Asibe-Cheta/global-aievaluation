@@ -1464,7 +1464,7 @@ Click the button below to generate your report.`
             onClick={onBack}
             className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-xl transition-all cursor-pointer"
           >
-            Back to Dashboard
+            Back to AI Career Hub
           </button>
         </div>
       </div>
@@ -1549,7 +1549,7 @@ Click the button below to generate your report.`
             onClick={onBack}
             className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+            <ArrowLeft className="w-4 h-4" /> Back to AI Career Hub
           </button>
 
           <button
@@ -1856,7 +1856,7 @@ Click the button below to generate your report.`
             onClick={() => (initialRoleId ? onBack() : setInterviewStep("setup_role"))}
             className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1"
           >
-            <ArrowLeft className="w-4 h-4" /> {initialRoleId ? "Back to Dashboard" : "Back to Domain"}
+            <ArrowLeft className="w-4 h-4" /> {initialRoleId ? "Back to AI Career Hub" : "Back to Domain"}
           </button>
 
           <button
@@ -2764,7 +2764,7 @@ Click the button below to generate your report.`
             onClick={onBack}
             className="px-6 py-3 bg-slate-105 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-350 rounded-xl text-xs font-bold shadow-xs cursor-pointer font-sans"
           >
-            Return to Dashboard
+            Return to AI Career Hub
           </button>
         </div>
 

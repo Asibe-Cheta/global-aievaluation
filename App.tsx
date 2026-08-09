@@ -136,8 +136,13 @@ export default function App({
   initialStats,
   isAdmin,
 }: AppProps) {
-  const practiceTabs = ["simulations", "annotation", "exam_practice"];
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const practiceTabs = ["practice_beginner", "practice_intermediate", "practice_expert"];
+  // Restore the last section the user was on so a refresh doesn't always
+  // bounce back to the dashboard.
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window === "undefined") return "dashboard";
+    return localStorage.getItem("ae-academy-active-tab") ?? "dashboard";
+  });
   const [practiceGroupOpen, setPracticeGroupOpen] = useState(false);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeModuleId, setActiveModuleId] = useState<string>("m1");
@@ -194,6 +199,11 @@ export default function App({
   // clicking the group itself.
   useEffect(() => {
     if (practiceTabs.includes(activeTab)) setPracticeGroupOpen(true);
+  }, [activeTab]);
+
+  // Persist the active tab so a browser refresh reopens the same section.
+  useEffect(() => {
+    localStorage.setItem("ae-academy-active-tab", activeTab);
   }, [activeTab]);
 
   // Apply dark class to body
@@ -527,7 +537,7 @@ export default function App({
               }`}
             >
               <LayoutGrid className="w-4 h-4" />
-              Dashboard
+              AI Career Hub
             </button>
 
             <button
@@ -580,43 +590,33 @@ export default function App({
 
             {practiceGroupOpen && (
               <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-slate-850 ml-4">
-                <button
-                  id="tab-btn-practice-tasks"
-                  onClick={() => {
-                    setActiveTab("practice_tasks");
-                    setActiveLessonId(null);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                    activeTab === "practice_tasks"
-                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-                  }`}
-                >
-                  <span>Practice Tasks</span>
-                  {!isSimulationPracticeAccessible(stats.membershipTier) && (
-                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                  )}
-                </button>
-
-                <button
-                  id="tab-btn-exam-practice"
-                  onClick={() => {
-                    setActiveTab("exam_practice");
-                    setActiveLessonId(null);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                    activeTab === "exam_practice"
-                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-                  }`}
-                >
-                  <span>Exam Practice</span>
-                  {!isSimulationPracticeAccessible(stats.membershipTier) && (
-                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                  )}
-                </button>
+                {(
+                  [
+                    { tab: "practice_beginner", label: "Beginner", id: "tab-btn-practice-beginner" },
+                    { tab: "practice_intermediate", label: "Intermediate", id: "tab-btn-practice-intermediate" },
+                    { tab: "practice_expert", label: "Expert", id: "tab-btn-practice-expert" },
+                  ] as const
+                ).map((level) => (
+                  <button
+                    key={level.tab}
+                    id={level.id}
+                    onClick={() => {
+                      setActiveTab(level.tab);
+                      setActiveLessonId(null);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                      activeTab === level.tab
+                        ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                        : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+                    }`}
+                  >
+                    <span>{level.label}</span>
+                    {!isSimulationPracticeAccessible(stats.membershipTier) && (
+                      <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                    )}
+                  </button>
+                ))}
               </div>
             )}
 
@@ -820,13 +820,15 @@ export default function App({
                 {activeLessonId
                   ? "Theoretical Lesson & Workspace"
                   : activeTab === "dashboard"
-                    ? "Global Ready AIEval Dashboard"
+                    ? "AI Career Hub"
                     : activeTab === "modules"
                       ? "Learning Syllabus"
-                      : activeTab === "practice_tasks"
-                        ? "Real World Practice"
-                        : activeTab === "exam_practice"
-                          ? "Exam Practice"
+                      : activeTab === "practice_beginner"
+                        ? "Beginner Practice"
+                        : activeTab === "practice_intermediate"
+                          ? "Intermediate Practice"
+                          : activeTab === "practice_expert"
+                            ? "Expert Practice"
                           : activeTab === "interview"
                           ? "AI Interview Simulator"
                           : activeTab === "membership"
@@ -1150,7 +1152,7 @@ export default function App({
                             className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-905 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer self-start md:self-center"
                           >
                             <ArrowLeft className="w-4 h-4" />
-                            Back to Dashboard
+                            Back to AI Career Hub
                           </button>
                         </div>
 
@@ -1421,7 +1423,9 @@ export default function App({
                   );
                 })()}
 
-              {(activeTab === "practice_tasks" || activeTab === "exam_practice") && (
+              {(activeTab === "practice_beginner" ||
+                activeTab === "practice_intermediate" ||
+                activeTab === "practice_expert") && (
                 <PracticeTaskRunner
                   tasks={allPracticeTasks}
                   existingSubmissions={stats.practiceTaskSubmissions ?? {}}
@@ -1429,7 +1433,13 @@ export default function App({
                   onBack={() => setActiveTab("dashboard")}
                   isPaidUser={isSimulationPracticeAccessible(stats.membershipTier)}
                   onRequireUpgrade={() => setActiveTab("membership")}
-                  filter={activeTab === "exam_practice" ? "timed" : "untimed"}
+                  filter={
+                    activeTab === "practice_beginner"
+                      ? "beginner"
+                      : activeTab === "practice_intermediate"
+                        ? "intermediate"
+                        : "expert"
+                  }
                 />
               )}
 
@@ -1440,7 +1450,7 @@ export default function App({
                     className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-sans"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back to Dashboard
+                    Back to AI Career Hub
                   </button>
                   {!TEMP_DISABLE_ALL_PAYMENT_GATES &&
                   stats.membershipTier === "free" ? (
@@ -1477,7 +1487,7 @@ export default function App({
                           onClick={() => setActiveTab("dashboard")}
                           className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-xl transition-all cursor-pointer"
                         >
-                          Explore Dashboard
+                          Explore AI Career Hub
                         </button>
                       </div>
                     </div>
@@ -1547,7 +1557,7 @@ export default function App({
                     className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-455 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back to Dashboard
+                    Back to AI Career Hub
                   </button>
                   <ProfileView
                     stats={stats}

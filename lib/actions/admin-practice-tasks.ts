@@ -100,6 +100,10 @@ function readFields(formData: FormData) {
     moduleId: String(formData.get("moduleId") ?? ""),
     taskType: String(formData.get("taskType") ?? "evaluation"),
     category: String(formData.get("category") ?? ""),
+    difficulty: String(formData.get("difficulty") ?? "beginner") as
+      | "beginner"
+      | "intermediate"
+      | "expert",
     sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
     guidelineText: String(formData.get("guidelineText") ?? ""),
     itemText: String(formData.get("itemText") ?? ""),
@@ -131,6 +135,7 @@ function toRow(
     module_id: fields.moduleId,
     task_type: fields.taskType,
     category: fields.category || null,
+    difficulty: fields.difficulty,
     sort_order: fields.sortOrder,
     guideline: { text: fields.guidelineText, media: blockMedia.guideline },
     item: { text: fields.itemText, media: blockMedia.item },

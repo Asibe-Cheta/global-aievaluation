@@ -128,7 +128,7 @@ export default function FailReasonsView({ stats, onBack }: FailReasonsViewProps)
         className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Dashboard
+        Back to AI Career Hub
       </button>
       <div className="space-y-6">
       {/* Tab toggle control */}

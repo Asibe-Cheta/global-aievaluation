@@ -65,7 +65,7 @@ export default function AcceleratorHubView({ stats, onUpgradeClick, onBack }: Ac
             className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-900 dark:text-slate-500 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            Back to AI Career Hub
           </button>
           
           <span className="text-xs font-mono text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center gap-1.5 font-bold">
@@ -177,7 +177,7 @@ export default function AcceleratorHubView({ stats, onUpgradeClick, onBack }: Ac
           className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
         >
           <ArrowLeft className="w-4 h-4" />
-          Dashboard
+          AI Career Hub
         </button>
       </div>
 

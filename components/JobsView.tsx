@@ -18,7 +18,7 @@ interface JobsViewProps {
   onStartInterviewForJob?: (job: JobOpportunity) => void;
 }
 
-export default function JobsView({ stats, jobs, onBack, backLabel = "Back to Dashboard", setActiveTab, onStartInterviewForJob }: JobsViewProps) {
+export default function JobsView({ stats, jobs, onBack, backLabel = "Back to AI Career Hub", setActiveTab, onStartInterviewForJob }: JobsViewProps) {
   const jobsList = jobs && jobs.length > 0 ? jobs : DEFAULT_JOBS;
 
   const [searchQuery, setSearchQuery] = useState("");

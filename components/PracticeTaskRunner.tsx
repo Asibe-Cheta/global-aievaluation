@@ -210,9 +210,24 @@ export default function PracticeTaskRunner({
   onBack: () => void;
   isPaidUser: boolean;
   onRequireUpgrade: () => void;
-  filter: "timed" | "untimed";
+  filter: "beginner" | "intermediate" | "expert";
 }) {
-  const filtered = tasks.filter((t) => (filter === "timed" ? t.timed : !t.timed));
+  const filtered = tasks.filter((t) => t.difficulty === filter);
+
+  const LEVEL_COPY = {
+    beginner: {
+      title: "Beginner Practice",
+      description: "Foundational judge-the-response tasks with guided feedback.",
+    },
+    intermediate: {
+      title: "Intermediate Practice",
+      description: "Applied evaluation and annotation tasks with less hand-holding.",
+    },
+    expert: {
+      title: "Expert Practice",
+      description: "Advanced, exam-style tasks — some are timed.",
+    },
+  } as const;
 
   if (!isPaidUser) {
     return (
@@ -221,7 +236,7 @@ export default function PracticeTaskRunner({
           <Lock className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          {filter === "timed" ? "Exam Practice" : "Real World Practice"} Locked
+          {LEVEL_COPY[filter].title} Locked
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
           Upgrade to Professional or Career Accelerator to unlock the full practice-task bank.
@@ -242,17 +257,15 @@ export default function PracticeTaskRunner({
         onClick={onBack}
         className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        <ArrowLeft className="w-4 h-4" /> Back to AI Career Hub
       </button>
 
       <div className="space-y-1">
         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          {filter === "timed" ? "Exam Practice" : "Real World Practice"}
+          {LEVEL_COPY[filter].title}
         </h2>
         <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-          {filter === "timed"
-            ? "Timed evaluation tasks under exam conditions."
-            : "Untimed evaluation and annotation tasks with feedback as you go."}
+          {LEVEL_COPY[filter].description}
         </p>
       </div>
 

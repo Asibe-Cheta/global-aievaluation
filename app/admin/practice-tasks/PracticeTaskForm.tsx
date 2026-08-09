@@ -38,6 +38,9 @@ export default function PracticeTaskForm({
   const [moduleId, setModuleId] = useState(task?.module_id ?? modules[0]?.id ?? "");
   const [taskType, setTaskType] = useState(task?.task_type ?? "evaluation");
   const [category, setCategory] = useState(task?.category ?? SKILL_CATEGORIES[0]);
+  const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "expert">(
+    task?.difficulty ?? "beginner",
+  );
   const [sortOrder, setSortOrder] = useState(String(task?.sort_order ?? 0));
 
   const [guidelineText, setGuidelineText] = useState(task?.guideline?.text ?? "");
@@ -95,6 +98,7 @@ export default function PracticeTaskForm({
     formData.set("moduleId", moduleId);
     formData.set("taskType", taskType);
     formData.set("category", category);
+    formData.set("difficulty", difficulty);
     formData.set("sortOrder", sortOrder);
     formData.set("guidelineText", guidelineText);
     formData.set("itemText", itemText);
@@ -169,6 +173,32 @@ export default function PracticeTaskForm({
         <div>
           <label className={labelClass}>Sort Order</label>
           <input type="number" className={inputClass} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
+        </div>
+      </div>
+
+      {/* Difficulty Level */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+        <span className={sectionLabelClass}>Level</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {([
+            { value: "beginner", label: "Beginner", desc: "Foundational tasks with guided feedback." },
+            { value: "intermediate", label: "Intermediate", desc: "Applied tasks with less hand-holding." },
+            { value: "expert", label: "Expert", desc: "Advanced, exam-style tasks." },
+          ] as const).map((d) => (
+            <button
+              key={d.value}
+              type="button"
+              onClick={() => setDifficulty(d.value)}
+              className={`text-left p-3 rounded-xl border transition-colors cursor-pointer ${
+                difficulty === d.value
+                  ? "border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20"
+                  : "border-slate-200 dark:border-slate-800"
+              }`}
+            >
+              <p className="text-xs font-bold text-slate-900 dark:text-white">{d.label}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">{d.desc}</p>
+            </button>
+          ))}
         </div>
       </div>
 

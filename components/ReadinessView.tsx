@@ -121,7 +121,7 @@ export default function ReadinessView({ stats, overallScore, onBack }: Readiness
         className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Dashboard
+        Back to AI Career Hub
       </button>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* LHS Circular Score gauge & Career matches */}
