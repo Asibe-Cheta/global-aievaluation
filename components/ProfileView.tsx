@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  User, Check, Trash2, LogOut,
+  User, Check, Trash2, LogOut, X,
   Trophy, Clock, ShieldAlert, Award, Camera, RefreshCw,
   Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, Briefcase
 } from "lucide-react";
 import { UserStats, Module } from "../types";
 import { createClient } from "../lib/supabase/client";
+import { uploadAvatarPhoto, removeAvatarPhoto } from "../lib/actions/profile";
 
 interface ProfileViewProps {
   stats: UserStats;
@@ -65,6 +66,55 @@ export default function ProfileView({
 
   // Default selected avatar or preset
   const selectedAvatar = PRESET_AVATARS.find(a => a.id === stats.avatarUrl) || PRESET_AVATARS[0];
+
+  // A real uploaded photo is stored as a full URL in the same field that
+  // otherwise holds a preset avatar id (e.g. "avatar-1").
+  const photoUrl = stats.avatarUrl && /^https?:\/\//.test(stats.avatarUrl) ? stats.avatarUrl : null;
+
+  const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("Image is too large (max 5MB).");
+      return;
+    }
+
+    setAvatarError("");
+    setIsUploadingAvatar(true);
+    const formData = new FormData();
+    formData.set("file", file);
+    const result = await uploadAvatarPhoto(formData);
+    setIsUploadingAvatar(false);
+
+    if (result.error) {
+      setAvatarError(result.error);
+      return;
+    }
+    setStats(prev => ({ ...prev, avatarUrl: result.url }));
+  };
+
+  const handleRemoveAvatarPhoto = async () => {
+    setAvatarError("");
+    setIsUploadingAvatar(true);
+    const result = await removeAvatarPhoto();
+    setIsUploadingAvatar(false);
+
+    if (result.error) {
+      setAvatarError(result.error);
+      return;
+    }
+    setStats(prev => ({ ...prev, avatarUrl: undefined }));
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,14 +230,59 @@ export default function ProfileView({
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           {/* Avatar Visualizer */}
           <div className="relative group shrink-0">
-            <div className={`w-24 h-24 rounded-full bg-gradient-to-tr ${selectedAvatar.bg} flex items-center justify-center text-white text-3xl font-black shadow-md border-4 border-white dark:border-indigo-950 transition-transform duration-300 group-hover:scale-105`}>
-              {selectedAvatar.initial}
-            </div>
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt="Profile photo"
+                className="w-24 h-24 rounded-full object-cover shadow-md border-4 border-white dark:border-indigo-950 transition-transform duration-300 group-hover:scale-105"
+              />
+            ) : (
+              <div className={`w-24 h-24 rounded-full bg-gradient-to-tr ${selectedAvatar.bg} flex items-center justify-center text-white text-3xl font-black shadow-md border-4 border-white dark:border-indigo-950 transition-transform duration-300 group-hover:scale-105`}>
+                {selectedAvatar.initial}
+              </div>
+            )}
             <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" title="Online & Active"></div>
+
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarFileChange}
+            />
+            <button
+              type="button"
+              onClick={() => avatarFileInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+              title="Upload photo"
+              className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-md cursor-pointer disabled:opacity-60 transition-colors"
+            >
+              {isUploadingAvatar ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Camera className="w-3.5 h-3.5" />
+              )}
+            </button>
+            {photoUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveAvatarPhoto}
+                disabled={isUploadingAvatar}
+                title="Remove photo"
+                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-600 hover:border-rose-300 flex items-center justify-center shadow-sm cursor-pointer disabled:opacity-60 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* User Status Details */}
           <div className="flex-1 text-center md:text-left space-y-2">
+            {avatarError && (
+              <p className="text-[11px] text-rose-600 dark:text-rose-405 font-bold flex items-center justify-center md:justify-start gap-1">
+                <ShieldAlert className="w-3.5 h-3.5 shrink-0" /> {avatarError}
+              </p>
+            )}
             <div className="flex flex-wrap justify-center md:justify-start items-center gap-2">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {stats.displayName || "Evaluator #3824"}

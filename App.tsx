@@ -745,12 +745,20 @@ export default function App({
             className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer min-w-0"
           >
             <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 dark:border-slate-800 shrink-0">
-              <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&auto=format&fit=crop"
-                alt="Alex Johnson"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+              {stats.avatarUrl && /^https?:\/\//.test(stats.avatarUrl) ? (
+                <img
+                  src={stats.avatarUrl}
+                  alt="Profile photo"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div
+                  className={`w-full h-full bg-gradient-to-tr ${activeAvatar.bg} flex items-center justify-center text-white text-xs font-black`}
+                >
+                  {activeAvatar.initial}
+                </div>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h4 className="text-xs font-extrabold text-slate-800 dark:text-white truncate">

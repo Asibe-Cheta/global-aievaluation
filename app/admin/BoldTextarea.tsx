@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type KeyboardEvent } from "react";
-import { Bold } from "lucide-react";
+import { Bold, Link as LinkIcon } from "lucide-react";
 import { renderFormattedText } from "@/components/LessonContentRenderer";
 
 const DEFAULT_CLASS =
@@ -69,25 +69,65 @@ export default function BoldTextarea({
     });
   };
 
+  // Wraps the selection (or inserts a placeholder) as "[label](url)", the
+  // same link syntax renderFormattedText knows how to render as a real <a>.
+  const insertLink = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const { selectionStart: start, selectionEnd: end } = textarea;
+    const selected = value.slice(start, end);
+
+    const url = window.prompt("Link URL", "https://");
+    if (!url) return;
+
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const inserted = `[${selected || "link text"}](${url})`;
+    const nextText = before + inserted + after;
+
+    onChange(nextText);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start, start + inserted.length);
+    });
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
       e.preventDefault();
       toggleBold();
     }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      insertLink();
+    }
   };
 
   return (
     <div className="space-y-1">
-      <button
-        type="button"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={toggleBold}
-        className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-850"
-        title="Bold selected text (Ctrl/Cmd+B)"
-      >
-        <Bold className="w-3 h-3" />
-        Bold
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={toggleBold}
+          className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-850"
+          title="Bold selected text (Ctrl/Cmd+B)"
+        >
+          <Bold className="w-3 h-3" />
+          Bold
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={insertLink}
+          className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-850"
+          title="Insert link (Ctrl/Cmd+K)"
+        >
+          <LinkIcon className="w-3 h-3" />
+          Link
+        </button>
+      </div>
       <textarea
         ref={textareaRef}
         className={className ?? DEFAULT_CLASS}

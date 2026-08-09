@@ -9,12 +9,46 @@ import type { CaseStudyMediaItem } from "../types";
 // separated instead of collapsing onto one line — this is what plain HTML
 // does with whitespace by default, since callers pass raw multi-line text
 // straight through rather than pre-splitting it into lines first.
+// Matches markdown-style "[label](https://example.com)" links.
+const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+function renderLineWithLinks(line: string, keyPrefix: string): React.ReactNode {
+  if (!line.includes("](")) return line;
+
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let linkIndex = 0;
+  LINK_PATTERN.lastIndex = 0;
+
+  while ((match = LINK_PATTERN.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(line.slice(lastIndex, match.index));
+    }
+    nodes.push(
+      <a
+        key={`${keyPrefix}-link-${linkIndex++}`}
+        href={match[2]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 dark:text-indigo-400 font-semibold underline underline-offset-2 hover:text-indigo-700 dark:hover:text-indigo-300"
+      >
+        {match[1]}
+      </a>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < line.length) nodes.push(line.slice(lastIndex));
+  return nodes;
+}
+
 function renderTextWithLineBreaks(part: string, keyPrefix: string) {
   const lines = part.split("\n");
   return lines.map((line, i) => (
     <React.Fragment key={`${keyPrefix}-${i}`}>
       {i > 0 && <br />}
-      {line}
+      {renderLineWithLinks(line, `${keyPrefix}-${i}`)}
     </React.Fragment>
   ));
 }
