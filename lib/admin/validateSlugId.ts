@@ -1,5 +1,5 @@
-// Every admin-editable content table (modules, lessons, simulation_tasks,
-// annotation_tasks, exam_questions, jobs, testimonials) uses a manually
+// Every admin-editable content table (modules, lessons, practice_tasks,
+// jobs, testimonials) uses a manually
 // typed `id text primary key`. These ids get embedded directly into URL
 // path segments (e.g. /admin/modules/[moduleId]/lessons/[lessonId]) — a
 // raw space or other unsafe character saves into Postgres just fine but

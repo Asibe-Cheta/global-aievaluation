@@ -39,7 +39,7 @@ import {
   Gift,
 } from "lucide-react";
 
-import { UserStats, Rank, Module, Lesson, AnnotationSubmission } from "./types";
+import { UserStats, Rank, Module, Lesson, PracticeTaskSubmission } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
@@ -53,7 +53,7 @@ import {
 // Subcomponents
 import DashboardView from "./components/DashboardView";
 import LessonView from "./components/LessonView";
-import SimulationView from "./components/SimulationView";
+import PracticeTaskRunner from "./components/PracticeTaskRunner";
 import ReadinessView from "./components/ReadinessView";
 import FailReasonsView from "./components/FailReasonsView";
 import ProfileView from "./components/ProfileView";
@@ -70,7 +70,6 @@ import Part2Lesson5View from "./components/Part2Lesson5View";
 import Part2Lesson6View from "./components/Part2Lesson6View";
 import Part2Lesson7View from "./components/Part2Lesson7View";
 import MembershipView from "./components/MembershipView";
-import AnnotationView from "./components/AnnotationView";
 import AcceleratorHubView from "./components/AcceleratorHubView";
 
 function applySkillBoosts(
@@ -144,9 +143,6 @@ export default function App({
   const [activeModuleId, setActiveModuleId] = useState<string>("m1");
   const [activePartId, setActivePartId] = useState<string | null>(null);
   const [expandedModuleCardIds, setExpandedModuleCardIds] = useState<Set<string>>(new Set());
-  const [simViewInitialMode, setSimViewInitialMode] = useState<
-    "sandbox" | "exam" | "interview"
-  >("sandbox");
   const [interviewInitialRoleId, setInterviewInitialRoleId] = useState<string | null>(null);
   const [interviewJobTitle, setInterviewJobTitle] = useState<string | null>(null);
 
@@ -394,16 +390,16 @@ export default function App({
     );
   };
 
-  const handleAnnotationSubmit = (
+  const handlePracticeTaskSubmit = (
     taskId: string,
-    submission: AnnotationSubmission,
+    submission: PracticeTaskSubmission,
   ) => {
     setStats((prev) => {
-      const isFirstTime = !prev.annotationSubmissions?.[taskId];
+      const isFirstTime = !prev.practiceTaskSubmissions?.[taskId];
       return {
         ...prev,
-        annotationSubmissions: {
-          ...(prev.annotationSubmissions ?? {}),
+        practiceTaskSubmissions: {
+          ...(prev.practiceTaskSubmissions ?? {}),
           [taskId]: submission,
         },
         xp: prev.xp + (isFirstTime ? 40 : 5),
@@ -415,90 +411,12 @@ export default function App({
     });
   };
 
-  const handleExamComplete = (score: number) => {
-    const passed = score >= 80;
-
-    setStats((prev) => {
-      const examId =
-        activeModuleId === "m2"
-          ? "exam_m2_qual"
-          : activeModuleId === "m3"
-            ? "exam_m3_qual"
-            : activeModuleId === "m4"
-              ? "exam_m4_qual"
-              : "exam_foundations_qual";
-      const isAlreadyPassed = prev.passedExams.includes(examId);
-      const newExams =
-        passed && !isAlreadyPassed
-          ? [...prev.passedExams, examId]
-          : prev.passedExams;
-
-      const newSkills = { ...prev.skills };
-      if (passed && !isAlreadyPassed) {
-        // Upgrade overall capabilities on licensure pass
-        Object.keys(newSkills).forEach((k) => {
-          const sKey = k as keyof typeof newSkills;
-          newSkills[sKey] = Math.min(100, Math.round(newSkills[sKey] * 1.15));
-        });
-      }
-
-      return {
-        ...prev,
-        passedExams: newExams,
-        xp: prev.xp + (passed ? 500 : 50), // major credential milestone points
-        skills: newSkills,
-        lastActiveDate: new Date().toISOString(),
-      };
-    });
-
-    setActiveTab("dashboard");
-    if (passed) {
-      if (activeModuleId === "m2") {
-        alert(
-          `🏆 Lesson 2 AI Training & Data Quality Specialization Cleared! Vetted as Data Alignment Expert.`,
-        );
-      } else if (activeModuleId === "m3") {
-        alert(
-          `🏆 Lesson 3 Supervised Fine-Tuning (SFT) Curation Credentials Cleared! Vetted as SFT Golden Dataset Curation Specialist.`,
-        );
-      } else if (activeModuleId === "m4") {
-        alert(
-          `🏆 Lesson 4 Reinforcement Learning from Human Feedback (RLHF) Credentials Cleared! Vetted as RLHF Alignment Expert.`,
-        );
-      } else {
-        alert(
-          `🏆 Certified Professional Qualification Cleared! License Key AEA-QUAL activated. Outlier generalist matching activated!`,
-        );
-      }
-    }
-  };
-
-  const isSimUnlocked =
-    bypassLocks ||
-    TEMP_DISABLE_ALL_PAYMENT_GATES ||
-    (activeModuleId === "m1"
-      ? stats.completedLessons.filter(
-          (id) => id.startsWith("l") && !id.includes("_"),
-        ).length >= 3
-      : activeModuleId === "m2"
-        ? stats.completedLessons.includes("m2_l1")
-        : activeModuleId === "m3"
-          ? stats.completedLessons.includes("m3_l1")
-          : activeModuleId === "m4"
-            ? stats.completedLessons.includes("m4_l1")
-            : false);
-
-  // Exam Practice now pulls random questions across every module rather than
-  // gating per-module progress — the paid-tier check on the Real World
-  // Practice nav group is the only gate it needs.
-  const isExamUnlocked = true;
-
-  // Random cross-module question bank for the standalone Exam Practice mode.
-  // Shuffled once per session (moduleCurriculum is stable for the session).
-  const examPracticeQuestions = useMemo(() => {
-    const all = moduleCurriculum.flatMap((m) => m.examQuestions);
-    return [...all].sort(() => Math.random() - 0.5).slice(0, 15);
-  }, [moduleCurriculum]);
+  // Real World Practice pools tasks across every module rather than gating
+  // per-module progress — the paid-tier check is the only gate it needs.
+  const allPracticeTasks = useMemo(
+    () => moduleCurriculum.flatMap((m) => m.practiceTasks ?? []),
+    [moduleCurriculum],
+  );
 
   const getAvatarConfig = (avatarId?: string) => {
     const PRESET_AVATARS = [
@@ -663,39 +581,19 @@ export default function App({
             {practiceGroupOpen && (
               <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-slate-850 ml-4">
                 <button
-                  id="tab-btn-simulations"
+                  id="tab-btn-practice-tasks"
                   onClick={() => {
-                    setActiveTab("simulations");
-                    setSimViewInitialMode("sandbox");
+                    setActiveTab("practice_tasks");
                     setActiveLessonId(null);
                     setMobileMenuOpen(false);
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                    activeTab === "simulations"
+                    activeTab === "practice_tasks"
                       ? "bg-[#4F46E5] text-white shadow-sm font-bold"
                       : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
                   }`}
                 >
-                  <span>Simulation Tasks</span>
-                  {(!isSimulationPracticeAccessible(stats.membershipTier) || !isSimUnlocked) && (
-                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                  )}
-                </button>
-
-                <button
-                  id="tab-btn-annotation"
-                  onClick={() => {
-                    setActiveTab("annotation");
-                    setActiveLessonId(null);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                    activeTab === "annotation"
-                      ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                      : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-                  }`}
-                >
-                  <span>Data Annotation</span>
+                  <span>Practice Tasks</span>
                   {!isSimulationPracticeAccessible(stats.membershipTier) && (
                     <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
@@ -925,13 +823,11 @@ export default function App({
                     ? "Global Ready AIEval Dashboard"
                     : activeTab === "modules"
                       ? "Learning Syllabus"
-                      : activeTab === "simulations"
+                      : activeTab === "practice_tasks"
                         ? "Real World Practice"
                         : activeTab === "exam_practice"
                           ? "Exam Practice"
-                          : activeTab === "annotation"
-                        ? "Data Annotation"
-                        : activeTab === "interview"
+                          : activeTab === "interview"
                           ? "AI Interview Simulator"
                           : activeTab === "membership"
                             ? "Membership Tiers"
@@ -1525,31 +1421,15 @@ export default function App({
                   );
                 })()}
 
-              {(activeTab === "simulations" || activeTab === "exam_practice") && (
-                <SimulationView
-                  stats={stats}
-                  onComplete={handleSimulationComplete}
-                  isUnlocked={isSimUnlocked}
-                  onBypass={() => setBypassLocks(true)}
-                  onBack={() => setActiveTab("dashboard")}
-                  simulationTasks={activeModule.simulationTasks}
-                  isExamUnlocked={isExamUnlocked}
-                  examQuestions={examPracticeQuestions}
-                  onExamComplete={handleExamComplete}
-                  initialMode={activeTab === "exam_practice" ? "exam" : simViewInitialMode}
-                  isPaidUser={isSimulationPracticeAccessible(stats.membershipTier)}
-                  onRequireUpgrade={() => setActiveTab("membership")}
-                />
-              )}
-
-              {activeTab === "annotation" && (
-                <AnnotationView
-                  moduleCurriculum={moduleCurriculum}
-                  stats={stats}
-                  onSubmit={handleAnnotationSubmit}
+              {(activeTab === "practice_tasks" || activeTab === "exam_practice") && (
+                <PracticeTaskRunner
+                  tasks={allPracticeTasks}
+                  existingSubmissions={stats.practiceTaskSubmissions ?? {}}
+                  onSubmit={handlePracticeTaskSubmit}
                   onBack={() => setActiveTab("dashboard")}
                   isPaidUser={isSimulationPracticeAccessible(stats.membershipTier)}
                   onRequireUpgrade={() => setActiveTab("membership")}
+                  filter={activeTab === "exam_practice" ? "timed" : "untimed"}
                 />
               )}
 
@@ -1653,7 +1533,6 @@ export default function App({
                   jobs={jobs}
                   onBack={() => setActiveTab("dashboard")}
                   setActiveTab={setActiveTab}
-                  setSimSubMode={setSimViewInitialMode}
                   onStartInterviewForJob={(job) => {
                     setInterviewInitialRoleId(mapJobFieldToInterviewRoleId(job.field));
                     setInterviewJobTitle(job.title);

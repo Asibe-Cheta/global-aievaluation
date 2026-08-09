@@ -65,56 +65,6 @@ async function seedLessons() {
   console.log(`Seeded ${rows.length} lessons`);
 }
 
-async function seedSimulationTasks() {
-  const rows = MODULE_CURRICULUM.flatMap((m) =>
-    m.simulationTasks.map((t, index) => ({
-      id: t.id,
-      module_id: m.id,
-      type: t.type,
-      title: t.title,
-      prompt: t.prompt,
-      responses: t.responses ?? null,
-      response_single: t.responseSingle ?? null,
-      response: t.response ?? null,
-      options: t.options,
-      correct_option_index: t.correctOptionIndex,
-      ideal_justification_keywords: t.idealJustificationKeywords,
-      rubric: t.rubric,
-      explanation: t.explanation,
-      ideal_rating: t.idealRating ?? null,
-      ideal_flags: t.idealFlags ?? null,
-      category: t.category ?? null,
-      sort_order: index,
-    })),
-  );
-
-  const { error } = await supabase.from("simulation_tasks").upsert(rows);
-  if (error) throw new Error(`simulation_tasks: ${error.message}`);
-  console.log(`Seeded ${rows.length} simulation tasks`);
-}
-
-async function seedExamQuestions() {
-  const rows = MODULE_CURRICULUM.flatMap((m) =>
-    m.examQuestions.map((q, index) => ({
-      id: q.id,
-      module_id: m.id,
-      type: q.type,
-      category: q.category,
-      question: q.question,
-      options: q.options,
-      correct_option_index: q.correctOptionIndex,
-      explanation: q.explanation,
-      part: q.part ?? null,
-      scenario: q.scenario ?? null,
-      sort_order: index,
-    })),
-  );
-
-  const { error } = await supabase.from("exam_questions").upsert(rows);
-  if (error) throw new Error(`exam_questions: ${error.message}`);
-  console.log(`Seeded ${rows.length} exam questions`);
-}
-
 async function seedAchievements() {
   const rows = ALL_ACHIEVEMENTS.map((a, index) => ({
     id: a.id,
@@ -154,11 +104,12 @@ async function seedJobs() {
 }
 
 async function main() {
-  // modules first: lessons/simulation_tasks/exam_questions reference module_id.
+  // modules first: lessons reference module_id. Practice tasks are
+  // admin-authored content living only in the DB now — see
+  // scripts/migrate-practice-tasks.ts for the one-off migration from the
+  // old exam_questions/annotation_tasks tables.
   await seedModules();
   await seedLessons();
-  await seedSimulationTasks();
-  await seedExamQuestions();
   await seedAchievements();
   await seedJobs();
   console.log("Seed complete.");

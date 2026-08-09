@@ -33,6 +33,15 @@ export async function startInterviewSession(): Promise<StartInterviewSessionResu
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
+  // Every session gets counted for usage tracking regardless of balance or
+  // the payment-gate bypass — consume_interview_credit() only tracks spend
+  // (and safely no-ops at zero balance), it has no lifetime counter. This
+  // is best-effort: a failure here should never block starting the
+  // interview itself.
+  supabase.rpc("increment_interview_sessions_started").then(({ error }) => {
+    if (error) console.error("increment_interview_sessions_started failed:", error.message);
+  });
+
   const balance = await getInterviewCreditBalance();
   if (balance <= 0 && !TEMP_DISABLE_ALL_PAYMENT_GATES) {
     return { ok: false, remaining: 0 };

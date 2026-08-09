@@ -141,12 +141,18 @@ async function handleOneTimePayment(session: Stripe.Checkout.Session) {
   }
   if (!inserted) return;
 
+  // Quantity only ever varies for credit packs (createOneTimeCheckout clamps
+  // it to 1 for every other product) — Stripe already prices amount_total
+  // correctly for quantity:N line items, so this is purely for multiplying
+  // the credits granted, not anything payment-related.
+  const quantity = Math.max(1, Number(session.metadata?.quantity ?? "1") || 1);
+
   if (productType === "tier_starter") {
     await service.rpc("grant_interview_credits", { p_user_id: userId, p_one_time: 10, p_topup: 0 });
   } else if (productType === "credit_pack_a") {
-    await service.rpc("grant_interview_credits", { p_user_id: userId, p_one_time: 0, p_topup: 15 });
+    await service.rpc("grant_interview_credits", { p_user_id: userId, p_one_time: 0, p_topup: 15 * quantity });
   } else if (productType === "credit_pack_b") {
-    await service.rpc("grant_interview_credits", { p_user_id: userId, p_one_time: 0, p_topup: 35 });
+    await service.rpc("grant_interview_credits", { p_user_id: userId, p_one_time: 0, p_topup: 35 * quantity });
   }
   // tier_professional_founding / tier_professional_regular: monthly_allotment
   // is set inside recomputeMembershipTier() below (it's derived from

@@ -10,6 +10,7 @@ import {
 import { UserStats } from "../types";
 import { getInterviewCreditBalance, startInterviewSession } from "../lib/actions/interviewCredits";
 import { saveInterviewAttempt, getInterviewAttempts, type InterviewAttemptRecord } from "../lib/actions/interviewAttempts";
+import { saveCvProfile, getSavedCvProfile, type SavedCvProfile } from "../lib/actions/profile";
 import { TEMP_DISABLE_ALL_PAYMENT_GATES } from "../lib/access";
 import { useVapiInterviewSession } from "../hooks/useVapiInterviewSession";
 import { buildVapiAssistantConfig } from "../lib/liveInterview/buildLiveConfig";
@@ -284,6 +285,16 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
     goals: "Qualify for premium specialized AI alignment contracts ($35-45/hr)"
   });
   
+  // A previously-parsed CV profile from an earlier visit, offered as a
+  // one-click "reuse" option so candidates don't have to re-upload/re-parse
+  // every time they start a new interview.
+  const [savedProfile, setSavedProfile] = useState<SavedCvProfile | null>(null);
+  useEffect(() => {
+    getSavedCvProfile()
+      .then(setSavedProfile)
+      .catch((err) => console.error("Failed to load saved CV profile:", err));
+  }, []);
+
   const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
   const [analysisText, setAnalysisText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -727,6 +738,9 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
           setParsingProgress(100);
           setIsParsing(false);
           setProfile(result.profile);
+          saveCvProfile(result.profile).catch((err) =>
+            console.error("Failed to save CV profile:", err),
+          );
           return;
         }
 
@@ -957,30 +971,29 @@ Ready? Let's get started.`;
     setCreditError(null);
     setIsStartingInterview(true);
 
-    // While every payment gate is disabled for testing, skip the credit
-    // spend entirely — this round-trip has no bearing on the outcome
-    // (TEMP_DISABLE_ALL_PAYMENT_GATES makes it a no-op balance-permitting
-    // anyway) and its only real effect right now is that any transient
-    // failure — including an unrelated "server action not found" after a
-    // fresh deploy — surfaces as a scary, misleading paywall-flavored error.
-    if (!TEMP_DISABLE_ALL_PAYMENT_GATES) {
-      let result;
-      try {
-        result = await startInterviewSession();
-      } catch (err) {
-        console.error("Failed to start interview session:", err);
-        setCreditError(err instanceof Error ? err.message : "Something went wrong starting your session. Please try again.");
-        setIsStartingInterview(false);
-        return;
-      }
-
-      if (!result.ok) {
+    // Always attempt to count/spend a session — every interview needs to
+    // be tracked regardless of payment gates. While
+    // TEMP_DISABLE_ALL_PAYMENT_GATES is on, never let the outcome (including
+    // a thrown error, e.g. a stale server-action ID after a fresh deploy)
+    // block entry or surface a scary paywall-flavored error — log quietly
+    // and proceed instead.
+    try {
+      const result = await startInterviewSession();
+      if (result.ok) {
+        setCreditBalance(result.remaining);
+      } else if (!TEMP_DISABLE_ALL_PAYMENT_GATES) {
         setIsStartingInterview(false);
         setCreditBalance(0);
         setCreditError("You're out of interview sessions. Upgrade or grab a credit top-up to keep practicing.");
         return;
       }
-      setCreditBalance(result.remaining);
+    } catch (err) {
+      console.error("startInterviewSession failed:", err);
+      if (!TEMP_DISABLE_ALL_PAYMENT_GATES) {
+        setIsStartingInterview(false);
+        setCreditError(err instanceof Error ? err.message : "Something went wrong starting your session. Please try again.");
+        return;
+      }
     }
     setIsStartingInterview(false);
 
@@ -1575,6 +1588,21 @@ Click the button below to generate your report.`
             </p>
           )}
         </div>
+
+        {savedProfile && !uploadedFile && (
+          <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-900 rounded-2xl p-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-indigo-700 dark:text-indigo-300">
+              We saved <strong>{savedProfile.name}</strong>'s profile from a previous CV upload.
+            </p>
+            <button
+              type="button"
+              onClick={() => setProfile(savedProfile)}
+              className="shrink-0 text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-xl cursor-pointer transition-all"
+            >
+              Use saved profile
+            </button>
+          </div>
+        )}
 
         {/* Drag & Drop Upload Container */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">

@@ -35,9 +35,8 @@ export interface UserStats {
   };
   practiceSubmissions: Record<string, any>;
   quizScores?: Record<string, number>;
-  simulationScores?: Record<string, any>;
-  examScores?: Record<string, any>;
-  annotationSubmissions?: Record<string, AnnotationSubmission>;
+  practiceTaskSubmissions?: Record<string, PracticeTaskSubmission>;
+  totalInterviewsStarted?: number;
   currentModuleId?: string;
   currentLessonId?: string;
   displayName?: string;
@@ -94,69 +93,44 @@ export interface Lesson {
   skillBoosts?: Partial<UserStats["skills"]>;
 }
 
-export interface SimulationTask {
-  id: string;
-  type: "ranking" | "fact_checking" | "instruction_following" | "safety" | "annotation" | "logic" | "reasoning";
-  title: string;
-  prompt: string;
-  responses?: {
-    letter: string;
-    text: string;
-  }[]; // for ranking
-  responseSingle?: string; // for others
-  response?: string;
-  options: string[]; // choices for user to select
-  correctOptionIndex: number;
-  idealJustificationKeywords: string[];
-  rubric: string;
-  explanation: string;
-  idealRating?: number;
-  idealFlags?: {
-    hallucination: boolean;
-    safety: boolean;
-    formatting: boolean;
-  };
-  category?: string;
+export interface PracticeTaskContentBlock {
+  text: string;
+  media: CaseStudyMediaItem[];
 }
 
-export interface AnnotationMediaItem {
-  path: string;
-  url: string;
-  durationSeconds?: number;
+export interface PracticeTaskOption {
+  text: string;
+  isCorrect: boolean;
 }
 
-export interface AnnotationTask {
+// A judge-the-response practice exercise — replaces the former separate
+// SimulationTask/ExamQuestion/AnnotationTask shapes with one schema. Every
+// content block carries its own optional media rather than media being a
+// bolted-on extra, since on annotation-style tasks the media IS the content.
+export interface PracticeTask {
   id: string;
   moduleId: string;
-  type: "image_pair" | "video" | "audio";
-  title: string;
-  instructions?: string;
-  media: AnnotationMediaItem[];
-  scenario?: string;
+  taskType: string;
+  category?: string;
+  guideline: PracticeTaskContentBlock;
+  item: PracticeTaskContentBlock;
+  responseA: PracticeTaskContentBlock;
+  responseB?: PracticeTaskContentBlock;
   question: string;
-  options: string[];
-  correctOptionIndex: number;
-  explanation: string;
+  responseMode: "choice" | "written" | "choice_plus_written";
+  options: PracticeTaskOption[];
+  modelAnswer?: string;
+  explanation?: string;
   reviewerNotes?: string;
+  timed: boolean;
+  timeLimitSeconds?: number;
+  failureModeTags: string[];
 }
 
-export interface AnnotationSubmission {
-  selectedOptionIndex: number;
-  rationale: string;
+export interface PracticeTaskSubmission {
+  selectedOptionIndex?: number;
+  writtenAnswer?: string;
   submittedAt: string;
-}
-
-export interface ExamQuestion {
-  id: string;
-  type: "mcq" | "tf" | "scenario";
-  category: keyof UserStats["skills"];
-  question: string;
-  options: string[];
-  correctOptionIndex: number;
-  explanation: string;
-  part?: string;
-  scenario?: string;
-  media?: CaseStudyMediaItem[];
 }
 
 export interface Module {
@@ -168,9 +142,7 @@ export interface Module {
     scenario: string;
     objective: string;
   };
-  simulationTasks: SimulationTask[];
-  examQuestions: ExamQuestion[];
-  annotationTasks?: AnnotationTask[];
+  practiceTasks?: PracticeTask[];
   simSkillBoosts?: Partial<UserStats["skills"]>;
   locked?: boolean;
 }

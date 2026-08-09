@@ -67,12 +67,21 @@ async function resolveOneTimeProduct(product: OneTimeCheckoutProduct): Promise<O
     : "tier_professional_regular";
 }
 
-export async function createOneTimeCheckout(product: OneTimeCheckoutProduct) {
+export async function createOneTimeCheckout(
+  product: OneTimeCheckoutProduct,
+  quantity: number = 1,
+) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.email) throw new Error("Not authenticated");
+
+  // Only credit packs can be bought in bulk — tier purchases (starter,
+  // professional) are always exactly one. Clamp defensively since this is
+  // a public-callable action taking a client-supplied number.
+  const isCreditPack = product === "credit_pack_a" || product === "credit_pack_b";
+  const safeQuantity = isCreditPack ? Math.min(20, Math.max(1, Math.floor(quantity) || 1)) : 1;
 
   const [origin, customerId, resolvedProduct] = await Promise.all([
     getOrigin(),
@@ -84,13 +93,21 @@ export async function createOneTimeCheckout(product: OneTimeCheckoutProduct) {
     mode: "payment",
     customer: customerId,
     client_reference_id: user.id,
-    line_items: [{ price: getOneTimePriceId(resolvedProduct), quantity: 1 }],
+    line_items: [{ price: getOneTimePriceId(resolvedProduct), quantity: safeQuantity }],
     success_url: `${origin}/?checkout=success`,
     cancel_url: `${origin}/?checkout=cancelled`,
     payment_intent_data: {
-      metadata: { supabase_user_id: user.id, product_type: resolvedProduct },
+      metadata: {
+        supabase_user_id: user.id,
+        product_type: resolvedProduct,
+        quantity: String(safeQuantity),
+      },
     },
-    metadata: { supabase_user_id: user.id, product_type: resolvedProduct },
+    metadata: {
+      supabase_user_id: user.id,
+      product_type: resolvedProduct,
+      quantity: String(safeQuantity),
+    },
   });
 
   if (!session.url) throw new Error("Stripe did not return a checkout URL");

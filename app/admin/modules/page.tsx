@@ -49,12 +49,6 @@ export default async function AdminModulesPage() {
                   >
                     Lessons
                   </Link>
-                  <Link
-                    href={`/admin/modules/${m.id}/simulation-tasks`}
-                    className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-                  >
-                    Simulation Tasks
-                  </Link>
                 </td>
                 <td className="px-4 py-3 text-right space-x-3">
                   <Link
@@ -66,7 +60,7 @@ export default async function AdminModulesPage() {
                   <DeleteButton
                     id={m.id}
                     action={deleteModule}
-                    label={`${m.title} — this also deletes ALL of its lessons, simulation tasks, exam questions, and annotation tasks`}
+                    label={`${m.title} — this also deletes ALL of its lessons and practice tasks`}
                   />
                 </td>
               </tr>

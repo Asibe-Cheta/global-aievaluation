@@ -30,41 +30,6 @@ export interface AdminModuleRow {
   sort_order: number;
 }
 
-export interface AdminSimulationTaskRow {
-  id: string;
-  module_id: string;
-  type: string | null;
-  title: string | null;
-  prompt: string | null;
-  responses: { letter: string; text: string }[] | null;
-  response_single: string | null;
-  response: string | null;
-  options: string[];
-  correct_option_index: number | null;
-  ideal_justification_keywords: string[];
-  rubric: string | null;
-  explanation: string | null;
-  ideal_rating: number | null;
-  ideal_flags: { hallucination: boolean; safety: boolean; formatting: boolean } | null;
-  category: string | null;
-  sort_order: number;
-}
-
-export interface AdminExamQuestionRow {
-  id: string;
-  module_id: string;
-  type: string | null;
-  category: string | null;
-  question: string | null;
-  options: string[];
-  correct_option_index: number | null;
-  explanation: string | null;
-  part: string | null;
-  scenario: string | null;
-  media: AdminCaseStudyMediaItem[];
-  sort_order: number;
-}
-
 export interface AdminCaseStudyMediaItem {
   type: "image" | "video" | "audio";
   path: string;
@@ -154,74 +119,6 @@ export async function getAdminModule(
   return data;
 }
 
-export async function getAdminSimulationTasks(
-  moduleId: string,
-): Promise<AdminSimulationTaskRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("simulation_tasks")
-    .select("*")
-    .eq("module_id", moduleId)
-    .order("sort_order");
-
-  if (error) throw new Error(`getAdminSimulationTasks: ${error.message}`);
-  return data ?? [];
-}
-
-export async function getAdminSimulationTask(
-  id: string,
-): Promise<AdminSimulationTaskRow | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("simulation_tasks")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw new Error(`getAdminSimulationTask: ${error.message}`);
-  return data;
-}
-
-export async function getAdminExamQuestions(
-  moduleId: string,
-): Promise<AdminExamQuestionRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("exam_questions")
-    .select("*")
-    .eq("module_id", moduleId)
-    .order("sort_order");
-
-  if (error) throw new Error(`getAdminExamQuestions: ${error.message}`);
-  return data ?? [];
-}
-
-export async function getAllAdminExamQuestions(): Promise<AdminExamQuestionRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("exam_questions")
-    .select("*")
-    .order("module_id")
-    .order("sort_order");
-
-  if (error) throw new Error(`getAllAdminExamQuestions: ${error.message}`);
-  return data ?? [];
-}
-
-export async function getAdminExamQuestion(
-  id: string,
-): Promise<AdminExamQuestionRow | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("exam_questions")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw new Error(`getAdminExamQuestion: ${error.message}`);
-  return data;
-}
-
 export async function getAdminLessons(
   moduleId: string,
 ): Promise<AdminLessonRow[]> {
@@ -255,66 +152,76 @@ export async function getAdminLesson(
   return { ...data, content: normalizeContentBlocks(data.content) };
 }
 
-export interface AdminAnnotationMediaItem {
-  path: string;
-  url: string;
-  durationSeconds?: number;
+export interface AdminPracticeTaskContentBlock {
+  text: string;
+  media: AdminCaseStudyMediaItem[];
 }
 
-export interface AdminAnnotationTaskRow {
+export interface AdminPracticeTaskOption {
+  text: string;
+  is_correct: boolean;
+}
+
+export interface AdminPracticeTaskRow {
   id: string;
   module_id: string;
-  type: "image_pair" | "video" | "audio";
-  title: string;
-  instructions: string | null;
-  media: AdminAnnotationMediaItem[];
-  scenario: string | null;
+  task_type: string;
+  category: string | null;
+  sort_order: number;
+  guideline: AdminPracticeTaskContentBlock;
+  item: AdminPracticeTaskContentBlock;
+  response_a: AdminPracticeTaskContentBlock;
+  response_b: AdminPracticeTaskContentBlock | null;
   question: string;
-  options: string[];
-  correct_option_index: number;
+  response_mode: "choice" | "written" | "choice_plus_written";
+  interaction_type: "judge" | "produce";
+  options: AdminPracticeTaskOption[];
+  model_answer: string | null;
   explanation: string | null;
   reviewer_notes: string | null;
-  sort_order: number;
+  timed: boolean;
+  time_limit_seconds: number | null;
+  failure_mode_tags: string[];
 }
 
-export async function getAdminAnnotationTasks(
+export async function getAdminPracticeTasks(
   moduleId: string,
-): Promise<AdminAnnotationTaskRow[]> {
+): Promise<AdminPracticeTaskRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("annotation_tasks")
+    .from("practice_tasks")
     .select("*")
     .eq("module_id", moduleId)
     .order("sort_order");
 
-  if (error) throw new Error(`getAdminAnnotationTasks: ${error.message}`);
+  if (error) throw new Error(`getAdminPracticeTasks: ${error.message}`);
   return data ?? [];
 }
 
-export async function getAdminAnnotationTask(
-  id: string,
-): Promise<AdminAnnotationTaskRow | null> {
+export async function getAllAdminPracticeTasks(): Promise<AdminPracticeTaskRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("annotation_tasks")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw new Error(`getAdminAnnotationTask: ${error.message}`);
-  return data;
-}
-
-export async function getAllAdminAnnotationTasks(): Promise<AdminAnnotationTaskRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("annotation_tasks")
+    .from("practice_tasks")
     .select("*")
     .order("module_id")
     .order("sort_order");
 
-  if (error) throw new Error(`getAllAdminAnnotationTasks: ${error.message}`);
+  if (error) throw new Error(`getAllAdminPracticeTasks: ${error.message}`);
   return data ?? [];
+}
+
+export async function getAdminPracticeTask(
+  id: string,
+): Promise<AdminPracticeTaskRow | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("practice_tasks")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`getAdminPracticeTask: ${error.message}`);
+  return data;
 }
 
 export interface AdminTestimonialRow {

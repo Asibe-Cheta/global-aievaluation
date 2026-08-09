@@ -10,6 +10,7 @@
     "lint": "next lint",
     "seed": "tsx --env-file=.env.local --experimental-websocket scripts/seed.ts",
     "grant-admin": "tsx --env-file=.env.local --experimental-websocket scripts/grant-admin.ts",
+    "migrate-practice-tasks": "tsx --env-file=.env.local --experimental-websocket scripts/migrate-practice-tasks.ts",
     "postinstall": "patch-package"
   },
   "dependencies": {

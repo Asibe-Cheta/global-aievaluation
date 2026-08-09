@@ -95,8 +95,13 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
   const handleManageBilling = () =>
     runAction("manage", () => createPortalSession());
 
+  const [packQuantities, setPackQuantities] = useState<Record<string, number>>({});
+  const getPackQuantity = (packId: string) => packQuantities[packId] ?? 1;
+  const setPackQuantity = (packId: string, qty: number) =>
+    setPackQuantities((prev) => ({ ...prev, [packId]: Math.min(20, Math.max(1, qty)) }));
+
   const handleBuyCreditPack = (packId: "credit_pack_a" | "credit_pack_b") =>
-    runAction(packId, () => createOneTimeCheckout(packId));
+    runAction(packId, () => createOneTimeCheckout(packId, getPackQuantity(packId)));
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12 animate-fade-in pb-24">
@@ -282,22 +287,47 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
             Out of interview sessions before your monthly allotment resets? Top up with extra credits that never expire.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {CREDIT_PACKS.map((pack) => (
-              <div key={pack.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-bold text-slate-850 dark:text-white my-0">+{pack.sessions} sessions</p>
-                  <p className="text-xs text-slate-450 dark:text-slate-400 my-0">Never expires</p>
+            {CREDIT_PACKS.map((pack) => {
+              const qty = getPackQuantity(pack.id);
+              const unitPrice = parseInt(pack.priceDisplay.replace(/\D/g, ""), 10) || 0;
+              return (
+                <div key={pack.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-slate-850 dark:text-white my-0">+{pack.sessions * qty} sessions</p>
+                    <p className="text-xs text-slate-450 dark:text-slate-400 my-0">Never expires</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setPackQuantity(pack.id, qty - 1)}
+                        disabled={qty <= 1}
+                        className="w-6 h-7 text-xs font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-850 disabled:opacity-30 cursor-pointer"
+                      >
+                        −
+                      </button>
+                      <span className="w-6 text-center text-xs font-bold text-slate-900 dark:text-white">{qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPackQuantity(pack.id, qty + 1)}
+                        disabled={qty >= 20}
+                        className="w-6 h-7 text-xs font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-850 disabled:opacity-30 cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => handleBuyCreditPack(pack.id)}
+                      disabled={pendingAction !== null}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
+                    >
+                      {pendingAction === pack.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      €{unitPrice * qty}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleBuyCreditPack(pack.id)}
-                  disabled={pendingAction !== null}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
-                >
-                  {pendingAction === pack.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {pack.priceDisplay}
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
