@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { 
   ArrowLeft, ArrowRight, Check, CheckCircle2, XCircle, 
   HelpCircle, RefreshCw, Send, Terminal, Key, ShieldAlert, BadgeCheck, AlertCircle
@@ -26,6 +26,10 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
   const [caseRationales, setCaseRationales] = useState<Record<string, string>>({}); // caseId -> rationale text
   const [showWrapUp, setShowWrapUp] = useState(false);
 
+  // Pending auto-reset timers, keyed by case study id — cleared on manual
+  // retake so a fresh submission always gets its own full 5-minute window.
+  const caseResetTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   // General Case Studies score count
   const completedCaseCount = Object.keys(caseSubmitted).filter(k => k.startsWith(lesson.id)).length;
 
@@ -42,6 +46,11 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
   };
 
   const retakeCaseAnswer = (caseStudy: MiniCaseStudy) => {
+    const pendingTimer = caseResetTimersRef.current[caseStudy.id];
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      delete caseResetTimersRef.current[caseStudy.id];
+    }
     setCaseSubmitted(prev => {
       const next = { ...prev };
       delete next[caseStudy.id];
@@ -58,6 +67,28 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
       return next;
     });
   };
+
+  // Auto-reset each submitted case study back to unanswered 5 minutes after
+  // it was submitted, so it can be practiced again without a manual click.
+  useEffect(() => {
+    Object.keys(caseSubmitted).forEach((caseId) => {
+      if (!caseSubmitted[caseId] || caseResetTimersRef.current[caseId]) return;
+      caseResetTimersRef.current[caseId] = setTimeout(() => {
+        delete caseResetTimersRef.current[caseId];
+        const caseStudy = lesson.miniCaseStudies.find((cs) => cs.id === caseId);
+        if (caseStudy) retakeCaseAnswer(caseStudy);
+      }, 5 * 60 * 1000);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseSubmitted, lesson.miniCaseStudies]);
+
+  // Clear any outstanding timers if the lesson view unmounts.
+  useEffect(() => {
+    const timers = caseResetTimersRef.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
 
   const isCasesDone = lesson.miniCaseStudies.every(cs => caseSubmitted[cs.id]);
 
@@ -316,15 +347,15 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                             : "Don't worry! Mistakes are part of learning. Let's see why this answer is the right one."}
                         </p>
                       </div>
-                      {!isCorrect && (
-                        <button
-                          onClick={() => retakeCaseAnswer(activeCase)}
-                          className="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 hover:underline cursor-pointer"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          Retake
-                        </button>
-                      )}
+                      <button
+                        onClick={() => retakeCaseAnswer(activeCase)}
+                        className={`ml-auto shrink-0 flex items-center gap-1.5 text-xs font-bold hover:underline cursor-pointer ${
+                          isCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
+                        }`}
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Retake
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

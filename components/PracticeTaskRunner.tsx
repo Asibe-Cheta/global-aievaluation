@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Clock, CheckCircle2, XCircle, Lock, Sparkles, ChevronRight,
+  ArrowLeft, Clock, CheckCircle2, XCircle, Lock, Sparkles, ChevronRight, RefreshCw,
 } from "lucide-react";
 import type { PracticeTask, PracticeTaskSubmission, UserStats } from "@/types";
 import { renderFormattedText } from "./LessonContentRenderer";
@@ -79,6 +79,21 @@ function TaskCard({
     setSubmitted(true);
     onSubmit(submission);
   };
+
+  const handleRetry = () => {
+    setSelectedOptionIndex(undefined);
+    setWrittenAnswer("");
+    setSubmitted(false);
+  };
+
+  // Auto-reset back to the unanswered state 5 minutes after a submission so
+  // the task can be practiced again without waiting on a manual click.
+  useEffect(() => {
+    if (!submitted) return;
+    const timer = setTimeout(handleRetry, 5 * 60 * 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted]);
 
   const isCorrect =
     selectedOptionIndex !== undefined && task.options[selectedOptionIndex]?.isCorrect;
@@ -165,12 +180,24 @@ function TaskCard({
         </button>
       ) : (
         <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-850">
-          {needsChoice && (
-            <p className={`text-xs font-bold flex items-center gap-1.5 ${isCorrect ? "text-emerald-600" : "text-rose-500"}`}>
-              {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-              {isCorrect ? "Correct" : "Not quite"}
-            </p>
-          )}
+          <div className="flex items-center justify-between gap-2">
+            {needsChoice ? (
+              <p className={`text-xs font-bold flex items-center gap-1.5 ${isCorrect ? "text-emerald-600" : "text-rose-500"}`}>
+                {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                {isCorrect ? "Correct" : "Not quite"}
+              </p>
+            ) : (
+              <span />
+            )}
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Try Again
+            </button>
+          </div>
           {task.modelAnswer && (
             <div>
               <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block mb-1">Model Answer</span>
