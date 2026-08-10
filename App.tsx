@@ -1097,49 +1097,22 @@ export default function App({
 
               {activeTab === "modules" &&
                 (() => {
-                  const part2Lessons = [
-                    "p2_intro",
-                    "p2_m1_l1",
-                    "p2_m1_l2",
-                    "p2_m1_l3",
-                    "p2_m1_l4",
-                    "p2_m1_l5",
-                    "p2_m1_l6",
-                    "p2_m1_l7",
-                  ];
-                  const part2CompletedCount = stats.completedLessons.filter(
-                    (id) => part2Lessons.includes(id),
-                  ).length;
-                  // The legacy "Part 2" content isn't a row in the modules
-                  // table — it's hardcoded standalone components — so it
-                  // always sits after every real module in the grid and is
-                  // gated the same way: free only if it lands at index 0.
-                  const part2Locked = !isModuleAccessible(
-                    stats.membershipTier,
-                    moduleCurriculum.length,
-                  );
-
-                  const cards = [
-                    ...moduleCurriculum.map((m) => ({
-                      id: m.id,
-                      title: m.title,
-                      description: m.description,
-                      lessonsCount: m.lessons.length,
-                      completedCount: m.lessons.filter((l) =>
-                        stats.completedLessons.includes(l.id),
-                      ).length,
-                      locked: !!m.locked,
-                    })),
-                    {
-                      id: "p2",
-                      title: "Professional AI Evaluation Skills",
-                      description:
-                        "Learn how professional AI evaluators review responses, use structured workflows, and evaluate key dimensions.",
-                      lessonsCount: part2Lessons.length,
-                      completedCount: part2CompletedCount,
-                      locked: part2Locked,
-                    },
-                  ];
+                  // The "Professional AI Evaluation Skills" (Part 2) card is
+                  // intentionally not listed here — it was never real,
+                  // admin-managed content, just leftover mock data. The
+                  // activePartId === "p2" branch below is unreachable now
+                  // that nothing sets it, and is left in place rather than
+                  // torn out.
+                  const cards = moduleCurriculum.map((m) => ({
+                    id: m.id,
+                    title: m.title,
+                    description: m.description,
+                    lessonsCount: m.lessons.length,
+                    completedCount: m.lessons.filter((l) =>
+                      stats.completedLessons.includes(l.id),
+                    ).length,
+                    locked: !!m.locked,
+                  }));
 
                   if (activePartId === null) {
                     return (

@@ -3,7 +3,6 @@ import {
   BookOpen, Play, Lock, Gauge, ShieldAlert
 } from "lucide-react";
 import { UserStats, Rank, Module } from "../types";
-import { isModuleAccessible } from "../lib/access";
 
 interface DashboardViewProps {
   stats: UserStats;
@@ -45,31 +44,17 @@ export default function DashboardView({
   const hasRealName = !!stats.displayName && stats.displayName !== emailLocalPart;
   const firstName = hasRealName ? stats.displayName!.split(" ")[0] : null;
 
-  // The legacy "Part 2" content (Professional AI Evaluation Skills) isn't a
-  // row in the modules table — it's hardcoded standalone components — so it
-  // shows up as one more card after every real module, gated the same way.
-  const part2Lessons = ["p2_intro", "p2_m1_l1", "p2_m1_l2", "p2_m1_l3", "p2_m1_l4", "p2_m1_l5", "p2_m1_l6", "p2_m1_l7"];
-  const part2CompletedCount = stats.completedLessons.filter(id => part2Lessons.includes(id)).length;
-  const part2Locked = !isModuleAccessible(stats.membershipTier, moduleCurriculum.length);
-
-  const moduleCards = [
-    ...moduleCurriculum.map((m) => ({
-      id: m.id,
-      title: m.title,
-      description: m.description,
-      lessonsCount: m.lessons.length,
-      completedCount: m.lessons.filter((l) => stats.completedLessons.includes(l.id)).length,
-      locked: !!m.locked,
-    })),
-    {
-      id: "p2",
-      title: "Professional AI Evaluation Skills",
-      description: "Learn how professional AI evaluators review responses, use structured workflows, and evaluate key dimensions.",
-      lessonsCount: part2Lessons.length,
-      completedCount: part2CompletedCount,
-      locked: part2Locked,
-    },
-  ];
+  // Note: the old "Professional AI Evaluation Skills" (Part 2) card that
+  // used to appear here was never real, admin-managed content — just
+  // leftover mock data — and has been removed from this grid.
+  const moduleCards = moduleCurriculum.map((m) => ({
+    id: m.id,
+    title: m.title,
+    description: m.description,
+    lessonsCount: m.lessons.length,
+    completedCount: m.lessons.filter((l) => stats.completedLessons.includes(l.id)).length,
+    locked: !!m.locked,
+  }));
 
   // Find recommended next lesson
   // We go through Level 1 lessons first

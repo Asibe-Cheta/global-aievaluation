@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, forwardRef, useImperativeHandle, type ClipboardEvent, type KeyboardEvent } from "react";
-import { Upload, Trash2, X, Image as ImageIcon, Video, Music, Bold } from "lucide-react";
+import { Upload, Trash2, X, Image as ImageIcon, Video, Music, Bold, Link as LinkIcon } from "lucide-react";
 import type { AdminContentBlock } from "@/lib/admin/queries";
 import { htmlClipboardToMarkdown } from "@/lib/paste-to-markdown";
 import { renderLessonParagraph } from "@/components/LessonContentRenderer";
@@ -119,10 +119,40 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
       });
     };
 
+    // Wraps the selection (or inserts a placeholder) as "[label](url)", the
+    // same link syntax renderFormattedText/renderLessonParagraph render as a
+    // real <a>.
+    const insertLink = (idx: number) => {
+      const textarea = textareaRefs.current[blocks[idx].id];
+      if (!textarea) return;
+
+      const { selectionStart: start, selectionEnd: end } = textarea;
+      const text = blocks[idx].text;
+      const selected = text.slice(start, end);
+
+      const url = window.prompt("Link URL", "https://");
+      if (!url) return;
+
+      const before = text.slice(0, start);
+      const after = text.slice(end);
+      const inserted = `[${selected || "link text"}](${url})`;
+      const nextText = before + inserted + after;
+
+      updateBlock(idx, { text: nextText });
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start, start + inserted.length);
+      });
+    };
+
     const handleKeyDown = (idx: number, e: KeyboardEvent<HTMLTextAreaElement>) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
         e.preventDefault();
         toggleBold(idx);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        insertLink(idx);
       }
     };
 
@@ -192,16 +222,28 @@ const ContentBlocksEditor = forwardRef<ContentBlocksEditorHandle, ContentBlocksE
                   {idx + 1}
                 </span>
                 <div className="flex-1 space-y-1">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => toggleBold(idx)}
-                    className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-850"
-                    title="Bold selected text (Ctrl/Cmd+B)"
-                  >
-                    <Bold className="w-3 h-3" />
-                    Bold
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => toggleBold(idx)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-850"
+                      title="Bold selected text (Ctrl/Cmd+B)"
+                    >
+                      <Bold className="w-3 h-3" />
+                      Bold
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => insertLink(idx)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-850"
+                      title="Insert link (Ctrl/Cmd+K)"
+                    >
+                      <LinkIcon className="w-3 h-3" />
+                      Link
+                    </button>
+                  </div>
                   <textarea
                     ref={(el) => {
                       textareaRefs.current[block.id] = el;
