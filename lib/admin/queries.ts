@@ -247,6 +247,109 @@ export async function getAdminTestimonials(): Promise<AdminTestimonialRow[]> {
   return data ?? [];
 }
 
+export interface AdminAffiliateRow {
+  user_id: string;
+  display_name: string | null;
+  code: string;
+  commission_rate: number;
+  status: "active" | "disabled";
+  created_at: string;
+  referral_count: number;
+  pending_commission_cents: number;
+  paid_commission_cents: number;
+}
+
+export async function getAllAdminAffiliates(): Promise<AdminAffiliateRow[]> {
+  const supabase = await createClient();
+  const { data: affiliates, error: affiliatesError } = await supabase
+    .from("affiliates")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (affiliatesError) throw new Error(`getAllAdminAffiliates/affiliates: ${affiliatesError.message}`);
+  if (!affiliates || affiliates.length === 0) return [];
+
+  const userIds = affiliates.map((a) => a.user_id);
+  const [{ data: profiles, error: profilesError }, { data: referrals, error: referralsError }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, display_name").in("id", userIds),
+      supabase
+        .from("affiliate_referrals")
+        .select("affiliate_user_id, commission_cents, status")
+        .in("affiliate_user_id", userIds),
+    ]);
+  if (profilesError) throw new Error(`getAllAdminAffiliates/profiles: ${profilesError.message}`);
+  if (referralsError) throw new Error(`getAllAdminAffiliates/referrals: ${referralsError.message}`);
+
+  const nameByUserId = new Map((profiles ?? []).map((p) => [p.id, p.display_name as string | null]));
+
+  return affiliates.map((a) => {
+    const own = (referrals ?? []).filter((r) => r.affiliate_user_id === a.user_id);
+    return {
+      user_id: a.user_id,
+      display_name: nameByUserId.get(a.user_id) ?? null,
+      code: a.code,
+      commission_rate: a.commission_rate,
+      status: a.status,
+      created_at: a.created_at,
+      referral_count: own.length,
+      pending_commission_cents: own
+        .filter((r) => r.status === "pending")
+        .reduce((sum, r) => sum + r.commission_cents, 0),
+      paid_commission_cents: own
+        .filter((r) => r.status === "paid")
+        .reduce((sum, r) => sum + r.commission_cents, 0),
+    };
+  });
+}
+
+export interface AdminAffiliateDetail {
+  user_id: string;
+  display_name: string | null;
+  code: string;
+  commission_rate: number;
+  status: "active" | "disabled";
+}
+
+export async function getAdminAffiliate(userId: string): Promise<AdminAffiliateDetail | null> {
+  const supabase = await createClient();
+  const [{ data: affiliate, error }, { data: profile }] = await Promise.all([
+    supabase.from("affiliates").select("*").eq("user_id", userId).maybeSingle(),
+    supabase.from("profiles").select("display_name").eq("id", userId).maybeSingle(),
+  ]);
+  if (error) throw new Error(`getAdminAffiliate: ${error.message}`);
+  if (!affiliate) return null;
+
+  return {
+    user_id: affiliate.user_id,
+    display_name: profile?.display_name ?? null,
+    code: affiliate.code,
+    commission_rate: affiliate.commission_rate,
+    status: affiliate.status,
+  };
+}
+
+export interface AdminAffiliateReferralRow {
+  id: string;
+  product_type: string | null;
+  sale_amount_cents: number;
+  commission_cents: number;
+  currency: string;
+  status: "pending" | "paid";
+  created_at: string;
+}
+
+export async function getAdminAffiliateReferrals(userId: string): Promise<AdminAffiliateReferralRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("affiliate_referrals")
+    .select("id, product_type, sale_amount_cents, commission_cents, currency, status, created_at")
+    .eq("affiliate_user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`getAdminAffiliateReferrals: ${error.message}`);
+  return data ?? [];
+}
+
 export async function getAdminTestimonial(
   id: string,
 ): Promise<AdminTestimonialRow | null> {

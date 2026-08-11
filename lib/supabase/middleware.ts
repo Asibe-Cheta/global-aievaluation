@@ -19,6 +19,23 @@ function isPublicPath(pathname: string) {
   return false;
 }
 
+// Affiliate links look like "/?ref=<code>" — stash the code in a cookie so
+// it survives through signup/login and is still readable at checkout time
+// (lib/actions/billing.ts), well past whatever page the link first landed
+// on. Last-click-wins: only overwrite when a "ref" param is actually present.
+function applyReferralCookie(response: NextResponse, request: NextRequest) {
+  const refCode = request.nextUrl.searchParams.get("ref");
+  if (refCode) {
+    response.cookies.set("gr_ref", refCode.slice(0, 32), {
+      maxAge: 60 * 60 * 24 * 60,
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+    });
+  }
+  return response;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -67,8 +84,8 @@ export async function updateSession(request: NextRequest) {
     // first so the query string ends up with exactly the one level of
     // encoding `searchParams.get("redirectTo")` expects on the other end.
     loginUrl.searchParams.set("redirectTo", decodeURIComponent(request.nextUrl.pathname));
-    return NextResponse.redirect(loginUrl);
+    return applyReferralCookie(NextResponse.redirect(loginUrl), request);
   }
 
-  return supabaseResponse;
+  return applyReferralCookie(supabaseResponse, request);
 }

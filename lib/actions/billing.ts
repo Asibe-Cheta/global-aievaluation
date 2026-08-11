@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -48,6 +48,30 @@ async function getOrCreateStripeCustomerId(
   return customer.id;
 }
 
+// Reads the "gr_ref" cookie (set by middleware from a "?ref=" link) and
+// resolves it to an active affiliate — using the service client since the
+// buyer looking this up is never the affiliate's own row, which the
+// owner-only RLS policy on `affiliates` would otherwise block. Self-referral
+// and disabled affiliates are both silently ignored rather than erroring —
+// checkout should never fail because of a stale/invalid referral code.
+async function resolveAffiliateCode(buyerUserId: string): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  const refCode = cookieStore.get("gr_ref")?.value;
+  if (!refCode) return undefined;
+
+  const service = createServiceClient();
+  const { data: affiliate } = await service
+    .from("affiliates")
+    .select("user_id, status")
+    .eq("code", refCode)
+    .maybeSingle();
+
+  if (!affiliate || affiliate.status !== "active" || affiliate.user_id === buyerUserId) {
+    return undefined;
+  }
+  return refCode;
+}
+
 export type OneTimeCheckoutProduct = "starter" | "professional" | "credit_pack_a" | "credit_pack_b";
 
 async function resolveOneTimeProduct(product: OneTimeCheckoutProduct): Promise<OneTimeProduct> {
@@ -83,10 +107,11 @@ export async function createOneTimeCheckout(
   const isCreditPack = product === "credit_pack_a" || product === "credit_pack_b";
   const safeQuantity = isCreditPack ? Math.min(20, Math.max(1, Math.floor(quantity) || 1)) : 1;
 
-  const [origin, customerId, resolvedProduct] = await Promise.all([
+  const [origin, customerId, resolvedProduct, affiliateCode] = await Promise.all([
     getOrigin(),
     getOrCreateStripeCustomerId(user.id, user.email),
     resolveOneTimeProduct(product),
+    resolveAffiliateCode(user.id),
   ]);
 
   const session = await getStripe().checkout.sessions.create({
@@ -101,12 +126,14 @@ export async function createOneTimeCheckout(
         supabase_user_id: user.id,
         product_type: resolvedProduct,
         quantity: String(safeQuantity),
+        ...(affiliateCode && { affiliate_code: affiliateCode }),
       },
     },
     metadata: {
       supabase_user_id: user.id,
       product_type: resolvedProduct,
       quantity: String(safeQuantity),
+      ...(affiliateCode && { affiliate_code: affiliateCode }),
     },
   });
 
@@ -121,9 +148,10 @@ export async function createSubscriptionCheckout() {
   } = await supabase.auth.getUser();
   if (!user?.email) throw new Error("Not authenticated");
 
-  const [origin, customerId] = await Promise.all([
+  const [origin, customerId, affiliateCode] = await Promise.all([
     getOrigin(),
     getOrCreateStripeCustomerId(user.id, user.email),
+    resolveAffiliateCode(user.id),
   ]);
 
   const session = await getStripe().checkout.sessions.create({
@@ -134,9 +162,9 @@ export async function createSubscriptionCheckout() {
     success_url: `${origin}/?checkout=success`,
     cancel_url: `${origin}/?checkout=cancelled`,
     subscription_data: {
-      metadata: { supabase_user_id: user.id },
+      metadata: { supabase_user_id: user.id, ...(affiliateCode && { affiliate_code: affiliateCode }) },
     },
-    metadata: { supabase_user_id: user.id },
+    metadata: { supabase_user_id: user.id, ...(affiliateCode && { affiliate_code: affiliateCode }) },
   });
 
   if (!session.url) throw new Error("Stripe did not return a checkout URL");

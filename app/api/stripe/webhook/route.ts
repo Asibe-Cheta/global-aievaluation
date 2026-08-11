@@ -161,6 +161,51 @@ async function handleOneTimePayment(session: Stripe.Checkout.Session) {
   await recomputeMembershipTier(service, userId);
 }
 
+// Commission is recorded once, at the same "checkout.session.completed"
+// moment as any other sale — first payment only, no ongoing commission on
+// subscription renewals (those don't go through Checkout again). The
+// affiliate code was already validated (active, not self-referral) when the
+// Checkout Session was created in lib/actions/billing.ts, but this is the
+// real trust boundary, so it's re-checked here rather than trusted blindly.
+async function recordAffiliateCommission(session: Stripe.Checkout.Session) {
+  const affiliateCode = session.metadata?.affiliate_code;
+  if (!affiliateCode) return;
+
+  const buyerUserId = session.metadata?.supabase_user_id ?? session.client_reference_id;
+  if (!buyerUserId) return;
+
+  const service = createServiceClient();
+  const { data: affiliate } = await service
+    .from("affiliates")
+    .select("user_id, commission_rate, status")
+    .eq("code", affiliateCode)
+    .maybeSingle();
+
+  if (!affiliate || affiliate.status !== "active" || affiliate.user_id === buyerUserId) return;
+
+  const saleAmountCents = session.amount_total ?? 0;
+  const commissionCents = Math.round(saleAmountCents * affiliate.commission_rate);
+  const productType =
+    session.metadata?.product_type ?? (session.mode === "subscription" ? "career_accelerator" : null);
+
+  const { error } = await service.from("affiliate_referrals").insert({
+    affiliate_user_id: affiliate.user_id,
+    referred_user_id: buyerUserId,
+    stripe_checkout_session_id: session.id,
+    product_type: productType,
+    sale_amount_cents: saleAmountCents,
+    commission_cents: commissionCents,
+    currency: session.currency ?? "eur",
+  });
+
+  if (error) {
+    // Unique violation on stripe_checkout_session_id means this event was
+    // already processed (Stripe retries webhooks) — safe to skip.
+    if (error.code === "23505") return;
+    console.error("Stripe webhook: affiliate_referrals insert failed", error);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -182,6 +227,7 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        await recordAffiliateCommission(session);
         if (session.mode === "subscription" && session.subscription) {
           const subscriptionId =
             typeof session.subscription === "string"

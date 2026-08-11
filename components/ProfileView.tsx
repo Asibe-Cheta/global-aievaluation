@@ -1,13 +1,26 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   User, Check, Trash2, LogOut, X,
   Trophy, Clock, ShieldAlert, Award, Camera, RefreshCw,
-  Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, Briefcase
+  Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, Briefcase, Gift, Copy
 } from "lucide-react";
 import { UserStats, Module } from "../types";
 import { createClient } from "../lib/supabase/client";
 import { uploadAvatarPhoto, removeAvatarPhoto } from "../lib/actions/profile";
+import {
+  becomeAffiliate,
+  getMyAffiliateStatus,
+  getMyReferralSummary,
+  type AffiliateStatus,
+  type AffiliateReferralSummary,
+} from "../lib/actions/affiliates";
+
+const DEFAULT_COMMISSION_LABEL = "20%";
+
+function formatCents(cents: number): string {
+  return `€${(cents / 100).toFixed(2)}`;
+}
 
 interface ProfileViewProps {
   stats: UserStats;
@@ -114,6 +127,59 @@ export default function ProfileView({
       return;
     }
     setStats(prev => ({ ...prev, avatarUrl: undefined }));
+  };
+
+  // Affiliate Program
+  const [affiliateStatus, setAffiliateStatus] = useState<AffiliateStatus | null>(null);
+  const [referralSummary, setReferralSummary] = useState<AffiliateReferralSummary | null>(null);
+  const [isLoadingAffiliate, setIsLoadingAffiliate] = useState(true);
+  const [isBecomingAffiliate, setIsBecomingAffiliate] = useState(false);
+  const [affiliateError, setAffiliateError] = useState("");
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMyAffiliateStatus().then((status) => {
+      if (cancelled) return;
+      setAffiliateStatus(status);
+      setIsLoadingAffiliate(false);
+      if (status) {
+        getMyReferralSummary().then((summary) => {
+          if (!cancelled) setReferralSummary(summary);
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const referralLink =
+    affiliateStatus && typeof window !== "undefined"
+      ? `${window.location.origin}/?ref=${affiliateStatus.code}`
+      : "";
+
+  const handleBecomeAffiliate = async () => {
+    setAffiliateError("");
+    setIsBecomingAffiliate(true);
+    const result = await becomeAffiliate();
+    setIsBecomingAffiliate(false);
+
+    if (result.error) {
+      setAffiliateError(result.error);
+      return;
+    }
+    const status = await getMyAffiliateStatus();
+    setAffiliateStatus(status);
+    const summary = await getMyReferralSummary();
+    setReferralSummary(summary);
+  };
+
+  const handleCopyReferralLink = async () => {
+    if (!referralLink) return;
+    await navigator.clipboard.writeText(referralLink);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -545,6 +611,91 @@ export default function ProfileView({
                 </button>
               </div>
             </form>
+          </div>
+
+          {/* Affiliate Program Panel */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+            <div className="space-y-1 mb-5">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                <Gift className="w-4 h-4 text-indigo-500" />
+                Affiliate Program
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Earn a commission for every sale you refer.
+              </p>
+            </div>
+
+            {isLoadingAffiliate ? (
+              <p className="text-xs text-slate-400">Loading...</p>
+            ) : !affiliateStatus ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Get your own referral link and earn {DEFAULT_COMMISSION_LABEL} of every sale you bring in — no application needed.
+                </p>
+                {affiliateError && (
+                  <p className="text-[11px] text-rose-600 dark:text-rose-405 font-bold flex items-center gap-1">
+                    <ShieldAlert className="w-3.5 h-3.5" /> {affiliateError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleBecomeAffiliate}
+                  disabled={isBecomingAffiliate}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  {isBecomingAffiliate && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  Become an Affiliate
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-slate-455 font-bold uppercase tracking-wider block mb-1.5">
+                    Your Referral Link
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={referralLink}
+                      className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyReferralLink}
+                      title="Copy link"
+                      className="shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold p-2.5 rounded-xl transition-colors cursor-pointer"
+                    >
+                      {copySuccess ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  <div className="bg-slate-50 dark:bg-slate-850 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                    <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider leading-none">Rate</span>
+                    <span className="text-xs font-black text-slate-900 dark:text-white mt-1 block">{Math.round(affiliateStatus.commissionRate * 100)}%</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-850 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                    <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider leading-none">Referrals</span>
+                    <span className="text-xs font-black text-slate-900 dark:text-white mt-1 block">{referralSummary?.referrals.length ?? 0}</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-850 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                    <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider leading-none">Pending</span>
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400 mt-1 block">{formatCents(referralSummary?.pendingCommissionCents ?? 0)}</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-850 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                    <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider leading-none">Paid Out</span>
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1 block">{formatCents(referralSummary?.paidCommissionCents ?? 0)}</span>
+                  </div>
+                </div>
+
+                {affiliateStatus.status === "disabled" && (
+                  <p className="text-[11px] text-rose-600 dark:text-rose-405 font-bold flex items-center gap-1">
+                    <ShieldAlert className="w-3.5 h-3.5" /> Your affiliate account is currently disabled — new referrals won't earn commission.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
         </div>
