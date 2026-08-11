@@ -850,8 +850,8 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Questions before you get started? Reach us anytime at{" "}
-          <a href="mailto:support@globalreadyaieval.com" className="font-bold text-[#4F46E5] dark:text-indigo-400 hover:underline">
-            support@globalreadyaieval.com
+          <a href="mailto:contact@globalready.com" className="font-bold text-[#4F46E5] dark:text-indigo-400 hover:underline">
+            contact@globalready.com
           </a>
         </p>
       </section>
