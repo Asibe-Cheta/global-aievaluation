@@ -126,6 +126,7 @@ export async function getTestimonials(): Promise<Testimonial[]> {
     role: t.role ?? undefined,
     quote: t.quote,
     avatarUrl: t.avatar_url ?? undefined,
+    proofImageUrl: t.proof_image_url ?? undefined,
     rating: t.rating ?? undefined,
   }));
 }

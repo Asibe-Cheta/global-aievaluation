@@ -251,6 +251,12 @@ export default function ProfileView({
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
+    // Clear the persisted nav position so the next sign-in (possibly a
+    // different user on this browser) starts fresh on the Career Hub
+    // instead of wherever this session last left off.
+    localStorage.removeItem("ae-academy-active-tab");
+    localStorage.removeItem("ae-academy-active-lesson-id");
+    localStorage.removeItem("ae-academy-active-part-id");
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");

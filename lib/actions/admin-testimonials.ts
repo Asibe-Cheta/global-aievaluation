@@ -14,16 +14,17 @@ function slugFileName(name: string) {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
 }
 
-async function uploadAvatar(
+async function uploadImage(
   supabase: SupabaseServerClient,
   id: string,
+  prefix: string,
   file: File,
 ): Promise<string> {
   if (file.size > MAX_FILE_BYTES) {
     throw new Error(`${file.name} is too large (max 5MB).`);
   }
 
-  const path = `${id}/${Date.now()}-${slugFileName(file.name)}`;
+  const path = `${id}/${prefix}-${Date.now()}-${slugFileName(file.name)}`;
   const { error } = await supabase.storage
     .from(BUCKET)
     .upload(path, file, { contentType: file.type || undefined });
@@ -40,6 +41,7 @@ function readFields(formData: FormData) {
     role: String(formData.get("role") ?? ""),
     quote: String(formData.get("quote") ?? ""),
     avatarUrl: String(formData.get("avatarUrl") ?? ""),
+    proofImageUrl: String(formData.get("proofImageUrl") ?? ""),
     rating: formData.get("rating") ? Number(formData.get("rating")) : null,
     isActive: formData.get("isActive") === "true",
     sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
@@ -68,7 +70,17 @@ export async function createTestimonial(
   const image = readFile(formData, "avatarImage");
   if (image) {
     try {
-      avatarUrl = await uploadAvatar(supabase, id, image);
+      avatarUrl = await uploadImage(supabase, id, "avatar", image);
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Upload failed." };
+    }
+  }
+
+  let proofImageUrl = fields.proofImageUrl || null;
+  const proofImage = readFile(formData, "proofImage");
+  if (proofImage) {
+    try {
+      proofImageUrl = await uploadImage(supabase, id, "proof", proofImage);
     } catch (err) {
       return { error: err instanceof Error ? err.message : "Upload failed." };
     }
@@ -80,6 +92,7 @@ export async function createTestimonial(
     role: fields.role || null,
     quote: fields.quote,
     avatar_url: avatarUrl,
+    proof_image_url: proofImageUrl,
     rating: fields.rating,
     is_active: fields.isActive,
     sort_order: fields.sortOrder,
@@ -110,7 +123,17 @@ export async function updateTestimonial(
   const image = readFile(formData, "avatarImage");
   if (image) {
     try {
-      avatarUrl = await uploadAvatar(supabase, newId, image);
+      avatarUrl = await uploadImage(supabase, newId, "avatar", image);
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Upload failed." };
+    }
+  }
+
+  let proofImageUrl = fields.proofImageUrl || null;
+  const proofImage = readFile(formData, "proofImage");
+  if (proofImage) {
+    try {
+      proofImageUrl = await uploadImage(supabase, newId, "proof", proofImage);
     } catch (err) {
       return { error: err instanceof Error ? err.message : "Upload failed." };
     }
@@ -124,6 +147,7 @@ export async function updateTestimonial(
       role: fields.role || null,
       quote: fields.quote,
       avatar_url: avatarUrl,
+      proof_image_url: proofImageUrl,
       rating: fields.rating,
       is_active: fields.isActive,
       sort_order: fields.sortOrder,

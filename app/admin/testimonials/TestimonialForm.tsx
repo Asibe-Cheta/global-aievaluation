@@ -29,6 +29,8 @@ export default function TestimonialForm({
   const [quote, setQuote] = useState(testimonial?.quote ?? "");
   const [avatarUrl, setAvatarUrl] = useState(testimonial?.avatar_url ?? "");
   const [avatarImage, setAvatarImage] = useState<File | null>(null);
+  const [proofImageUrl, setProofImageUrl] = useState(testimonial?.proof_image_url ?? "");
+  const [proofImage, setProofImage] = useState<File | null>(null);
   const [rating, setRating] = useState(String(testimonial?.rating ?? 5));
   const [isActive, setIsActive] = useState(testimonial?.is_active ?? true);
   const [sortOrder, setSortOrder] = useState(String(testimonial?.sort_order ?? 0));
@@ -46,10 +48,12 @@ export default function TestimonialForm({
     formData.set("role", role);
     formData.set("quote", quote);
     formData.set("avatarUrl", avatarUrl);
+    formData.set("proofImageUrl", proofImageUrl);
     formData.set("rating", rating);
     formData.set("isActive", String(isActive));
     formData.set("sortOrder", sortOrder);
     if (avatarImage) formData.set("avatarImage", avatarImage);
+    if (proofImage) formData.set("proofImage", proofImage);
 
     const result = isEdit
       ? await updateTestimonial(testimonial!.id, id, formData)
@@ -117,6 +121,37 @@ export default function TestimonialForm({
             className={inputClass}
             value={avatarUrl}
             onChange={(e) => setAvatarUrl(e.target.value)}
+            placeholder="...or paste an image URL"
+          />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className={labelClass}>Proof of Work Screenshot (optional)</label>
+          <p className="text-[11px] text-slate-450 -mt-1 mb-2">
+            E.g. a hire confirmation or offer screenshot from Mercor, Outlier, etc. Not the person&apos;s
+            profile photo — shown alongside the quote on the public site.
+          </p>
+          {(proofImage || proofImageUrl) && (
+            <img
+              src={proofImage ? URL.createObjectURL(proofImage) : proofImageUrl}
+              alt="Preview"
+              className="w-full max-w-xs h-32 object-cover rounded-xl mb-2 border border-slate-150 dark:border-slate-800"
+            />
+          )}
+          <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline mb-2">
+            <Upload className="w-3.5 h-3.5" />
+            {proofImageUrl || proofImage ? "Replace screenshot" : "Upload screenshot"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setProofImage(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <input
+            className={inputClass}
+            value={proofImageUrl}
+            onChange={(e) => setProofImageUrl(e.target.value)}
             placeholder="...or paste an image URL"
           />
         </div>

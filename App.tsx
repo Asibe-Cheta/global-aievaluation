@@ -144,9 +144,25 @@ export default function App({
     return localStorage.getItem("ae-academy-active-tab") ?? "dashboard";
   });
   const [practiceGroupOpen, setPracticeGroupOpen] = useState(false);
-  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  // Restored the same way as activeTab, but only if the saved id still
+  // refers to something in the curriculum the server just sent down —
+  // guards against a stale id from before content changed (or a locked
+  // module) leaving the page stuck on blank content after a refresh.
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = localStorage.getItem("ae-academy-active-lesson-id");
+    if (!saved) return null;
+    const exists = moduleCurriculum.some((m) => m.lessons.some((l) => l.id === saved));
+    return exists ? saved : null;
+  });
   const [activeModuleId, setActiveModuleId] = useState<string>("m1");
-  const [activePartId, setActivePartId] = useState<string | null>(null);
+  const [activePartId, setActivePartId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = localStorage.getItem("ae-academy-active-part-id");
+    if (!saved) return null;
+    const exists = moduleCurriculum.some((m) => m.id === saved);
+    return exists ? saved : null;
+  });
   const [expandedModuleCardIds, setExpandedModuleCardIds] = useState<Set<string>>(new Set());
   const [interviewInitialRoleId, setInterviewInitialRoleId] = useState<string | null>(null);
   const [interviewJobTitle, setInterviewJobTitle] = useState<string | null>(null);
@@ -205,6 +221,18 @@ export default function App({
   useEffect(() => {
     localStorage.setItem("ae-academy-active-tab", activeTab);
   }, [activeTab]);
+
+  // Same for lesson/module position, so a refresh mid-lesson or mid-module
+  // lands back exactly where the user was rather than the module list.
+  useEffect(() => {
+    if (activeLessonId) localStorage.setItem("ae-academy-active-lesson-id", activeLessonId);
+    else localStorage.removeItem("ae-academy-active-lesson-id");
+  }, [activeLessonId]);
+
+  useEffect(() => {
+    if (activePartId) localStorage.setItem("ae-academy-active-part-id", activePartId);
+    else localStorage.removeItem("ae-academy-active-part-id");
+  }, [activePartId]);
 
   // Apply dark class to body
   useEffect(() => {

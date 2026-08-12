@@ -154,5 +154,6 @@ export interface Testimonial {
   role?: string;
   quote: string;
   avatarUrl?: string;
+  proofImageUrl?: string;
   rating?: number;
 }

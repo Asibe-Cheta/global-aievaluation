@@ -231,6 +231,7 @@ export interface AdminTestimonialRow {
   role: string | null;
   quote: string;
   avatar_url: string | null;
+  proof_image_url: string | null;
   rating: number | null;
   is_active: boolean;
   sort_order: number;
