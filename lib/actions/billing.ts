@@ -161,6 +161,9 @@ export async function createSubscriptionCheckout() {
     line_items: [{ price: getAcceleratorPriceId(), quantity: 1 }],
     success_url: `${origin}/?checkout=success`,
     cancel_url: `${origin}/?checkout=cancelled`,
+    // Lets the Stripe-hosted checkout page show a "Add promotion code" field
+    // so the coupon/promo code you create in Stripe can actually be redeemed.
+    allow_promotion_codes: true,
     subscription_data: {
       metadata: { supabase_user_id: user.id, ...(affiliateCode && { affiliate_code: affiliateCode }) },
     },
