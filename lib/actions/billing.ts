@@ -128,6 +128,9 @@ export async function createOneTimeCheckout(
     line_items: [{ price: getOneTimePriceId(resolvedProduct), quantity: safeQuantity }],
     success_url: `${origin}/?checkout=success`,
     cancel_url: `${origin}/?checkout=cancelled`,
+    // Lets the Stripe-hosted checkout page show a "Add promotion code" field
+    // (e.g. for the Career Accelerator discount coupon).
+    allow_promotion_codes: true,
     payment_intent_data: {
       metadata: {
         supabase_user_id: user.id,

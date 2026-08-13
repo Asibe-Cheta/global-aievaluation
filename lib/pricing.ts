@@ -65,7 +65,6 @@ export const TIERS: Record<TierId, TierMeta> = {
       "2-week intensive training program",
       "Everything in Professional, plus:",
       "Private community access",
-      "Biweekly live Q&A / troubleshooting calls",
       "AI Interview Simulator — 50 sessions/month, resets monthly",
       "Ongoing curated job listings",
       "Quality-score troubleshooting support",
