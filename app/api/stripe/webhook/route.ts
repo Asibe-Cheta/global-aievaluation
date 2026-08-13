@@ -28,13 +28,18 @@ async function recomputeMembershipTier(service: ServiceClient, userId: string) {
       .eq("status", "completed"),
   ]);
 
+  // acceleratorActive covers a real (legacy) Stripe Subscription;
+  // ownsAccelerator covers the current one-time-purchase model. Either one
+  // grants the tier — a lapsed/canceled legacy subscription with no
+  // one-time purchase correctly falls back below.
   const acceleratorActive = sub?.status === "active" || sub?.status === "trialing";
   const ownedTypes = new Set((purchases ?? []).map((p) => p.product_type));
+  const ownsAccelerator = ownedTypes.has("tier_career_accelerator");
   const ownsProfessional =
     ownedTypes.has("tier_professional_founding") || ownedTypes.has("tier_professional_regular");
   const ownsStarter = ownedTypes.has("tier_starter");
 
-  const tier = acceleratorActive
+  const tier = acceleratorActive || ownsAccelerator
     ? "career_accelerator"
     : ownsProfessional
       ? "professional"
@@ -49,9 +54,10 @@ async function recomputeMembershipTier(service: ServiceClient, userId: string) {
   if (profileError) console.error("Stripe webhook: profile update failed", profileError);
 
   // monthly_allotment reflects the currently *effective* tier only (not a
-  // sum) — 50 while Accelerator is active, drops to 30 automatically once
-  // it lapses since Professional ownership persists separately.
-  const monthlyAllotment = acceleratorActive ? 50 : ownsProfessional ? 30 : 0;
+  // sum) — 50 for Accelerator (active subscription or owned outright), drops
+  // to 30 automatically if a legacy subscription lapses since Professional
+  // ownership persists separately.
+  const monthlyAllotment = acceleratorActive || ownsAccelerator ? 50 : ownsProfessional ? 30 : 0;
   const { error: creditsError } = await service
     .from("interview_credits")
     .update({ monthly_allotment: monthlyAllotment })

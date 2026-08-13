@@ -16,12 +16,14 @@ export function getStripe(): Stripe {
 }
 
 // One-time purchases: Starter, Professional (founding or regular price),
-// and both AI credit top-up packs. Career Accelerator is the only
-// recurring subscription — kept separate below.
+// Career Accelerator (a 2-week program, sold as a one-time purchase like
+// Starter/Professional — pay once, keep access), and both AI credit
+// top-up packs.
 export type OneTimeProduct =
   | "tier_starter"
   | "tier_professional_founding"
   | "tier_professional_regular"
+  | "tier_career_accelerator"
   | "credit_pack_a"
   | "credit_pack_b";
 
@@ -29,6 +31,10 @@ const ONE_TIME_PRICE_IDS: Record<OneTimeProduct, string | undefined> = {
   tier_starter: process.env.STRIPE_PRICE_STARTER,
   tier_professional_founding: process.env.STRIPE_PRICE_PROFESSIONAL_FOUNDING,
   tier_professional_regular: process.env.STRIPE_PRICE_PROFESSIONAL_REGULAR,
+  // Reuses STRIPE_PRICE_ACCELERATOR_MONTHLY — that var now holds the
+  // one-time price id, not a recurring one (see getAcceleratorPriceId below,
+  // kept only for any legacy real subscribers from before this change).
+  tier_career_accelerator: process.env.STRIPE_PRICE_ACCELERATOR_MONTHLY,
   credit_pack_a: process.env.STRIPE_PRICE_CREDIT_PACK_A,
   credit_pack_b: process.env.STRIPE_PRICE_CREDIT_PACK_B,
 };
@@ -48,6 +54,9 @@ export function productForPrice(priceId: string): OneTimeProduct | null {
   return null;
 }
 
+// Legacy-only: only relevant for a real Stripe Subscription created before
+// Career Accelerator switched to a one-time purchase. New purchases go
+// through tier_career_accelerator above instead.
 export function getAcceleratorPriceId(): string {
   const priceId = process.env.STRIPE_PRICE_ACCELERATOR_MONTHLY;
   if (!priceId) {

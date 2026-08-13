@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import {
   Check, Lock, Sparkles, Shield, Award,
-  Zap, ArrowLeft, Star, AlertCircle, CheckCircle2, Loader2, Gift,
+  Zap, ArrowLeft, Star, AlertCircle, CheckCircle2, Loader2, Gift, Users,
 } from "lucide-react";
 import { UserStats } from "../types";
 import {
   createOneTimeCheckout,
-  createSubscriptionCheckout,
   createPortalSession,
 } from "../lib/actions/billing";
 import {
@@ -90,7 +89,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
     runAction(tier, () => createOneTimeCheckout(tier));
 
   const handleGetAccelerator = () =>
-    runAction("career_accelerator", () => createSubscriptionCheckout());
+    runAction("career_accelerator", () => createOneTimeCheckout("career_accelerator"));
 
   const handleManageBilling = () =>
     runAction("manage", () => createPortalSession());
@@ -164,6 +163,31 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
         </div>
       )}
 
+      {currentTier === "career_accelerator" && (
+        <div className="mb-8 p-5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-2 border-amber-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-amber-500/15 rounded-xl text-amber-600 dark:text-amber-400 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white my-0">Your Accelerator community is ready</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 leading-relaxed">
+                Join the private group for live coaching, Q&amp;A calls, and other Accelerator members.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://www.skool.com/ai-hustle-skuul-5237/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 px-5 py-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Users className="w-4 h-4" />
+            Access Community on Skool
+          </a>
+        </div>
+      )}
+
       {/* Hero Header */}
       <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
         <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 font-mono">
@@ -173,8 +197,8 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
           Simple, One-Time Pricing
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed">
-          Starter and Professional are one-time purchases — pay once, keep access forever. Career Accelerator is the
-          only subscription, for ongoing live coaching and community support.
+          Every plan is a one-time purchase — pay once, keep access forever. Career Accelerator is a 2-week
+          intensive with live coaching and community support.
         </p>
       </div>
 
@@ -243,7 +267,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
                     }`}
                   >
                     {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {isCurrent ? "Active Plan" : "Subscribe"}
+                    {isCurrent ? "Active Plan" : `Get ${meta.label}`}
                   </button>
                 ) : (
                   <button

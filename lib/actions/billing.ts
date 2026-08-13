@@ -72,11 +72,18 @@ async function resolveAffiliateCode(buyerUserId: string): Promise<string | undef
   return refCode;
 }
 
-export type OneTimeCheckoutProduct = "starter" | "professional" | "credit_pack_a" | "credit_pack_b";
+export type OneTimeCheckoutProduct =
+  | "starter"
+  | "professional"
+  | "career_accelerator"
+  | "credit_pack_a"
+  | "credit_pack_b";
 
 async function resolveOneTimeProduct(product: OneTimeCheckoutProduct): Promise<OneTimeProduct> {
   if (product !== "professional") {
-    return product === "starter" ? "tier_starter" : product;
+    if (product === "starter") return "tier_starter";
+    if (product === "career_accelerator") return "tier_career_accelerator";
+    return product;
   }
 
   const service = createServiceClient();

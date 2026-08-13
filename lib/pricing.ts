@@ -59,9 +59,10 @@ export const TIERS: Record<TierId, TierMeta> = {
     id: "career_accelerator",
     label: "Accelerator",
     displayName: "Stay Employed",
-    priceDisplay: "€70/month",
-    billing: "subscription",
+    priceDisplay: "€70 one-time",
+    billing: "one_time",
     features: [
+      "2-week intensive training program",
       "Everything in Professional, plus:",
       "Private community access",
       "Biweekly live Q&A / troubleshooting calls",
