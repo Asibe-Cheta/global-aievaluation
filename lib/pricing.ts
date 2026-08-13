@@ -87,5 +87,5 @@ export interface CreditPack {
 
 export const CREDIT_PACKS: CreditPack[] = [
   { id: "credit_pack_a", priceDisplay: "€5", sessions: 15 },
-  { id: "credit_pack_b", priceDisplay: "€9", sessions: 35 },
+  { id: "credit_pack_b", priceDisplay: "€10", sessions: 35 },
 ];
