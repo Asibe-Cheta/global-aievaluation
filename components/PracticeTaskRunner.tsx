@@ -241,6 +241,18 @@ export default function PracticeTaskRunner({
 }) {
   const filtered = tasks.filter((t) => t.difficulty === filter);
 
+  // One task shown at a time — the next one only unlocks (and its timer
+  // only starts) once the current one is submitted, rather than every task
+  // in the section rendering and counting down at once.
+  const [currentIndex, setCurrentIndex] = useState(0);
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [filter]);
+
+  const currentTask = filtered[currentIndex];
+  const isCurrentSubmitted = currentTask ? !!existingSubmissions[currentTask.id] : false;
+  const isLastTask = currentIndex === filtered.length - 1;
+
   const LEVEL_COPY = {
     beginner: {
       title: "Beginner Practice",
@@ -300,16 +312,63 @@ export default function PracticeTaskRunner({
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-xs text-slate-450">
           No practice tasks available yet.
         </div>
+      ) : !currentTask ? (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center space-y-2">
+          <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+          <p className="text-sm font-bold text-slate-900 dark:text-white">
+            All {filtered.length} tasks in this section are complete!
+          </p>
+        </div>
       ) : (
         <div className="space-y-5">
-          {filtered.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              existing={existingSubmissions[task.id]}
-              onSubmit={(submission) => onSubmit(task.id, submission)}
-            />
-          ))}
+          {/* Progress: completed tasks are clickable to review; the current
+              task is highlighted; later tasks stay locked until earned. */}
+          <div className="flex items-center gap-2">
+            {filtered.map((task, idx) => {
+              const done = !!existingSubmissions[task.id];
+              const isActive = idx === currentIndex;
+              const isReachable = done || idx <= currentIndex;
+              return (
+                <button
+                  key={task.id}
+                  type="button"
+                  disabled={!isReachable}
+                  onClick={() => isReachable && setCurrentIndex(idx)}
+                  title={`Task ${idx + 1} of ${filtered.length}`}
+                  className={`h-2 flex-1 rounded-full transition-all ${
+                    isActive
+                      ? "bg-indigo-600"
+                      : done
+                        ? "bg-emerald-400 cursor-pointer hover:bg-emerald-500"
+                        : "bg-slate-200 dark:bg-slate-800"
+                  }`}
+                />
+              );
+            })}
+          </div>
+          <p className="text-[11px] font-bold text-slate-450 uppercase tracking-wider">
+            Task {currentIndex + 1} of {filtered.length}
+          </p>
+
+          <TaskCard
+            key={currentTask.id}
+            task={currentTask}
+            existing={existingSubmissions[currentTask.id]}
+            onSubmit={(submission) => onSubmit(currentTask.id, submission)}
+          />
+
+          {isCurrentSubmitted && !isLastTask && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setCurrentIndex((i) => i + 1)}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                Next Task
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
