@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { createJob, updateJob, type JobFormInput } from "@/lib/actions/admin-jobs";
+import { isRedirectError } from "@/lib/is-redirect-error";
 import type { AdminJobRow } from "@/lib/admin/queries";
 import BoldTextarea from "../BoldTextarea";
 
@@ -51,14 +52,19 @@ export default function JobForm({ job }: { job?: AdminJobRow }) {
       sortOrder: Number(sortOrder) || 0,
     };
 
-    const result = isEdit
-      ? await updateJob(job!.id, id, input)
-      : await createJob(id, input);
+    try {
+      const result = isEdit
+        ? await updateJob(job!.id, id, input)
+        : await createJob(id, input);
 
-    setIsSubmitting(false);
-
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      if (isRedirectError(err)) throw err;
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

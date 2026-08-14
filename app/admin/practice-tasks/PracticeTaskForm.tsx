@@ -7,6 +7,7 @@ import {
   createPracticeTask,
   updatePracticeTask,
 } from "@/lib/actions/admin-practice-tasks";
+import { isRedirectError } from "@/lib/is-redirect-error";
 import type { AdminModuleRow, AdminPracticeTaskRow } from "@/lib/admin/queries";
 import { SKILL_CATEGORIES, FAILURE_MODE_TAGS } from "@/lib/admin/constants";
 import OptionsEditor from "../OptionsEditor";
@@ -130,16 +131,21 @@ export default function PracticeTaskForm({
       }
     }
 
-    let result: { error?: string } | undefined;
-    if (isEdit) {
-      formData.set("existingBlocks", JSON.stringify(existingBlocks));
-      result = await updatePracticeTask(task!.id, id, formData);
-    } else {
-      result = await createPracticeTask(id, formData);
+    try {
+      let result: { error?: string } | undefined;
+      if (isEdit) {
+        formData.set("existingBlocks", JSON.stringify(existingBlocks));
+        result = await updatePracticeTask(task!.id, id, formData);
+      } else {
+        result = await createPracticeTask(id, formData);
+      }
+      if (result?.error) setError(result.error);
+    } catch (err) {
+      if (isRedirectError(err)) throw err;
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
-    if (result?.error) setError(result.error);
   };
 
   return (

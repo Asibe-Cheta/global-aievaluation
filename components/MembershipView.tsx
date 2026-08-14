@@ -12,6 +12,7 @@ import {
   TIERS, TIER_ORDER, CREDIT_PACKS, PROFESSIONAL_FOUNDING_PRICE_DISPLAY,
   PROFESSIONAL_FOUNDING_LIMIT, type TierId,
 } from "../lib/pricing";
+import { isRedirectError } from "../lib/is-redirect-error";
 
 interface MembershipViewProps {
   stats: UserStats;
@@ -19,12 +20,6 @@ interface MembershipViewProps {
   onDismissCheckoutResult?: () => void;
   onBack?: () => void;
   onNavigateToTab?: (tabId: string) => void;
-}
-
-function isRedirectError(err: unknown): boolean {
-  return typeof err === "object" && err !== null && "digest" in err &&
-    typeof (err as { digest?: unknown }).digest === "string" &&
-    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT");
 }
 
 const TIER_ICONS: Record<TierId, React.ElementType> = {

@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { createLesson, updateLesson } from "@/lib/actions/admin-lessons";
+import { isRedirectError } from "@/lib/is-redirect-error";
 import type { AdminLessonRow } from "@/lib/admin/queries";
 import StringListEditor from "../../../StringListEditor";
 import MiniCaseStudiesEditor, { type MiniCaseStudiesEditorHandle } from "./MiniCaseStudiesEditor";
@@ -72,14 +73,19 @@ export default function LessonForm({
       formData.set(`content_${blockId}_${type}`, file);
     }
 
-    const result = isEdit
-      ? await updateLesson(lesson!.id, id, formData)
-      : await createLesson(id, formData);
+    try {
+      const result = isEdit
+        ? await updateLesson(lesson!.id, id, formData)
+        : await createLesson(id, formData);
 
-    setIsSubmitting(false);
-
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      if (isRedirectError(err)) throw err;
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

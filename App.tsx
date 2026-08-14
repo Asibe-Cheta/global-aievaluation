@@ -450,11 +450,22 @@ export default function App({
   };
 
   // Real World Practice pools tasks across every module rather than gating
-  // per-module progress — the paid-tier check is the only gate it needs.
+  // per-module progress — access is gated by paid tier plus, within that,
+  // finishing every task in the previous difficulty level first.
   const allPracticeTasks = useMemo(
     () => moduleCurriculum.flatMap((m) => m.practiceTasks ?? []),
     [moduleCurriculum],
   );
+
+  const isPracticeLevelComplete = (level: "beginner" | "intermediate" | "expert") => {
+    const levelTasks = allPracticeTasks.filter((t) => t.difficulty === level);
+    // An empty level (no tasks published yet) can't block the next one.
+    if (levelTasks.length === 0) return true;
+    return levelTasks.every((t) => !!stats.practiceTaskSubmissions?.[t.id]);
+  };
+
+  const isIntermediatePracticeUnlocked = isPracticeLevelComplete("beginner");
+  const isExpertPracticeUnlocked = isIntermediatePracticeUnlocked && isPracticeLevelComplete("intermediate");
 
   const getAvatarConfig = (avatarId?: string) => {
     const PRESET_AVATARS = [
@@ -620,9 +631,9 @@ export default function App({
               <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-slate-850 ml-4">
                 {(
                   [
-                    { tab: "practice_beginner", label: "Beginner", id: "tab-btn-practice-beginner" },
-                    { tab: "practice_intermediate", label: "Intermediate", id: "tab-btn-practice-intermediate" },
-                    { tab: "practice_expert", label: "Expert", id: "tab-btn-practice-expert" },
+                    { tab: "practice_beginner", label: "Beginner", id: "tab-btn-practice-beginner", progressionUnlocked: true },
+                    { tab: "practice_intermediate", label: "Intermediate", id: "tab-btn-practice-intermediate", progressionUnlocked: isIntermediatePracticeUnlocked },
+                    { tab: "practice_expert", label: "Expert", id: "tab-btn-practice-expert", progressionUnlocked: isExpertPracticeUnlocked },
                   ] as const
                 ).map((level) => (
                   <button
@@ -640,7 +651,7 @@ export default function App({
                     }`}
                   >
                     <span>{level.label}</span>
-                    {!isSimulationPracticeAccessible(stats.membershipTier) && (
+                    {(!isSimulationPracticeAccessible(stats.membershipTier) || !level.progressionUnlocked) && (
                       <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                     )}
                   </button>
@@ -1448,6 +1459,18 @@ export default function App({
                       : activeTab === "practice_intermediate"
                         ? "intermediate"
                         : "expert"
+                  }
+                  progressionUnlocked={
+                    activeTab === "practice_beginner"
+                      ? true
+                      : activeTab === "practice_intermediate"
+                        ? isIntermediatePracticeUnlocked
+                        : isExpertPracticeUnlocked
+                  }
+                  onGoToPreviousLevel={() =>
+                    setActiveTab(
+                      activeTab === "practice_expert" ? "practice_intermediate" : "practice_beginner",
+                    )
                   }
                 />
               )}

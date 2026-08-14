@@ -7,6 +7,7 @@ import {
   createTestimonial,
   updateTestimonial,
 } from "@/lib/actions/admin-testimonials";
+import { isRedirectError } from "@/lib/is-redirect-error";
 import type { AdminTestimonialRow } from "@/lib/admin/queries";
 import BoldTextarea from "../BoldTextarea";
 
@@ -55,14 +56,19 @@ export default function TestimonialForm({
     if (avatarImage) formData.set("avatarImage", avatarImage);
     if (proofImage) formData.set("proofImage", proofImage);
 
-    const result = isEdit
-      ? await updateTestimonial(testimonial!.id, id, formData)
-      : await createTestimonial(id, formData);
+    try {
+      const result = isEdit
+        ? await updateTestimonial(testimonial!.id, id, formData)
+        : await createTestimonial(id, formData);
 
-    setIsSubmitting(false);
-
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      if (isRedirectError(err)) throw err;
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

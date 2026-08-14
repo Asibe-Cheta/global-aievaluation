@@ -91,6 +91,12 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
   }, []);
 
   const isCasesDone = lesson.miniCaseStudies.every(cs => caseSubmitted[cs.id]);
+  const hasCaseStudies = lesson.miniCaseStudies.length > 0;
+  // Lessons with no case studies have nothing to step through — jump
+  // straight to the takeaways/finish panel instead of indexing into an
+  // empty array (lesson.miniCaseStudies[caseIndex] would be undefined).
+  const showCaseStudySteps = hasCaseStudies && !showWrapUp;
+  const showWrapUpPanel = showWrapUp || !hasCaseStudies;
 
   const handleFinishLesson = () => {
     onComplete(100, { [`case_rationales_${lesson.id}`]: caseRationales });
@@ -128,7 +134,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
             }`}
           >
             2. Case Studies
-            <span className="ml-1 text-[9px] opacity-75">({completedCaseCount}/5)</span>
+            <span className="ml-1 text-[9px] opacity-75">({completedCaseCount}/{lesson.miniCaseStudies.length})</span>
             {isCasesDone && <span className="absolute -top-1 -right-1 text-emerald-500 font-bold text-[9px] bg-white rounded-full">✓</span>}
           </button>
         </div>
@@ -168,14 +174,14 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
       {/* STEP 2: MINI CASE STUDIES */}
       {currentSection === "cases" && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-          {!showWrapUp && (
+          {showCaseStudySteps && (
           <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-855">
             <div>
               <p className="text-xs text-indigo-650 dark:text-indigo-400 font-extrabold uppercase tracking-widest">
                 Part 2: Real Examples & Practice
               </p>
               <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                Practice with real scenarios ({completedCaseCount} of 5 done)
+                Practice with real scenarios ({completedCaseCount} of {lesson.miniCaseStudies.length} done)
               </h3>
             </div>
             {/* Case selector stepper dot indicator */}
@@ -200,7 +206,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
           )}
 
           {/* Render Active Case details */}
-          {!showWrapUp && (() => {
+          {showCaseStudySteps && (() => {
             const activeCase = lesson.miniCaseStudies[caseIndex];
             const hasChosen = selectedCaseAnswers[activeCase.id] !== undefined;
             const isSub = caseSubmitted[activeCase.id] === true;
@@ -431,12 +437,13 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
             );
           })()}
 
-          {/* Wrap-up: shown once all case studies are submitted */}
-          {showWrapUp && (
+          {/* Wrap-up: shown once all case studies are submitted (or
+              immediately, for a lesson that has no case studies at all) */}
+          {showWrapUpPanel && (
             <div className="space-y-6 animate-fade-in">
               <div>
                 <p className="text-xs text-indigo-650 dark:text-indigo-400 font-extrabold uppercase tracking-widest">
-                  Case Studies Complete
+                  {hasCaseStudies ? "Case Studies Complete" : "Lecture Complete"}
                 </p>
                 <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
                   Nice work — here's what to remember
@@ -458,12 +465,16 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
               </div>
 
               <div className="pt-2 flex justify-between">
-                <button
-                  onClick={() => setShowWrapUp(false)}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer"
-                >
-                  &larr; Back to Case Studies
-                </button>
+                {hasCaseStudies ? (
+                  <button
+                    onClick={() => setShowWrapUp(false)}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer"
+                  >
+                    &larr; Back to Case Studies
+                  </button>
+                ) : (
+                  <span />
+                )}
                 <button
                   onClick={handleFinishLesson}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-2.5 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"

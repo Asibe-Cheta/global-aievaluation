@@ -55,13 +55,27 @@ function TaskCard({
   const [writtenAnswer, setWrittenAnswer] = useState(existing?.writtenAnswer ?? "");
   const [submitted, setSubmitted] = useState(!!existing);
   const [secondsRemaining, setSecondsRemaining] = useState(task.timeLimitSeconds ?? 0);
+  // Running out the clock resets the task to its blank state rather than
+  // leaving a stale answer sitting there — training time-consciousness
+  // instead of letting the timer become decorative.
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (!task.timed || submitted || !task.timeLimitSeconds) return;
-    if (secondsRemaining <= 0) return;
+    if (!task.timed || submitted || timedOut || !task.timeLimitSeconds) return;
+    if (secondsRemaining <= 0) {
+      setTimedOut(true);
+      setSelectedOptionIndex(undefined);
+      setWrittenAnswer("");
+      return;
+    }
     const t = setTimeout(() => setSecondsRemaining((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [task.timed, task.timeLimitSeconds, secondsRemaining, submitted]);
+  }, [task.timed, task.timeLimitSeconds, secondsRemaining, submitted, timedOut]);
+
+  const handleRestartTimer = () => {
+    setTimedOut(false);
+    setSecondsRemaining(task.timeLimitSeconds ?? 0);
+  };
 
   const needsChoice = task.responseMode !== "written";
   const needsWritten = task.responseMode !== "choice";
@@ -106,7 +120,7 @@ function TaskCard({
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
-      {task.timed && task.timeLimitSeconds && !submitted && (
+      {task.timed && task.timeLimitSeconds && !submitted && !timedOut && (
         <div className="flex justify-end">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-lg border border-amber-150">
             <Clock className="w-3.5 h-3.5" /> {formatTime(secondsRemaining)}
@@ -133,7 +147,7 @@ function TaskCard({
               <button
                 key={idx}
                 type="button"
-                disabled={submitted}
+                disabled={submitted || timedOut}
                 onClick={() => setSelectedOptionIndex(idx)}
                 className={`w-full text-left px-4 py-2.5 rounded-xl border text-xs font-semibold transition-colors ${
                   showResult && opt.isCorrect
@@ -155,7 +169,7 @@ function TaskCard({
       {needsWritten && (
         <div>
           <textarea
-            disabled={submitted}
+            disabled={submitted || timedOut}
             value={writtenAnswer}
             onChange={(e) => setWrittenAnswer(e.target.value)}
             rows={4}
@@ -165,7 +179,21 @@ function TaskCard({
         </div>
       )}
 
-      {!submitted ? (
+      {timedOut ? (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-150 dark:border-rose-900/40 rounded-xl">
+          <p className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+            <XCircle className="w-4 h-4" /> Time&apos;s up — answer cleared
+          </p>
+          <button
+            type="button"
+            onClick={handleRestartTimer}
+            className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 hover:underline cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Try Again
+          </button>
+        </div>
+      ) : !submitted ? (
         <button
           type="button"
           disabled={!canSubmit}
@@ -222,6 +250,12 @@ function TaskCard({
   );
 }
 
+const PREVIOUS_LEVEL_TITLE = {
+  beginner: null,
+  intermediate: "Beginner Practice",
+  expert: "Intermediate Practice",
+} as const;
+
 export default function PracticeTaskRunner({
   tasks,
   existingSubmissions,
@@ -230,6 +264,8 @@ export default function PracticeTaskRunner({
   isPaidUser,
   onRequireUpgrade,
   filter,
+  progressionUnlocked,
+  onGoToPreviousLevel,
 }: {
   tasks: PracticeTask[];
   existingSubmissions: Record<string, PracticeTaskSubmission>;
@@ -238,6 +274,8 @@ export default function PracticeTaskRunner({
   isPaidUser: boolean;
   onRequireUpgrade: () => void;
   filter: "beginner" | "intermediate" | "expert";
+  progressionUnlocked: boolean;
+  onGoToPreviousLevel: () => void;
 }) {
   const filtered = tasks.filter((t) => t.difficulty === filter);
 
@@ -285,6 +323,29 @@ export default function PracticeTaskRunner({
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
         >
           <Sparkles className="w-4 h-4" /> View Plans
+        </button>
+      </div>
+    );
+  }
+
+  if (!progressionUnlocked) {
+    const previousTitle = PREVIOUS_LEVEL_TITLE[filter];
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 border-2 border-slate-200 dark:border-slate-800 shadow-lg text-center max-w-3xl mx-auto space-y-6">
+        <div className="inline-flex p-4.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          {LEVEL_COPY[filter].title} Locked
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+          Finish every task in {previousTitle} first to unlock {LEVEL_COPY[filter].title}.
+        </p>
+        <button
+          onClick={onGoToPreviousLevel}
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
+        >
+          Go to {previousTitle}
         </button>
       </div>
     );
