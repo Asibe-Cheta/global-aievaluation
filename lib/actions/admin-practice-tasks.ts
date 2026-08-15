@@ -10,86 +10,37 @@ import type {
 } from "@/lib/admin/queries";
 import { validateSlugId } from "@/lib/admin/validateSlugId";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
-
-const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB
 const BUCKET = "exam-media";
 const BLOCK_KEYS = ["guideline", "item", "response_a", "response_b"] as const;
 type BlockKey = (typeof BLOCK_KEYS)[number];
 
-function slugFileName(name: string) {
-  return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-}
-
-async function uploadClip(
-  supabase: SupabaseServerClient,
-  taskId: string,
-  blockKey: string,
-  type: "image" | "video" | "audio",
-  file: File,
-): Promise<AdminCaseStudyMediaItem> {
-  if (file.size > MAX_FILE_BYTES) {
-    throw new Error(`${file.name} is too large (max 20MB).`);
-  }
-
-  const path = `${taskId}/${blockKey}-${type}-${Date.now()}-${slugFileName(file.name)}`;
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { contentType: file.type || undefined });
-
-  if (error) throw new Error(`Upload failed: ${error.message}`);
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return { type, path, url: data.publicUrl };
-}
-
-// Each content block has at most one media item. Client sends
-// `${blockKey}Image` / `${blockKey}Video` / `${blockKey}Audio` files and a
-// `${blockKey}RemoveMedia` flag.
-async function resolveBlockMedia(
-  supabase: SupabaseServerClient,
-  taskId: string,
+// Each content block has at most one media item. The client already
+// uploaded any new file straight to Supabase (lib/supabase/upload-media.ts
+// — server actions have a request-body size limit on Vercel that video/audio
+// clips routinely exceeded) and sends the result as `${blockKey}Media`
+// JSON, plus a `${blockKey}RemoveMedia` flag to clear it.
+function resolveBlockMedia(
   blockKey: BlockKey,
   formData: FormData,
   existingMedia: AdminCaseStudyMediaItem[],
-): Promise<AdminCaseStudyMediaItem[]> {
-  const removeExisting = formData.get(`${blockKey}RemoveMedia`) === "true";
-
-  for (const type of ["image", "video", "audio"] as const) {
-    const file = formData.get(`${blockKey}${type[0].toUpperCase()}${type.slice(1)}`);
-    if (file instanceof File && file.size > 0) {
-      if (existingMedia[0]?.path) {
-        await supabase.storage.from(BUCKET).remove([existingMedia[0].path]);
-      }
-      return [await uploadClip(supabase, taskId, blockKey, type, file)];
-    }
+): AdminCaseStudyMediaItem[] {
+  const mediaJson = formData.get(`${blockKey}Media`);
+  if (typeof mediaJson === "string" && mediaJson) {
+    return [JSON.parse(mediaJson) as AdminCaseStudyMediaItem];
   }
-
-  if (removeExisting) {
-    if (existingMedia[0]?.path) {
-      await supabase.storage.from(BUCKET).remove([existingMedia[0].path]);
-    }
+  if (formData.get(`${blockKey}RemoveMedia`) === "true") {
     return [];
   }
-
   return existingMedia;
 }
 
-async function resolveAllBlockMedia(
-  supabase: SupabaseServerClient,
-  taskId: string,
+function resolveAllBlockMedia(
   formData: FormData,
   existingBlocks: Record<BlockKey, AdminPracticeTaskContentBlock | null>,
-): Promise<Record<BlockKey, AdminCaseStudyMediaItem[]>> {
+): Record<BlockKey, AdminCaseStudyMediaItem[]> {
   const result = {} as Record<BlockKey, AdminCaseStudyMediaItem[]>;
   for (const key of BLOCK_KEYS) {
-    result[key] = await resolveBlockMedia(
-      supabase,
-      taskId,
-      key,
-      formData,
-      existingBlocks[key]?.media ?? [],
-    );
+    result[key] = resolveBlockMedia(key, formData, existingBlocks[key]?.media ?? []);
   }
   return result;
 }
@@ -167,17 +118,12 @@ export async function createPracticeTask(
   if (idError) return { error: idError };
   if (!fields.question) return { error: "Question is required." };
 
-  let blockMedia: Record<BlockKey, AdminCaseStudyMediaItem[]>;
-  try {
-    blockMedia = await resolveAllBlockMedia(supabase, id, formData, {
-      guideline: null,
-      item: null,
-      response_a: null,
-      response_b: null,
-    });
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Upload failed." };
-  }
+  const blockMedia = resolveAllBlockMedia(formData, {
+    guideline: null,
+    item: null,
+    response_a: null,
+    response_b: null,
+  });
 
   const { error } = await supabase
     .from("practice_tasks")
@@ -206,12 +152,7 @@ export async function updatePracticeTask(
     String(formData.get("existingBlocks") ?? "{}"),
   ) as Record<BlockKey, AdminPracticeTaskContentBlock | null>;
 
-  let blockMedia: Record<BlockKey, AdminCaseStudyMediaItem[]>;
-  try {
-    blockMedia = await resolveAllBlockMedia(supabase, newId, formData, existingBlocks);
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Upload failed." };
-  }
+  const blockMedia = resolveAllBlockMedia(formData, existingBlocks);
 
   const { error } = await supabase
     .from("practice_tasks")

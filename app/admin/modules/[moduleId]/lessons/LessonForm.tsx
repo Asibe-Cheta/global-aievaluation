@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { createLesson, updateLesson } from "@/lib/actions/admin-lessons";
 import { isRedirectError } from "@/lib/is-redirect-error";
 import type { AdminLessonRow } from "@/lib/admin/queries";
 import StringListEditor from "../../../StringListEditor";
-import MiniCaseStudiesEditor, { type MiniCaseStudiesEditorHandle } from "./MiniCaseStudiesEditor";
-import ContentBlocksEditor, { type ContentBlocksEditorHandle } from "./ContentBlocksEditor";
+import MiniCaseStudiesEditor from "./MiniCaseStudiesEditor";
+import ContentBlocksEditor from "./ContentBlocksEditor";
 import BoldTextarea from "../../../BoldTextarea";
 
 const inputClass =
@@ -42,8 +42,6 @@ export default function LessonForm({
 
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const caseStudiesRef = useRef<MiniCaseStudiesEditorHandle>(null);
-  const contentBlocksRef = useRef<ContentBlocksEditorHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,18 +58,6 @@ export default function LessonForm({
     formData.set("miniCaseStudies", JSON.stringify(miniCaseStudies));
     formData.set("keyTakeaways", JSON.stringify(keyTakeaways));
     formData.set("sortOrder", sortOrder);
-
-    const pendingMedia = caseStudiesRef.current?.getPendingMedia() ?? {};
-    for (const [caseId, files] of Object.entries(pendingMedia)) {
-      files.image.forEach((file, i) => formData.set(`case_${caseId}_image_${i}`, file));
-      files.video.forEach((file, i) => formData.set(`case_${caseId}_video_${i}`, file));
-      files.audio.forEach((file, i) => formData.set(`case_${caseId}_audio_${i}`, file));
-    }
-
-    const pendingBlockMedia = contentBlocksRef.current?.getPendingMedia() ?? {};
-    for (const [blockId, { type, file }] of Object.entries(pendingBlockMedia)) {
-      formData.set(`content_${blockId}_${type}`, file);
-    }
 
     try {
       const result = isEdit
@@ -143,7 +129,7 @@ export default function LessonForm({
       <div>
         <label className={sectionLabelClass}>Content Blocks</label>
         <ContentBlocksEditor
-          ref={contentBlocksRef}
+          lessonId={id || "new"}
           blocks={content}
           onChange={setContent}
         />
@@ -152,7 +138,7 @@ export default function LessonForm({
       <div>
         <label className={sectionLabelClass}>Mini Case Studies</label>
         <MiniCaseStudiesEditor
-          ref={caseStudiesRef}
+          lessonId={id || "new"}
           caseStudies={miniCaseStudies}
           onChange={setMiniCaseStudies}
         />

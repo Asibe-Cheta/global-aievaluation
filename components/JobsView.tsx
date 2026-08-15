@@ -147,20 +147,12 @@ export default function JobsView({ stats, jobs, onBack, backLabel = "Back to AI 
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => {
-                if (setActiveTab) setActiveTab("practice_tasks");
+                if (setActiveTab) setActiveTab("practice_beginner");
               }}
               className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs hover:shadow-sm"
             >
               <span>Practice Tests</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => {
-                if (setActiveTab) setActiveTab("exam_practice");
-              }}
-              className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer"
-            >
-              Exams
             </button>
           </div>
         </div>
@@ -361,7 +353,7 @@ export default function JobsView({ stats, jobs, onBack, backLabel = "Back to AI 
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() => {
-                                  if (setActiveTab) setActiveTab("practice_tasks");
+                                  if (setActiveTab) setActiveTab("practice_beginner");
                                 }}
                                 className="font-bold py-2 px-3 rounded-lg text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer transition-all bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-150/40 dark:border-emerald-900/30"
                               >

@@ -122,9 +122,8 @@ export default function PracticeTaskForm({
     for (const key of BLOCK_KEYS) {
       const pending = mediaState[key];
       if (!pending) continue;
-      if (pending.file && pending.type) {
-        const capType = pending.type[0].toUpperCase() + pending.type.slice(1);
-        formData.set(`${key}${capType}`, pending.file);
+      if (pending.media) {
+        formData.set(`${key}Media`, JSON.stringify(pending.media));
       }
       if (pending.removeExisting) {
         formData.set(`${key}RemoveMedia`, "true");
@@ -216,7 +215,7 @@ export default function PracticeTaskForm({
           <label className={labelClass}>Guideline / Rubric</label>
           <BoldTextarea className={inputClass} rows={2} value={guidelineText} onChange={setGuidelineText} />
           <div className="mt-2">
-            <MediaClipUpload label="reference media" existing={existingBlocks.guideline?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, guideline: s }))} />
+            <MediaClipUpload bucket="exam-media" pathPrefix={`${id || "new"}/guideline`} label="reference media" existing={existingBlocks.guideline?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, guideline: s }))} />
           </div>
         </div>
 
@@ -224,7 +223,7 @@ export default function PracticeTaskForm({
           <label className={labelClass}>Prompt / Item</label>
           <BoldTextarea className={inputClass} rows={2} value={itemText} onChange={setItemText} />
           <div className="mt-2">
-            <MediaClipUpload label="item media" existing={existingBlocks.item?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, item: s }))} />
+            <MediaClipUpload bucket="exam-media" pathPrefix={`${id || "new"}/item`} label="item media" existing={existingBlocks.item?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, item: s }))} />
           </div>
         </div>
 
@@ -232,7 +231,7 @@ export default function PracticeTaskForm({
           <label className={labelClass}>Response {hasResponseB && "A"}</label>
           <BoldTextarea className={inputClass} rows={2} value={responseAText} onChange={setResponseAText} />
           <div className="mt-2">
-            <MediaClipUpload label="response media" existing={existingBlocks.response_a?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, response_a: s }))} />
+            <MediaClipUpload bucket="exam-media" pathPrefix={`${id || "new"}/response_a`} label="response media" existing={existingBlocks.response_a?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, response_a: s }))} />
           </div>
         </div>
 
@@ -246,7 +245,7 @@ export default function PracticeTaskForm({
               <label className={labelClass}>Response B</label>
               <BoldTextarea className={inputClass} rows={2} value={responseBText} onChange={setResponseBText} />
               <div className="mt-2">
-                <MediaClipUpload label="response B media" existing={existingBlocks.response_b?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, response_b: s }))} />
+                <MediaClipUpload bucket="exam-media" pathPrefix={`${id || "new"}/response_b`} label="response B media" existing={existingBlocks.response_b?.media?.[0]} onChange={(s) => setMediaState((p) => ({ ...p, response_b: s }))} />
               </div>
             </>
           )}
