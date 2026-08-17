@@ -19,13 +19,10 @@ export async function POST(req: NextRequest) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn(
-      "GEMINI_API_KEY environment variable is missing. Using intelligent default parser fallback.",
-    );
+    console.warn("GEMINI_API_KEY environment variable is missing.");
     return NextResponse.json({
       success: false,
-      warning: "Gemini API Key missing",
-      profile: getFallbackProfile(fileName || "CV Document"),
+      error: "Resume parsing is temporarily unavailable. Please fill in your profile manually.",
     });
   }
 
@@ -104,26 +101,7 @@ export async function POST(req: NextRequest) {
     console.error("Error parsing resume with Gemini:", error);
     return NextResponse.json({
       success: false,
-      error: error.message || "Failed to parse document",
-      profile: getFallbackProfile(fileName || "Uploaded Resume"),
+      error: error.message || "Failed to parse document. Please fill in your profile manually.",
     });
   }
-}
-
-// Heuristic fallback for CV parsing when Gemini is offline or API Key is missing
-function getFallbackProfile(fileName: string) {
-  const nameBase = fileName
-    .split(".")[0]
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-  return {
-    name: nameBase,
-    education: "Bachelor's Degree in Analytical Science",
-    workExperience: "2 years of professional data analysis and content audit roles",
-    aiExperience: "Self-trained prompt designer, familiar with instruction conformity checks",
-    programmingKnowledge: "Intermediate Python script review and formatting verification",
-    languages: "English (Native)",
-    remoteExperience: "Experienced with remote autonomous work settings and deliverables",
-    goals: "Qualify for high-priority specialized reasoning model contracts",
-  };
 }

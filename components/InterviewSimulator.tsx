@@ -5,7 +5,7 @@ import {
   ChevronRight, ArrowRight, CornerDownRight, Clock, CheckCircle2,
   AlertTriangle, RotateCcw, Check, ArrowLeft, BarChart2, Star,
   TrendingUp, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronUp,
-  Volume2, VolumeX, Mic, MicOff, Upload, FileText
+  Volume2, VolumeX, Mic, MicOff, Upload, FileText, Loader2
 } from "lucide-react";
 import { UserStats } from "../types";
 import { getInterviewCreditBalance, startInterviewSession } from "../lib/actions/interviewCredits";
@@ -309,6 +309,7 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
   const [dragActive, setDragActive] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [parsingProgress, setParsingProgress] = useState(0);
+  const [parseError, setParseError] = useState<string | null>(null);
   const [isFormExpanded, setIsFormExpanded] = useState(false);
 
   // Active Interview State
@@ -334,6 +335,7 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
   // Final Report & Replays
   const [reportScore, setReportScore] = useState(0);
   const [reportData, setReportData] = useState<any>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
   const [expandedReplayIndex, setExpandedReplayIndex] = useState<number | null>(null);
 
   // Past interview history — shown on the domain-selection screen so a
@@ -695,10 +697,18 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
     }
   };
 
+  // On any parse failure, this used to silently fill the profile with a
+  // fabricated-but-plausible-sounding fallback (either a keyword-matched
+  // guess from raw binary bytes read as text, or a flat-out hardcoded
+  // profile) with no indication to the candidate that it wasn't real. That
+  // fake data then fed straight into interview questions and the report.
+  // Now: a real failure is a real failure — show it, and let the candidate
+  // fill in their actual details in the manual form below.
   const handleCVFile = (file: File) => {
     setUploadedFile(file);
     setIsParsing(true);
     setParsingProgress(15);
+    setParseError(null);
 
     const progressInterval = setInterval(() => {
       setParsingProgress(prev => {
@@ -710,6 +720,15 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
       });
     }, 120);
 
+    const failParsing = (message: string) => {
+      clearInterval(progressInterval);
+      setParsingProgress(100);
+      setIsParsing(false);
+      setUploadedFile(null);
+      setParseError(message);
+      setIsFormExpanded(true);
+    };
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -717,8 +736,6 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
         const mimeType = file.type || "application/octet-stream";
         const base64Data = dataUrl.split(",")[1] || "";
 
-        console.log("Sending CV to backend for Gemini extraction:", file.name, mimeType);
-        
         const response = await fetch("/api/parse-resume", {
           method: "POST",
           headers: {
@@ -744,139 +761,17 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
           return;
         }
 
-        // The server's own catch block always attaches a `profile` even on
-        // failure — but it's derived purely from the filename (e.g. "My CV
-        // 3.pdf" -> "My CV 3"), not the document content. Treat any
-        // `success: false` as a real failure and fall through to the local
-        // text-scanning parser below, which at least reads the actual CV
-        // text, instead of silently accepting that filename-only guess.
-        throw new Error(result.error || result.warning || "Failed to parse profile");
-
+        failParsing(
+          result.error || "We couldn't automatically read that file. Please fill in your profile details manually below.",
+        );
       } catch (err) {
-        console.error("Backend parsing error, falling back to local text scanner:", err);
-        
-        // Fail-safe local client-side parser
-        const textReader = new FileReader();
-        textReader.onload = (evt) => {
-          const text = (evt.target?.result as string) || "";
-          const lowerText = text.toLowerCase();
-          
-          let parsedName = stats.displayName || file.name.split(".")[0].replace(/[-_]/g, " ");
-          parsedName = parsedName.replace(/\b\w/g, c => c.toUpperCase());
-          
-          // Determine education
-          let parsedEdu = "Bachelor of Science in General Science";
-          if (lowerText.includes("phd") || lowerText.includes("ph.d") || lowerText.includes("doctorate")) {
-            parsedEdu = "Ph.D. / Doctorate in Cognitive Science or Engineering";
-          } else if (lowerText.includes("master") || lowerText.includes("m.s.") || lowerText.includes("m.a.") || lowerText.includes("ms ") || lowerText.includes("mba")) {
-            parsedEdu = "Master's Degree in computational or analytical field";
-          } else if (lowerText.includes("bachelor") || lowerText.includes("b.s.") || lowerText.includes("b.a.")) {
-            parsedEdu = "Bachelor's Degree in Technical Writing or Computer Science";
-          } else if (lowerText.includes("university") || lowerText.includes("college") || lowerText.includes("school")) {
-            parsedEdu = "University undergraduate degree";
-          }
-
-          // Extract work experience based on content keywords
-          let parsedWork = "2 years of professional data review and content validation";
-          if (lowerText.includes("manager") || lowerText.includes("lead") || lowerText.includes("scrum") || lowerText.includes("agile")) {
-            parsedWork = "3-5 years of project leadership, Scrum management, or quality assurance coordination";
-          } else if (lowerText.includes("developer") || lowerText.includes("engineer") || lowerText.includes("programmer") || lowerText.includes("coding")) {
-            parsedWork = "3 years as a Software Developer and technical code quality auditor";
-          } else if (lowerText.includes("writer") || lowerText.includes("editor") || lowerText.includes("content") || lowerText.includes("translator")) {
-            parsedWork = "2.5 years of technical writing, structural copy-editing, and translation";
-          }
-
-          // Extract AI/RLHF experience
-          let parsedAI = "Familiarity with general prompt engineering and instruction-following metrics";
-          const aiKeywords: string[] = [];
-          if (lowerText.includes("rlhf") || lowerText.includes("reinforcement learning")) aiKeywords.push("RLHF evaluation");
-          if (lowerText.includes("prompt") || lowerText.includes("instruction following")) aiKeywords.push("prompt engineering");
-          if (lowerText.includes("red-team") || lowerText.includes("red team") || lowerText.includes("safety") || lowerText.includes("jailbreak")) aiKeywords.push("safety red-teaming");
-          if (lowerText.includes("fine-tune") || lowerText.includes("sft") || lowerText.includes("supervised")) aiKeywords.push("SFT model tuning");
-          if (lowerText.includes("annotation") || lowerText.includes("labeling") || lowerText.includes("tagging")) aiKeywords.push("content annotation");
-
-          if (aiKeywords.length > 0) {
-            parsedAI = `Experienced in ${aiKeywords.join(", ")}`;
-          }
-
-          // Extract programming knowledge level
-          let parsedProg = "Basic scripting knowledge & markdown validation";
-          const codingSkills: string[] = [];
-          if (lowerText.includes("python")) codingSkills.push("Python");
-          if (lowerText.includes("javascript") || lowerText.includes("js")) codingSkills.push("JavaScript");
-          if (lowerText.includes("typescript") || lowerText.includes("ts")) codingSkills.push("TypeScript");
-          if (lowerText.includes("sql") || lowerText.includes("database") || lowerText.includes("postgres")) codingSkills.push("SQL");
-
-          if (codingSkills.length > 0) {
-            parsedProg = `Proficient in ${codingSkills.join(", ")}`;
-          }
-
-          // Extract foreign languages spoken
-          let parsedLang = "English (Native)";
-          const langKeywords: string[] = [];
-          if (lowerText.includes("spanish") || lowerText.includes("español")) langKeywords.push("Spanish");
-          if (lowerText.includes("french") || lowerText.includes("français")) langKeywords.push("French");
-          if (lowerText.includes("german") || lowerText.includes("deutsch")) langKeywords.push("German");
-
-          if (langKeywords.length > 0) {
-            parsedLang = `English (Native), ${langKeywords.join(", ")}`;
-          }
-
-          let parsedGoals = "Secure long-context evaluation projects and specialize in complex reasoning model QA";
-          if (codingSkills.length > 0) {
-            parsedGoals = "Qualify for senior-tier technical coding and system prompt validation roles ($45+/hr)";
-          }
-
-          clearInterval(progressInterval);
-          setParsingProgress(100);
-          setIsParsing(false);
-
-          setProfile({
-            name: parsedName,
-            education: parsedEdu,
-            workExperience: parsedWork,
-            aiExperience: parsedAI,
-            programmingKnowledge: parsedProg,
-            languages: parsedLang,
-            remoteExperience: lowerText.includes("remote") ? "3+ years of autonomous remote work and distributed teamwork" : "Experienced with autonomous, self-directed remote workloads",
-            goals: parsedGoals
-          });
-        };
-
-        textReader.onerror = () => {
-          clearInterval(progressInterval);
-          setParsingProgress(100);
-          setIsParsing(false);
-          setProfile({
-            name: file.name.split(".")[0].replace(/[-_]/g, " "),
-            education: "Bachelor's Degree",
-            workExperience: "2 years of professional content review and technical writing",
-            aiExperience: "Self-taught prompt engineering & general alignment studies",
-            programmingKnowledge: "Intermediate Python script debugging & code verification",
-            languages: "English (Native)",
-            remoteExperience: "Experienced in self-managed remote delivery schedules",
-            goals: "Transition into high-quality professional AI evaluation contracts"
-          });
-        };
-
-        textReader.readAsText(file);
+        console.error("CV parsing failed:", err);
+        failParsing("We couldn't automatically read that file. Please fill in your profile details manually below.");
       }
     };
 
     reader.onerror = () => {
-      clearInterval(progressInterval);
-      setParsingProgress(100);
-      setIsParsing(false);
-      setProfile({
-        name: file.name.split(".")[0].replace(/[-_]/g, " "),
-        education: "Bachelor's Degree",
-        workExperience: "2 years of professional content review and technical writing",
-        aiExperience: "Self-taught prompt engineering & general alignment studies",
-        programmingKnowledge: "Intermediate Python script debugging & code verification",
-        languages: "English (Native)",
-        remoteExperience: "Experienced in self-managed remote delivery schedules",
-        goals: "Transition into high-quality professional AI evaluation contracts"
-      });
+      failParsing("We couldn't read that file. Please fill in your profile details manually below.");
     };
 
     // Read CV file as data URL to handle binary files (PDF/docx) seamlessly
@@ -1247,138 +1142,45 @@ Click the button below to generate your report.`
     }, 1200);
   };
 
-  // Helper: Grade the entire interview and generate report metrics
-  const handleGenerateReport = () => {
+  // Helper: Grade the entire interview via a real, transcript-grounded
+  // Gemini call (app/api/interview-report) — this used to be a local
+  // keyword-count formula dressed up as an "AI report," which is exactly
+  // what read as hallucinated/fake to candidates. No local fallback report
+  // on failure — show a real error and let them retry instead.
+  const handleGenerateReport = async () => {
     if (voiceMode === "live") {
       intentionalDisconnectRef.current = true;
       live.disconnect();
     }
+    setReportError(null);
     setIsAnalyzing(true);
-    setTimeout(() => {
-      // Basic scoring algorithm
-      let finalScore = 50; // base score
 
-      // Check Phase 4 choices: Correct choice is Model B (present tense compliance)
-      const p4Correct = p4SelectedModel === "B";
-      if (p4Correct) finalScore += 20;
-      else finalScore += 5;
+    const roleName = ROLES.find(r => r.id === selectedRole)?.name ?? "AI Evaluator";
+    const transcript = chatHistory.map(({ sender, text, isChallenge }) => ({ sender, text, isChallenge }));
 
-      // Ratings accuracy: Model B should be higher than Model A
-      const ratingAccurate = p4Ratings.B > p4Ratings.A;
-      if (ratingAccurate) finalScore += 5;
-
-      // Rationale grading: length & keywords
-      const rationaleLen = p4Rationale.trim().split(/\s+/).filter(Boolean).length;
-      if (rationaleLen >= 20) finalScore += 5;
-      if (p4Rationale.toLowerCase().includes("negative constraint")) finalScore += 5;
-      if (p4Rationale.toLowerCase().includes("present tense")) finalScore += 5;
-
-      // Keyword density in other answers. Live mode never populated
-      // userAnswers per-phase (no more tool calls to do that bookkeeping
-      // mid-call), so score off the candidate's side of the full live
-      // transcript instead — same keyword-matching logic either way.
-      let textLength = 0;
-      let matchedKeywordsCount = 0;
-      const allText =
-        voiceMode === "live"
-          ? chatHistory
-              .filter((m) => m.sender === "candidate")
-              .map((m) => m.text)
-              .join(" ")
-          : (Object.values(userAnswers) as Array<{ mainAnswer: string; challengeAnswer: string }>)
-              .map((a) => a.mainAnswer + " " + a.challengeAnswer)
-              .join(" ");
-      textLength = allText.split(/\s+/).filter(Boolean).length;
-
-      const criticalKeywords = [
-        "rlhf", "sft", "reward model", "alignment", "calibration", "rubric", "evidence", "guidelines",
-        "contradiction", "recency", "compliance", "optimization", "suboptimal", "negative constraint"
-      ];
-
-      criticalKeywords.forEach(kw => {
-        if (allText.toLowerCase().includes(kw)) matchedKeywordsCount++;
+    try {
+      const response = await fetch("/api/interview-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roleName,
+          profile,
+          transcript,
+          phase4: { selectedModel: p4SelectedModel, ratings: p4Ratings, rationale: p4Rationale },
+        }),
       });
+      const result = await response.json();
 
-      // Cap text length bonus
-      finalScore += Math.min(10, Math.round(textLength / 50));
-      // Keyword matches bonus
-      finalScore += Math.min(10, matchedKeywordsCount);
-
-      // final limit check
-      finalScore = Math.min(98, Math.max(45, finalScore));
-
-      // Competency scores
-      const compScores = {
-        communication: Math.min(99, 70 + Math.min(28, Math.round(textLength / 12))),
-        instructionFollowing: p4Correct ? 95 : 55,
-        accuracyEvaluation: p4Correct && ratingAccurate ? 92 : 60,
-        contextTracking: allText.toLowerCase().includes("recency") || allText.toLowerCase().includes("latest") || allText.toLowerCase().includes("most recent") ? 90 : 65,
-        reasoning: Math.min(96, 65 + matchedKeywordsCount * 3),
-        responseRanking: p4Ratings.B === 5 && p4Ratings.A <= 3 ? 95 : p4Ratings.B > p4Ratings.A ? 80 : 50,
-        safetyAwareness: allText.toLowerCase().includes("safety") || allText.toLowerCase().includes("liability") ? 90 : 70,
-        professionalism: Math.min(98, 72 + Math.min(25, matchedKeywordsCount * 2)),
-        confidence: rationaleLen > 25 ? 92 : 75,
-        analyticalThinking: Math.min(95, 68 + matchedKeywordsCount * 2.5),
-        evidenceBasedDecisionMaking: allText.toLowerCase().includes("rubric") || allText.toLowerCase().includes("guidelines") || allText.toLowerCase().includes("evidence") ? 94 : 62
-      };
-
-      // Compile Strengths with deep personalization based on the uploaded CV profile
-      const strengths = ["Rigorous commitment to negative constraints in pairwise evaluations"];
-      
-      if (profile.workExperience && profile.workExperience.length > 5) {
-        strengths.push(`Successfully translated professional methodologies from your background ("${profile.workExperience}") into structured, high-effort audit answers.`);
-      }
-      if (profile.programmingKnowledge && (profile.programmingKnowledge.toLowerCase().includes("python") || profile.programmingKnowledge.toLowerCase().includes("javascript") || profile.programmingKnowledge.toLowerCase().includes("proficient"))) {
-        strengths.push(`Validated your technical skills ("${profile.programmingKnowledge}") by passing the high-complexity algorithmic utility calibration in Phase 3.`);
-      } else if (profile.programmingKnowledge) {
-        strengths.push(`Utilized your analytical background ("${profile.programmingKnowledge}") to provide highly systematic multi-turn logical critiques.`);
-      }
-      if (profile.goals && profile.goals.length > 5) {
-        strengths.push(`Aligned responses to your target objective to "${profile.goals}" with consistent evidence-based decision models.`);
+      if (!result.success || !result.report) {
+        setReportError(result.error || "Couldn't generate your report. Please try again.");
+        setIsAnalyzing(false);
+        return;
       }
 
-      if (compScores.communication >= 85 && !strengths.includes("Excellent text articulation and professional rationale length")) {
-        strengths.push("Excellent text articulation and professional rationale length");
-      }
-      if (compScores.contextTracking >= 80 && !strengths.includes("Strong grasp of recency-bias rules and multi-turn instruction updates")) {
-        strengths.push("Strong grasp of recency-bias rules and multi-turn instruction updates");
-      }
+      const { score, competencies, strengths, growthAreas, platforms } = result.report;
 
-      // Compile Weaknesses/Growth areas
-      const growthAreas = [];
-      if (!p4Correct) {
-        growthAreas.push({ 
-          topic: `Calibration discrepancy: ranking Model A's prose above Model B's strict constraint compliance (which conflicts with your target goals to "${profile.goals}")`, 
-          lesson: "p2_m1_l2 (Pairwise evaluation & negative constraints)" 
-        });
-      }
-      if (compScores.contextTracking < 80) {
-        growthAreas.push({ topic: "Context tracking & multi-turn state updates", lesson: "p2_m1_l6 (Context Tracking & Information Retrieval)" });
-      }
-      if (compScores.accuracyEvaluation < 80) {
-        growthAreas.push({ topic: "Factual hallucination verification thresholds", lesson: "p2_m1_l4 (Hallucination Auditing & Fact-checking)" });
-      }
-      if (growthAreas.length === 0) {
-        growthAreas.push({ topic: "Advanced adversarial red-teaming safety checks & multi-lingual logic limits", lesson: "Part 4 (Expert Red-Teaming Syllabus)" });
-      }
-
-      // Platform predictions
-      const platformPredictions = [
-        { name: "Scale AI", score: Math.round(finalScore * 0.91 + 5), desc: finalScore >= 75 ? `Highly Ready - Excellent alignment with your background in "${profile.education.split("in")[1] || "computational logic"}".` : "Needs Study - Focus on accuracy checks." },
-        { name: "Outlier", score: Math.round(finalScore * 0.93 + 2), desc: finalScore >= 80 ? "Ready - Composes highly structured, elaborate essays." : "Partially Ready - Expand rationale justification length." },
-        { name: "Alignerr", score: Math.round(finalScore * 0.92 + 3), desc: finalScore >= 80 ? "Ready - Pristine logical constraint auditing." : "Needs Practice - Focus on edge case constraints." },
-        { name: "Invisible", score: Math.round(finalScore * 0.90 + 6), desc: finalScore >= 75 ? `Highly Ready - Exceptional workflow structure matching your experience in "${profile.remoteExperience}".` : "Partially Ready - Adhere closely to tone guides." },
-        { name: "Mercor", score: Math.round(finalScore * 0.94 + 3), desc: finalScore >= 80 ? "Highly Ready - Logical speed matches hiring standards." : "Needs Practice - Focus on reasoning constraints." },
-        { name: "Micro1", score: Math.round(finalScore * 0.95 + 4), desc: finalScore >= 80 ? "Ready - Demonstrates pristine guideline conformity." : "Partially Ready - Rubric tracking needs refinement." }
-      ];
-
-      setReportScore(finalScore);
-      setReportData({
-        competencies: compScores,
-        strengths,
-        growthAreas,
-        platforms: platformPredictions
-      });
+      setReportScore(score);
+      setReportData({ competencies, strengths, growthAreas, platforms });
       setInterviewStep("report");
       setIsAnalyzing(false);
 
@@ -1386,12 +1188,12 @@ Click the button below to generate your report.`
       // candidate from seeing their report, just log it.
       saveInterviewAttempt({
         roleId: selectedRole,
-        roleName: ROLES.find(r => r.id === selectedRole)?.name ?? "AI Evaluator",
-        score: finalScore,
-        competencies: compScores,
+        roleName,
+        score,
+        competencies,
         strengths,
         growthAreas,
-        platforms: platformPredictions,
+        platforms,
         transcript: chatHistory.map(({ sender, text }) => ({ sender, text })),
       })
         .then((result) => {
@@ -1404,8 +1206,12 @@ Click the button below to generate your report.`
         .catch((err) => console.error("Failed to save interview attempt:", err));
 
       // Post completion to main Academy stats
-      onComplete(finalScore, strengths, growthAreas.map(g => g.topic));
-    }, 2800);
+      onComplete(score, strengths, growthAreas.map((g: { topic: string }) => g.topic));
+    } catch (err) {
+      console.error("Failed to generate interview report:", err);
+      setReportError("Couldn't generate your report. Please check your connection and try again.");
+      setIsAnalyzing(false);
+    }
   };
 
   // Helper: Reset Interview State for retakes
@@ -1624,6 +1430,13 @@ Click the button below to generate your report.`
             )}
           </div>
 
+          {parseError && (
+            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-150 dark:border-amber-900/40 rounded-xl text-xs text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{parseError}</span>
+            </div>
+          )}
+
           {/* Interactive Drag & Drop Area */}
           <div
             onDragEnter={handleFileDrag}
@@ -1685,6 +1498,7 @@ Click the button below to generate your report.`
                   onClick={(e) => {
                     e.stopPropagation();
                     setUploadedFile(null);
+                    setParseError(null);
                   }}
                   className="text-[10px] font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-950/30 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                 >
@@ -2484,12 +2298,29 @@ Click the button below to generate your report.`
 
           {/* Report compile triggering footer */}
           {(voiceMode === "live" ? liveCallEnded && p4Submitted : chatHistory.length >= 10) && (
-            <div className="flex justify-center p-4 bg-white dark:bg-slate-900 border rounded-3xl animate-fade-in shadow-sm">
+            <div className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-slate-900 border rounded-3xl animate-fade-in shadow-sm">
+              {reportError && (
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold text-center max-w-sm">
+                  {reportError}
+                </p>
+              )}
               <button
                 onClick={handleGenerateReport}
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md cursor-pointer animate-pulse flex items-center gap-1.5 font-sans"
+                disabled={isAnalyzing}
+                className={`px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 font-sans disabled:opacity-70 disabled:cursor-not-allowed ${
+                  !isAnalyzing && !reportError ? "animate-pulse" : ""
+                }`}
               >
-                <Award className="w-4 h-4 shrink-0" /> Finalize Assessment & Generate Readiness Report
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 shrink-0 animate-spin" /> Generating Your Report...
+                  </>
+                ) : (
+                  <>
+                    <Award className="w-4 h-4 shrink-0" />
+                    {reportError ? "Try Again" : "Finalize Assessment & Generate Readiness Report"}
+                  </>
+                )}
               </button>
             </div>
           )}
