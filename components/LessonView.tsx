@@ -6,6 +6,19 @@ import {
 import { Lesson, UserStats, MiniCaseStudy } from "../types";
 import { renderLessonParagraph, renderFormattedText } from "./LessonContentRenderer";
 
+// Collapses single line breaks (e.g. pasted from a chat UI that puts each
+// sentence on its own line) into spaces so the text wraps naturally to the
+// card's full width, while still respecting intentional blank-line
+// paragraph breaks (two or more consecutive newlines).
+function normalizeResponseText(text: string): string {
+  const PARAGRAPH_MARK = "@@P@@";
+  return text
+    .replace(/\n{2,}/g, PARAGRAPH_MARK)
+    .replace(/\n/g, " ")
+    .split(PARAGRAPH_MARK)
+    .join("\n\n");
+}
+
 interface LessonViewProps {
   lesson: Lesson;
   stats: UserStats;
@@ -195,7 +208,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                       ? "bg-indigo-600 text-white" 
                       : caseSubmitted[cs.id]
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-350"
-                        : "bg-slate-50 text-slate-500 dark:bg-slate-800 hover:bg-slate-100"
+                        : "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-100"
                   }`}
                 >
                   {idx + 1}
@@ -222,16 +235,16 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                     </span>
                     <p className="text-xs text-slate-700 dark:text-slate-300 italic">{renderFormattedText(activeCase.scenario)}</p>
                     <div className="pt-2">
-                      <p className="text-[10px] text-slate-450 uppercase font-bold">User's Question:</p>
+                      <p className="text-[10px] text-slate-450 dark:text-slate-400 uppercase font-bold">User's Question:</p>
                       <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold">{renderFormattedText(activeCase.prompt)}</p>
                     </div>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-150 dark:border-slate-850 space-y-2">
-                    <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950 text-indigo-750 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                    <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950 text-indigo-750 dark:text-indigo-300 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
                       AI's Answer
                     </span>
-                    <pre className="text-xs text-slate-800 dark:text-slate-200 font-mono whitespace-pre-wrap p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg max-h-48 overflow-y-auto mt-1">
-                      {activeCase.response}
+                    <pre className="text-xs text-slate-800 dark:text-slate-200 font-mono whitespace-pre-wrap break-words p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg max-h-48 overflow-y-auto mt-1">
+                      {normalizeResponseText(activeCase.response)}
                     </pre>
                   </div>
                 </div>
@@ -306,7 +319,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                       placeholder="Explain why you chose this answer..."
                       value={caseRationales[activeCase.id] || ""}
                       onChange={(e) => setCaseRationales(prev => ({ ...prev, [activeCase.id]: e.target.value }))}
-                      className="w-full h-20 p-3 border border-slate-200 dark:border-slate-750 rounded-xl bg-slate-50 dark:bg-slate-900 text-xs focus:ring-1 focus:ring-indigo-500"
+                      className="w-full h-20 p-3 border border-slate-200 dark:border-slate-750 rounded-xl bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
                     ></textarea>
                   </div>
                 )}
@@ -384,7 +397,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                     </div>
 
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-1">Why is this correct?</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-450 dark:text-slate-400 mb-1">Why is this correct?</p>
                       <p className="text-xs text-slate-750 dark:text-slate-350 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                         {renderFormattedText(activeCase.explanation)}
                       </p>
@@ -410,7 +423,7 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                           }
                         }}
                         disabled={caseIndex === 0}
-                        className="text-xs font-bold text-slate-500 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                        className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white disabled:opacity-20 cursor-pointer"
                       >
                         &larr; Prev Case
                       </button>
