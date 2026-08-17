@@ -40,7 +40,7 @@ const TIER_ACCENT: Record<TierId, { text: string; ring: string; badge: string; b
     text: "text-slate-500 dark:text-slate-400",
     ring: "border-slate-100 dark:border-slate-850",
     badge: "bg-slate-500",
-    button: "bg-slate-950 hover:bg-slate-850 text-white dark:bg-slate-800 dark:hover:bg-slate-750",
+    button: "bg-indigo-600 hover:bg-indigo-700 text-white",
   },
   professional: {
     text: "text-indigo-600 dark:text-indigo-400",
@@ -387,7 +387,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
             <button
               onClick={handleBookCoaching}
               disabled={pendingAction !== null}
-              className="w-full px-5 py-3 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
+              className="w-full px-5 py-3 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
             >
               {pendingAction === "coaching" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Book Your Session
