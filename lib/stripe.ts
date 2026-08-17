@@ -17,15 +17,19 @@ export function getStripe(): Stripe {
 
 // One-time purchases: Starter, Professional (founding or regular price),
 // Career Accelerator (a 2-week program, sold as a one-time purchase like
-// Starter/Professional — pay once, keep access), and both AI credit
-// top-up packs.
+// Starter/Professional — pay once, keep access), both AI credit top-up
+// packs, and the 1-to-1 Coaching add-on. "coaching_session" is deliberately
+// not "tier_..." — it's a paid service, not a membership tier, and doesn't
+// change membership_tier (see recomputeMembershipTier in the Stripe
+// webhook, which only checks for "tier_..." product types).
 export type OneTimeProduct =
   | "tier_starter"
   | "tier_professional_founding"
   | "tier_professional_regular"
   | "tier_career_accelerator"
   | "credit_pack_a"
-  | "credit_pack_b";
+  | "credit_pack_b"
+  | "coaching_session";
 
 const ONE_TIME_PRICE_IDS: Record<OneTimeProduct, string | undefined> = {
   tier_starter: process.env.STRIPE_PRICE_STARTER,
@@ -37,6 +41,7 @@ const ONE_TIME_PRICE_IDS: Record<OneTimeProduct, string | undefined> = {
   tier_career_accelerator: process.env.STRIPE_PRICE_ACCELERATOR_MONTHLY,
   credit_pack_a: process.env.STRIPE_PRICE_CREDIT_PACK_A,
   credit_pack_b: process.env.STRIPE_PRICE_CREDIT_PACK_B,
+  coaching_session: process.env.STRIPE_PRICE_COACHING,
 };
 
 export function getOneTimePriceId(product: OneTimeProduct): string {

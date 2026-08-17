@@ -89,3 +89,36 @@ export const CREDIT_PACKS: CreditPack[] = [
   { id: "credit_pack_a", priceDisplay: "€5", sessions: 15 },
   { id: "credit_pack_b", priceDisplay: "€10", sessions: 35 },
 ];
+
+// A one-off paid add-on, not a membership tier — doesn't gate any in-app
+// feature or change membership_tier, it just records a purchase (see
+// "coaching_session" in lib/stripe.ts / lib/actions/billing.ts). Available
+// to any user regardless of their current tier.
+export interface CoachingOffer {
+  id: "coaching";
+  title: string;
+  tagline: string;
+  priceDisplay: string;
+  sessionDetails: string;
+  features: string[];
+  disclaimer: string;
+}
+
+export const COACHING_OFFER: CoachingOffer = {
+  id: "coaching",
+  title: "1-to-1 Coaching",
+  tagline: "Just Got Your Mercor Offer? Stuck On The Task?",
+  priceDisplay: "€120",
+  sessionDetails:
+    "2 hours with me, one-to-one, plus 14 days on WhatsApp. Limited slots each week.",
+  features: [
+    "You got the offer but don't know where to start. We get on a call and I walk you through it, step by step, on your actual task.",
+    "The guide doesn't make sense. We read it together and I show you what it is really asking, so you stop guessing.",
+    "You are scared of doing it wrong and losing it. I show you what a passing task actually looks like, so you submit with confidence.",
+    "You have no one to ask. For 14 days after, I am on WhatsApp while you work. Send me a screenshot and I will tell you if you are on track.",
+    "From someone actually doing this. I task on Mercor right now, so this is real experience, not theory.",
+    "If it does not help, you do not pay. Full refund if you still cannot make sense of your guide by the end of the session.",
+  ],
+  disclaimer:
+    "Independent coaching. Not affiliated with, endorsed by, or acting on behalf of Mercor or Outlier.",
+};

@@ -77,12 +77,14 @@ export type OneTimeCheckoutProduct =
   | "professional"
   | "career_accelerator"
   | "credit_pack_a"
-  | "credit_pack_b";
+  | "credit_pack_b"
+  | "coaching";
 
 async function resolveOneTimeProduct(product: OneTimeCheckoutProduct): Promise<OneTimeProduct> {
   if (product !== "professional") {
     if (product === "starter") return "tier_starter";
     if (product === "career_accelerator") return "tier_career_accelerator";
+    if (product === "coaching") return "coaching_session";
     return product;
   }
 

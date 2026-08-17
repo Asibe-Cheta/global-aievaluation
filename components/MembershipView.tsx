@@ -10,7 +10,7 @@ import {
 } from "../lib/actions/billing";
 import {
   TIERS, TIER_ORDER, CREDIT_PACKS, PROFESSIONAL_FOUNDING_PRICE_DISPLAY,
-  PROFESSIONAL_FOUNDING_LIMIT, type TierId,
+  PROFESSIONAL_FOUNDING_LIMIT, COACHING_OFFER, type TierId,
 } from "../lib/pricing";
 import { isRedirectError } from "../lib/is-redirect-error";
 
@@ -96,6 +96,9 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
 
   const handleBuyCreditPack = (packId: "credit_pack_a" | "credit_pack_b") =>
     runAction(packId, () => createOneTimeCheckout(packId, getPackQuantity(packId)));
+
+  const handleBookCoaching = () =>
+    runAction("coaching", () => createOneTimeCheckout("coaching"));
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12 animate-fade-in pb-24">
@@ -350,6 +353,48 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
           </div>
         </div>
       )}
+
+      {/* 1-to-1 Coaching add-on — a paid service, not a membership tier;
+          available to everyone regardless of current plan. */}
+      <div className="relative bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/10 dark:to-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-amber-200 dark:border-amber-900/40 mb-8 overflow-hidden">
+        <div className="absolute right-0 top-0 w-40 h-40 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-3">
+            <span className="inline-flex items-center gap-1.5 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+              <Users className="w-3 h-3" /> 1-to-1 Coaching
+            </span>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+              {COACHING_OFFER.tagline}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+              {COACHING_OFFER.sessionDetails}
+            </p>
+            <ul className="space-y-2 pt-1">
+              {COACHING_OFFER.features.map((feat, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <Check className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                  <span>{feat}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[10px] text-slate-450 dark:text-slate-500 pt-2">
+              {COACHING_OFFER.disclaimer}
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-amber-150 dark:border-amber-900/30 shadow-xs">
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{COACHING_OFFER.priceDisplay}</span>
+            <button
+              onClick={handleBookCoaching}
+              disabled={pendingAction !== null}
+              className="w-full px-5 py-3 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
+            >
+              {pendingAction === "coaching" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Book Your Session
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Feature Lock Notice */}
       <div className="bg-slate-50 dark:bg-slate-900/40 rounded-3xl p-6 sm:p-8 border border-slate-150 dark:border-slate-850">
