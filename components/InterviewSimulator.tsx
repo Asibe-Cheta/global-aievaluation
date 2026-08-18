@@ -1288,7 +1288,7 @@ Click the button below to generate your report.`
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             Choose Your Domain
           </h2>
-          <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
             Your domain determines the technical depth, scenario exercises (Phase 4 coding/general options), and score weighting standards.
           </p>
         </div>
@@ -1301,19 +1301,19 @@ Click the button below to generate your report.`
                 key={r.id}
                 onClick={() => setSelectedRole(r.id)}
                 className={`text-left p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                  isSelected 
-                    ? "border-indigo-600 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-md ring-2 ring-indigo-500/20 scale-[1.01]" 
-                    : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-slate-300 hover:shadow-sm"
+                  isSelected
+                    ? "border-indigo-600 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-md ring-2 ring-indigo-500/20 scale-[1.01]"
+                    : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
                 }`}
               >
                 <div className="space-y-1 w-full">
                   <div className="flex justify-between items-center">
                     <h3 className="text-xs font-black text-slate-900 dark:text-white">{r.name}</h3>
-                    <span className="text-[9px] bg-slate-105 text-slate-500 px-2 py-0.5 rounded font-mono font-bold">
+                    <span className="text-[9px] bg-slate-105 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded font-mono font-bold">
                       {r.level}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-normal">{r.description}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">{r.description}</p>
                 </div>
               </button>
             );
@@ -1322,7 +1322,7 @@ Click the button below to generate your report.`
 
         {!isLoadingPastAttempts && pastAttempts.length > 0 && (
           <div className="space-y-3 pt-2">
-            <span className="text-[10px] font-mono font-bold uppercase text-slate-450 block">
+            <span className="text-[10px] font-mono font-bold uppercase text-slate-450 dark:text-slate-400 block">
               Past Interviews
             </span>
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl divide-y divide-slate-100 dark:divide-slate-850 overflow-hidden">
@@ -1330,7 +1330,7 @@ Click the button below to generate your report.`
                 <div key={a.id} className="flex items-center justify-between gap-3 p-3.5">
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{a.roleName}</p>
-                    <p className="text-[10px] text-slate-450 mt-0.5">
+                    <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">
                       {new Date(a.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                       {" · "}Score: <span className="font-bold text-indigo-600 dark:text-indigo-400">{a.score}</span>
                     </p>
@@ -1362,9 +1362,9 @@ Click the button below to generate your report.`
             disabled={!selectedRole}
             onClick={() => setInterviewStep("setup_profile")}
             className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
-              selectedRole 
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow" 
-                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+              selectedRole
+                ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow"
+                : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-550 cursor-not-allowed"
             }`}
           >
             Next: Candidate Profile <ChevronRight className="w-4 h-4" />
