@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { normalizeContentBlocks } from "@/lib/content-blocks";
+import type { PracticeDomainId } from "@/lib/practice-domains";
 
 export interface AdminJobRow {
   id: string;
@@ -168,6 +169,7 @@ export interface AdminPracticeTaskRow {
   task_type: string;
   category: string | null;
   difficulty: "beginner" | "intermediate" | "expert";
+  domain: PracticeDomainId;
   sort_order: number;
   guideline: AdminPracticeTaskContentBlock;
   item: AdminPracticeTaskContentBlock;

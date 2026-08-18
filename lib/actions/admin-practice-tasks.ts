@@ -9,6 +9,7 @@ import type {
   AdminPracticeTaskOption,
 } from "@/lib/admin/queries";
 import { validateSlugId } from "@/lib/admin/validateSlugId";
+import type { PracticeDomainId } from "@/lib/practice-domains";
 
 const BUCKET = "exam-media";
 const BLOCK_KEYS = ["guideline", "item", "response_a", "response_b"] as const;
@@ -55,6 +56,7 @@ function readFields(formData: FormData) {
       | "beginner"
       | "intermediate"
       | "expert",
+    domain: String(formData.get("domain") ?? "generalist") as PracticeDomainId,
     sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
     guidelineText: String(formData.get("guidelineText") ?? ""),
     itemText: String(formData.get("itemText") ?? ""),
@@ -87,6 +89,7 @@ function toRow(
     task_type: fields.taskType,
     category: fields.category || null,
     difficulty: fields.difficulty,
+    domain: fields.domain,
     sort_order: fields.sortOrder,
     guideline: { text: fields.guidelineText, media: blockMedia.guideline },
     item: { text: fields.itemText, media: blockMedia.item },

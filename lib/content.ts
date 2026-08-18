@@ -83,6 +83,7 @@ export async function getModuleCurriculum(
               taskType: t.task_type,
               category: t.category ?? undefined,
               difficulty: t.difficulty ?? "beginner",
+              domain: t.domain ?? "generalist",
               guideline: t.guideline ?? { text: "", media: [] },
               item: t.item ?? { text: "", media: [] },
               responseA: t.response_a ?? { text: "", media: [] },

@@ -1,3 +1,5 @@
+import type { PracticeDomainId } from "./lib/practice-domains";
+
 export enum Rank {
   TRAINEE = "Trainee Evaluator",
   JUNIOR = "Junior Evaluator",
@@ -113,6 +115,7 @@ export interface PracticeTask {
   taskType: string;
   category?: string;
   difficulty: "beginner" | "intermediate" | "expert";
+  domain: PracticeDomainId;
   guideline: PracticeTaskContentBlock;
   item: PracticeTaskContentBlock;
   responseA: PracticeTaskContentBlock;

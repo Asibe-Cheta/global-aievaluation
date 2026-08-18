@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import type { PracticeTask, PracticeTaskSubmission, UserStats } from "@/types";
 import { renderFormattedText } from "./LessonContentRenderer";
+import type { PracticeDomainId } from "@/lib/practice-domains";
 
 function ContentBlock({
   label,
@@ -250,12 +251,6 @@ function TaskCard({
   );
 }
 
-const PREVIOUS_LEVEL_TITLE = {
-  beginner: null,
-  intermediate: "Beginner Practice",
-  expert: "Intermediate Practice",
-} as const;
-
 export default function PracticeTaskRunner({
   tasks,
   existingSubmissions,
@@ -263,9 +258,10 @@ export default function PracticeTaskRunner({
   onBack,
   isPaidUser,
   onRequireUpgrade,
+  domain,
+  domainLabel,
   filter,
-  progressionUnlocked,
-  onGoToPreviousLevel,
+  isUnlocked,
 }: {
   tasks: PracticeTask[];
   existingSubmissions: Record<string, PracticeTaskSubmission>;
@@ -273,11 +269,12 @@ export default function PracticeTaskRunner({
   onBack: () => void;
   isPaidUser: boolean;
   onRequireUpgrade: () => void;
+  domain: PracticeDomainId;
+  domainLabel: string;
   filter: "beginner" | "intermediate" | "expert";
-  progressionUnlocked: boolean;
-  onGoToPreviousLevel: () => void;
+  isUnlocked: boolean;
 }) {
-  const filtered = tasks.filter((t) => t.difficulty === filter);
+  const filtered = tasks.filter((t) => t.domain === domain && t.difficulty === filter);
 
   // One task shown at a time — the next one only unlocks (and its timer
   // only starts) once the current one is submitted, rather than every task
@@ -328,24 +325,23 @@ export default function PracticeTaskRunner({
     );
   }
 
-  if (!progressionUnlocked) {
-    const previousTitle = PREVIOUS_LEVEL_TITLE[filter];
+  if (!isUnlocked) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 border-2 border-slate-200 dark:border-slate-800 shadow-lg text-center max-w-3xl mx-auto space-y-6">
         <div className="inline-flex p-4.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
           <Lock className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          {LEVEL_COPY[filter].title} Locked
+          {domainLabel} / {LEVEL_COPY[filter].title} Locked
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
-          Finish every task in {previousTitle} first to unlock {LEVEL_COPY[filter].title}.
+          Finish every task in the previous level of {domainLabel} first to unlock {LEVEL_COPY[filter].title}.
         </p>
         <button
-          onClick={onGoToPreviousLevel}
+          onClick={onBack}
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
         >
-          Go to {previousTitle}
+          Back to Real World Practice
         </button>
       </div>
     );
@@ -357,12 +353,12 @@ export default function PracticeTaskRunner({
         onClick={onBack}
         className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to AI Career Hub
+        <ArrowLeft className="w-4 h-4" /> Back to Real World Practice
       </button>
 
       <div className="space-y-1">
         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          {LEVEL_COPY[filter].title}
+          {domainLabel} / {LEVEL_COPY[filter].title}
         </h2>
         <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
           {LEVEL_COPY[filter].description}

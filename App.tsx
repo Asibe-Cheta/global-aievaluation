@@ -71,6 +71,9 @@ import Part2Lesson6View from "./components/Part2Lesson6View";
 import Part2Lesson7View from "./components/Part2Lesson7View";
 import MembershipView from "./components/MembershipView";
 import AcceleratorHubView from "./components/AcceleratorHubView";
+import RealWorldPracticeOverview from "./components/RealWorldPracticeOverview";
+import PracticeLevelModal from "./components/PracticeLevelModal";
+import { PRACTICE_DOMAINS, getPracticeDomainLabel, type PracticeDomainId } from "./lib/practice-domains";
 
 function applySkillBoosts(
   skills: UserStats["skills"],
@@ -136,7 +139,7 @@ export default function App({
   initialStats,
   isAdmin,
 }: AppProps) {
-  const practiceTabs = ["practice_beginner", "practice_intermediate", "practice_expert"];
+  const practiceTabs = ["practice_overview", "practice_run"];
   // Restore the last section the user was on so a refresh doesn't always
   // bounce back to the dashboard.
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -166,6 +169,22 @@ export default function App({
   const [expandedModuleCardIds, setExpandedModuleCardIds] = useState<Set<string>>(new Set());
   const [interviewInitialRoleId, setInterviewInitialRoleId] = useState<string | null>(null);
   const [interviewJobTitle, setInterviewJobTitle] = useState<string | null>(null);
+
+  // Real World Practice: which domain is highlighted/active in the sidebar
+  // (used both while the level modal is open and during an active run),
+  // whether the level-selection modal is open, and the domain/level of the
+  // practice run currently in progress. Domain/level are restored on
+  // refresh the same way activeTab is, so a mid-run reload doesn't bounce
+  // the user back to the overview page.
+  const [selectedPracticeDomain, setSelectedPracticeDomain] = useState<PracticeDomainId | null>(() => {
+    if (typeof window === "undefined") return null;
+    return (localStorage.getItem("ae-academy-practice-domain") as PracticeDomainId | null) ?? null;
+  });
+  const [practiceModalOpen, setPracticeModalOpen] = useState(false);
+  const [practiceLevel, setPracticeLevel] = useState<"beginner" | "intermediate" | "expert" | null>(() => {
+    if (typeof window === "undefined") return null;
+    return (localStorage.getItem("ae-academy-practice-level") as "beginner" | "intermediate" | "expert" | null) ?? null;
+  });
 
   const activeModule = useMemo(() => {
     return (
@@ -233,6 +252,16 @@ export default function App({
     if (activePartId) localStorage.setItem("ae-academy-active-part-id", activePartId);
     else localStorage.removeItem("ae-academy-active-part-id");
   }, [activePartId]);
+
+  useEffect(() => {
+    if (selectedPracticeDomain) localStorage.setItem("ae-academy-practice-domain", selectedPracticeDomain);
+    else localStorage.removeItem("ae-academy-practice-domain");
+  }, [selectedPracticeDomain]);
+
+  useEffect(() => {
+    if (practiceLevel) localStorage.setItem("ae-academy-practice-level", practiceLevel);
+    else localStorage.removeItem("ae-academy-practice-level");
+  }, [practiceLevel]);
 
   // Apply dark class to body
   useEffect(() => {
@@ -451,21 +480,32 @@ export default function App({
 
   // Real World Practice pools tasks across every module rather than gating
   // per-module progress — access is gated by paid tier plus, within that,
-  // finishing every task in the previous difficulty level first.
+  // finishing every task in the previous difficulty level first, scoped
+  // per domain (finishing Beginner in Cybersecurity only unlocks
+  // Intermediate in Cybersecurity, not in every other domain).
   const allPracticeTasks = useMemo(
     () => moduleCurriculum.flatMap((m) => m.practiceTasks ?? []),
     [moduleCurriculum],
   );
 
-  const isPracticeLevelComplete = (level: "beginner" | "intermediate" | "expert") => {
-    const levelTasks = allPracticeTasks.filter((t) => t.difficulty === level);
+  const isPracticeLevelComplete = (
+    domain: PracticeDomainId,
+    level: "beginner" | "intermediate" | "expert",
+  ) => {
+    const levelTasks = allPracticeTasks.filter((t) => t.domain === domain && t.difficulty === level);
     // An empty level (no tasks published yet) can't block the next one.
     if (levelTasks.length === 0) return true;
     return levelTasks.every((t) => !!stats.practiceTaskSubmissions?.[t.id]);
   };
 
-  const isIntermediatePracticeUnlocked = isPracticeLevelComplete("beginner");
-  const isExpertPracticeUnlocked = isIntermediatePracticeUnlocked && isPracticeLevelComplete("intermediate");
+  const isDomainLevelUnlocked = (
+    domain: PracticeDomainId,
+    level: "beginner" | "intermediate" | "expert",
+  ) => {
+    if (level === "beginner") return true;
+    if (level === "intermediate") return isPracticeLevelComplete(domain, "beginner");
+    return isPracticeLevelComplete(domain, "beginner") && isPracticeLevelComplete(domain, "intermediate");
+  };
 
   const getAvatarConfig = (avatarId?: string) => {
     const PRESET_AVATARS = [
@@ -604,6 +644,8 @@ export default function App({
               id="tab-btn-practice-group"
               onClick={() => {
                 setPracticeGroupOpen((v) => !v);
+                setActiveTab("practice_overview");
+                setActiveLessonId(null);
               }}
               className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                 practiceTabs.includes(activeTab)
@@ -629,30 +671,36 @@ export default function App({
 
             {practiceGroupOpen && (
               <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-slate-850 ml-4">
-                {(
-                  [
-                    { tab: "practice_beginner", label: "Beginner", id: "tab-btn-practice-beginner", progressionUnlocked: true },
-                    { tab: "practice_intermediate", label: "Intermediate", id: "tab-btn-practice-intermediate", progressionUnlocked: isIntermediatePracticeUnlocked },
-                    { tab: "practice_expert", label: "Expert", id: "tab-btn-practice-expert", progressionUnlocked: isExpertPracticeUnlocked },
-                  ] as const
-                ).map((level) => (
+                {PRACTICE_DOMAINS.map((domain) => (
                   <button
-                    key={level.tab}
-                    id={level.id}
+                    key={domain.id}
+                    id={`tab-btn-practice-domain-${domain.id}`}
+                    disabled={domain.comingSoon}
                     onClick={() => {
-                      setActiveTab(level.tab);
+                      if (domain.comingSoon) return;
+                      setSelectedPracticeDomain(domain.id);
+                      setActiveTab("practice_overview");
                       setActiveLessonId(null);
+                      setPracticeModalOpen(true);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeTab === level.tab
-                        ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                        : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                      domain.comingSoon
+                        ? "text-slate-350 dark:text-slate-600 cursor-not-allowed opacity-60"
+                        : selectedPracticeDomain === domain.id
+                          ? "bg-[#4F46E5] text-white shadow-sm font-bold cursor-pointer"
+                          : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850 cursor-pointer"
                     }`}
                   >
-                    <span>{level.label}</span>
-                    {(!isSimulationPracticeAccessible(stats.membershipTier) || !level.progressionUnlocked) && (
-                      <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                    <span>{domain.label}</span>
+                    {domain.comingSoon ? (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0">
+                        Soon
+                      </span>
+                    ) : (
+                      !isSimulationPracticeAccessible(stats.membershipTier) && (
+                        <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                      )
                     )}
                   </button>
                 ))}
@@ -870,12 +918,16 @@ export default function App({
                     ? "AI Career Hub"
                     : activeTab === "modules"
                       ? "Learning Syllabus"
-                      : activeTab === "practice_beginner"
-                        ? "Beginner Practice"
-                        : activeTab === "practice_intermediate"
-                          ? "Intermediate Practice"
-                          : activeTab === "practice_expert"
-                            ? "Expert Practice"
+                      : activeTab === "practice_overview"
+                        ? "Real World Practice"
+                        : activeTab === "practice_run"
+                          ? `${getPracticeDomainLabel(selectedPracticeDomain ?? "generalist")} / ${
+                              practiceLevel === "beginner"
+                                ? "Beginner"
+                                : practiceLevel === "intermediate"
+                                  ? "Intermediate"
+                                  : "Expert"
+                            } Practice`
                           : activeTab === "interview"
                           ? "AI Interview Simulator"
                           : activeTab === "membership"
@@ -1443,35 +1495,33 @@ export default function App({
                   );
                 })()}
 
-              {(activeTab === "practice_beginner" ||
-                activeTab === "practice_intermediate" ||
-                activeTab === "practice_expert") && (
+              {activeTab === "practice_overview" && <RealWorldPracticeOverview />}
+
+              {activeTab === "practice_run" && selectedPracticeDomain && practiceLevel && (
                 <PracticeTaskRunner
                   tasks={allPracticeTasks}
                   existingSubmissions={stats.practiceTaskSubmissions ?? {}}
                   onSubmit={handlePracticeTaskSubmit}
-                  onBack={() => setActiveTab("dashboard")}
+                  onBack={() => setActiveTab("practice_overview")}
                   isPaidUser={isSimulationPracticeAccessible(stats.membershipTier)}
                   onRequireUpgrade={() => setActiveTab("membership")}
-                  filter={
-                    activeTab === "practice_beginner"
-                      ? "beginner"
-                      : activeTab === "practice_intermediate"
-                        ? "intermediate"
-                        : "expert"
-                  }
-                  progressionUnlocked={
-                    activeTab === "practice_beginner"
-                      ? true
-                      : activeTab === "practice_intermediate"
-                        ? isIntermediatePracticeUnlocked
-                        : isExpertPracticeUnlocked
-                  }
-                  onGoToPreviousLevel={() =>
-                    setActiveTab(
-                      activeTab === "practice_expert" ? "practice_intermediate" : "practice_beginner",
-                    )
-                  }
+                  domain={selectedPracticeDomain}
+                  domainLabel={getPracticeDomainLabel(selectedPracticeDomain)}
+                  filter={practiceLevel}
+                  isUnlocked={isDomainLevelUnlocked(selectedPracticeDomain, practiceLevel)}
+                />
+              )}
+
+              {practiceModalOpen && selectedPracticeDomain && (
+                <PracticeLevelModal
+                  domainLabel={getPracticeDomainLabel(selectedPracticeDomain)}
+                  isLevelUnlocked={(level) => isDomainLevelUnlocked(selectedPracticeDomain, level)}
+                  onClose={() => setPracticeModalOpen(false)}
+                  onStart={(level) => {
+                    setPracticeLevel(level);
+                    setActiveTab("practice_run");
+                    setPracticeModalOpen(false);
+                  }}
                 />
               )}
 

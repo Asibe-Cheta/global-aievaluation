@@ -10,6 +10,7 @@ import {
 import { isRedirectError } from "@/lib/is-redirect-error";
 import type { AdminModuleRow, AdminPracticeTaskRow } from "@/lib/admin/queries";
 import { SKILL_CATEGORIES, FAILURE_MODE_TAGS } from "@/lib/admin/constants";
+import { PRACTICE_DOMAINS, type PracticeDomainId } from "@/lib/practice-domains";
 import OptionsEditor from "../OptionsEditor";
 import BoldTextarea from "../BoldTextarea";
 import MediaClipUpload, { type MediaClipUploadHandle } from "../MediaClipUpload";
@@ -42,6 +43,7 @@ export default function PracticeTaskForm({
   const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "expert">(
     task?.difficulty ?? "beginner",
   );
+  const [domain, setDomain] = useState<PracticeDomainId>(task?.domain ?? "generalist");
   const [sortOrder, setSortOrder] = useState(String(task?.sort_order ?? 0));
 
   const [guidelineText, setGuidelineText] = useState(task?.guideline?.text ?? "");
@@ -100,6 +102,7 @@ export default function PracticeTaskForm({
     formData.set("taskType", taskType);
     formData.set("category", category);
     formData.set("difficulty", difficulty);
+    formData.set("domain", domain);
     formData.set("sortOrder", sortOrder);
     formData.set("guidelineText", guidelineText);
     formData.set("itemText", itemText);
@@ -181,8 +184,16 @@ export default function PracticeTaskForm({
         </div>
       </div>
 
-      {/* Difficulty Level */}
+      {/* Domain + Difficulty Level */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+        <div>
+          <label className={labelClass}>Domain</label>
+          <select className={inputClass} value={domain} onChange={(e) => setDomain(e.target.value as PracticeDomainId)}>
+            {PRACTICE_DOMAINS.map((d) => (
+              <option key={d.id} value={d.id}>{d.label}</option>
+            ))}
+          </select>
+        </div>
         <span className={sectionLabelClass}>Level</span>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {([

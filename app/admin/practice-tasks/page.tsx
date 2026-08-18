@@ -2,13 +2,14 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getAllAdminPracticeTasks, getAdminModules, type AdminPracticeTaskRow } from "@/lib/admin/queries";
 import { deletePracticeTask } from "@/lib/actions/admin-practice-tasks";
+import { PRACTICE_DOMAINS } from "@/lib/practice-domains";
 import DeleteButton from "../DeleteButton";
 
-const LEVELS = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "expert", label: "Expert" },
-] as const;
+const LEVEL_LABELS: Record<string, string> = {
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  expert: "Expert",
+};
 
 export default async function PracticeTasksPage() {
   const [tasks, modules] = await Promise.all([
@@ -31,8 +32,8 @@ export default async function PracticeTasksPage() {
             Real World Practice
           </h2>
           <p className="text-xs text-slate-450 mt-1">
-            Evaluation and annotation tasks — the app draws these per module,
-            grouped into Beginner, Intermediate, and Expert practice.
+            Evaluation and annotation tasks — the app groups these by domain,
+            then by Beginner, Intermediate, and Expert practice level.
           </p>
         </div>
         <Link
@@ -44,22 +45,30 @@ export default async function PracticeTasksPage() {
         </Link>
       </div>
 
-      {LEVELS.map((level) => {
-        const levelTasks = tasks.filter((t) => t.difficulty === level.value);
+      {PRACTICE_DOMAINS.map((domain) => {
+        const domainTasks = tasks.filter((t) => t.domain === domain.id);
         return (
-          <div key={level.value} className="space-y-2">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-              {level.label}
+          <details key={domain.id} className="group" open={domain.id === "generalist"}>
+            <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-black text-slate-900 dark:text-white select-none">
+              <span className="text-slate-400 transition-transform group-open:rotate-90">▶</span>
+              {domain.label}
+              {domain.comingSoon && (
+                <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  Coming Soon
+                </span>
+              )}
               <span className="bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                {levelTasks.length}
+                {domainTasks.length}
               </span>
-            </h3>
-            <PracticeTaskTable
-              tasks={levelTasks}
-              moduleTitleById={moduleTitleById}
-              boundDelete={boundDelete}
-            />
-          </div>
+            </summary>
+            <div className="mt-2">
+              <PracticeTaskTable
+                tasks={domainTasks}
+                moduleTitleById={moduleTitleById}
+                boundDelete={boundDelete}
+              />
+            </div>
+          </details>
         );
       })}
     </div>
@@ -82,6 +91,7 @@ function PracticeTaskTable({
           <tr>
             <th className="text-left px-4 py-3">Question</th>
             <th className="text-left px-4 py-3">Module</th>
+            <th className="text-left px-4 py-3">Level</th>
             <th className="text-left px-4 py-3">Type</th>
             <th className="text-left px-4 py-3">Mode</th>
             <th className="text-left px-4 py-3">Timed</th>
@@ -97,6 +107,9 @@ function PracticeTaskTable({
               </td>
               <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                 {moduleTitleById.get(t.module_id) ?? t.module_id}
+              </td>
+              <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                {LEVEL_LABELS[t.difficulty] ?? t.difficulty}
               </td>
               <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{t.task_type}</td>
               <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{t.response_mode}</td>
@@ -114,7 +127,7 @@ function PracticeTaskTable({
           ))}
           {tasks.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+              <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                 No practice tasks yet.
               </td>
             </tr>
