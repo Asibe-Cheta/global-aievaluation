@@ -35,10 +35,13 @@ const ONE_TIME_PRICE_IDS: Record<OneTimeProduct, string | undefined> = {
   tier_starter: process.env.STRIPE_PRICE_STARTER,
   tier_professional_founding: process.env.STRIPE_PRICE_PROFESSIONAL_FOUNDING,
   tier_professional_regular: process.env.STRIPE_PRICE_PROFESSIONAL_REGULAR,
-  // Reuses STRIPE_PRICE_ACCELERATOR_MONTHLY — that var now holds the
-  // one-time price id, not a recurring one (see getAcceleratorPriceId below,
-  // kept only for any legacy real subscribers from before this change).
-  tier_career_accelerator: process.env.STRIPE_PRICE_ACCELERATOR_MONTHLY,
+  // Deliberately its own env var, distinct from STRIPE_PRICE_ACCELERATOR_MONTHLY
+  // below — that one is a *recurring* price still used by legacy real
+  // subscribers (getAcceleratorPriceId), and a single Stripe Price object
+  // can't be both recurring and one-time. Reusing one var for both silently
+  // broke new one-time Accelerator checkouts ("payment mode but passed a
+  // recurring price").
+  tier_career_accelerator: process.env.STRIPE_PRICE_ACCELERATOR_ONETIME,
   credit_pack_a: process.env.STRIPE_PRICE_CREDIT_PACK_A,
   credit_pack_b: process.env.STRIPE_PRICE_CREDIT_PACK_B,
   coaching_session: process.env.STRIPE_PRICE_COACHING,

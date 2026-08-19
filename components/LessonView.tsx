@@ -467,7 +467,11 @@ export default function LessonView({ lesson, stats, onBack, onComplete }: Lesson
                 <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 leading-snug">
                   Key Takeaways
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div
+                  className={`grid gap-3 text-xs ${
+                    lesson.keyTakeaways.length > 1 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+                  }`}
+                >
                   {lesson.keyTakeaways.map((take, i) => (
                     <div key={i} className="flex gap-2.5">
                       <span className="text-indigo-600 font-bold leading-none">&#10004;</span>
