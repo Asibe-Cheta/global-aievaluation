@@ -3,7 +3,7 @@ import {
   Check, Lock, Sparkles, Shield, Award,
   Zap, ArrowLeft, Star, AlertCircle, CheckCircle2, Loader2, Gift, Users,
 } from "lucide-react";
-import { UserStats } from "../types";
+import { UserStats, Testimonial } from "../types";
 import {
   createOneTimeCheckout,
   createPortalSession,
@@ -13,6 +13,7 @@ import {
   PROFESSIONAL_FOUNDING_LIMIT, COACHING_OFFER, type TierId,
 } from "../lib/pricing";
 import { isRedirectError } from "../lib/is-redirect-error";
+import TestimonialsSection from "./TestimonialsSection";
 
 interface MembershipViewProps {
   stats: UserStats;
@@ -20,6 +21,7 @@ interface MembershipViewProps {
   onDismissCheckoutResult?: () => void;
   onBack?: () => void;
   onNavigateToTab?: (tabId: string) => void;
+  testimonials?: Testimonial[];
 }
 
 const TIER_ICONS: Record<TierId, React.ElementType> = {
@@ -56,7 +58,7 @@ const TIER_ACCENT: Record<TierId, { text: string; ring: string; badge: string; b
   },
 };
 
-export default function MembershipView({ stats, checkoutResult, onDismissCheckoutResult, onBack }: MembershipViewProps) {
+export default function MembershipView({ stats, checkoutResult, onDismissCheckoutResult, onBack, testimonials }: MembershipViewProps) {
   const currentTier: TierId = stats.membershipTier || "free";
   const currentIndex = TIER_ORDER.indexOf(currentTier);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -297,6 +299,9 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
           );
         })}
       </div>
+
+      {/* Social proof, directly under the pricing cards */}
+      <TestimonialsSection testimonials={testimonials ?? []} />
 
       {/* AI Credit Top-Up Packs */}
       {currentTier !== "free" && (

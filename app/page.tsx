@@ -20,11 +20,12 @@ export default async function Home() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const [moduleCurriculum, jobs, initialStats] =
+  const [moduleCurriculum, jobs, initialStats, testimonials] =
     await Promise.all([
       getModuleCurriculum(profile?.membership_tier ?? "free"),
       getJobs(),
       getUserStats(user.id, user.email!),
+      getTestimonials(),
     ]);
 
   return (
@@ -34,6 +35,7 @@ export default async function Home() {
       jobs={jobs}
       initialStats={initialStats}
       isAdmin={profile?.is_admin ?? false}
+      testimonials={testimonials}
     />
   );
 }

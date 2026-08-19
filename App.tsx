@@ -39,7 +39,7 @@ import {
   Gift,
 } from "lucide-react";
 
-import { UserStats, Rank, Module, Lesson, PracticeTaskSubmission } from "./types";
+import { UserStats, Rank, Module, Lesson, PracticeTaskSubmission, Testimonial } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
@@ -130,6 +130,7 @@ interface AppProps {
   jobs: JobOpportunity[];
   initialStats: UserStats;
   isAdmin: boolean;
+  testimonials: Testimonial[];
 }
 
 export default function App({
@@ -138,6 +139,7 @@ export default function App({
   jobs,
   initialStats,
   isAdmin,
+  testimonials,
 }: AppProps) {
   const practiceTabs = ["practice_overview", "practice_run"];
   // Restore the last section the user was on so a refresh doesn't always
@@ -1593,6 +1595,7 @@ export default function App({
                   onDismissCheckoutResult={() => setCheckoutResult(null)}
                   onBack={() => setActiveTab("dashboard")}
                   onNavigateToTab={(tabId) => setActiveTab(tabId)}
+                  testimonials={testimonials}
                 />
               )}
 
