@@ -5,7 +5,7 @@ import {
   ChevronRight, ArrowRight, CornerDownRight, Clock, CheckCircle2,
   AlertTriangle, RotateCcw, Check, ArrowLeft, BarChart2, Star,
   TrendingUp, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronUp,
-  Volume2, VolumeX, Mic, MicOff, Upload, FileText, Loader2, Lock
+  Volume2, VolumeX, Mic, MicOff, Upload, FileText, Loader2
 } from "lucide-react";
 import { UserStats } from "../types";
 import { getInterviewCreditBalance, startInterviewSession } from "../lib/actions/interviewCredits";
@@ -103,9 +103,11 @@ const PLATFORMS = [
 ];
 
 // Kept in sync with Real World Practice's domain list (lib/practice-domains.ts)
-// so "domain" means the same thing across the app. Only "generalist" has
-// launched — the rest render as locked/"Coming Soon" until there's content
-// behind them (see the comingSoon check in the picker below).
+// so "domain" means the same thing across the app. Unlike Real World
+// Practice's pre-authored task bank, every interview here is generated live
+// by Gemini (see handleRunProfileAnalysis's call to /api/interview-questions
+// and buildSystemInstruction's roleName/roleDescription), so there's no
+// per-domain content gap to wait on — all domains are available.
 const ROLE_DESCRIPTIONS: Record<PracticeDomainId, string> = {
   generalist: "Compares pairs of responses, evaluates relative helpfulness, truthfulness, and safety.",
   coding_engineering: "Audits script execution, analyzes runtime complexity, and writes strict code unit tests.",
@@ -123,7 +125,6 @@ const ROLES = PRACTICE_DOMAINS.map((d) => ({
   id: d.id,
   name: d.label,
   description: ROLE_DESCRIPTIONS[d.id],
-  comingSoon: d.comingSoon,
 }));
 
 const INTERVIEW_QUESTIONS: InterviewQuestion[] = [
@@ -265,7 +266,6 @@ export default function InterviewSimulator({ stats, onComplete, onBack, onNaviga
   // with the domain/role doing the real tailoring.
   const [selectedPlatform] = useState<string>("general");
   const [selectedRole, setSelectedRole] = useState<string>(initialRoleId ?? "");
-  const [comingSoonDomain, setComingSoonDomain] = useState<string | null>(null);
 
   const [secondsRemaining, setSecondsRemaining] = useState(MAX_INTERVIEW_SECONDS);
   const autoFinishedRef = useRef(false);
@@ -1306,50 +1306,21 @@ Click the button below to generate your report.`
           </p>
         </div>
 
-        {comingSoonDomain && (
-          <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-150 dark:border-amber-900/40 rounded-xl">
-            <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 shrink-0" />
-            <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-              {comingSoonDomain} interviews are coming soon — try Generalist for now.
-            </p>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {ROLES.map((r) => {
             const isSelected = selectedRole === r.id;
             return (
               <button
                 key={r.id}
-                onClick={() => {
-                  if (r.comingSoon) {
-                    setComingSoonDomain(r.name);
-                    return;
-                  }
-                  setComingSoonDomain(null);
-                  setSelectedRole(r.id);
-                }}
-                className={`text-left p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
-                  r.comingSoon
-                    ? "border-slate-150 dark:border-slate-850 bg-slate-50/60 dark:bg-slate-900/40 opacity-60 cursor-pointer"
-                    : isSelected
-                      ? "border-indigo-600 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-md ring-2 ring-indigo-500/20 scale-[1.01] cursor-pointer"
-                      : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm cursor-pointer"
+                onClick={() => setSelectedRole(r.id)}
+                className={`text-left p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                  isSelected
+                    ? "border-indigo-600 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-md ring-2 ring-indigo-500/20 scale-[1.01]"
+                    : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
                 }`}
               >
                 <div className="space-y-1 w-full">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white">{r.name}</h3>
-                    {r.comingSoon ? (
-                      <span className="flex items-center gap-1 text-[9px] bg-slate-105 dark:bg-slate-800 text-slate-450 dark:text-slate-500 px-2 py-0.5 rounded font-mono font-bold uppercase">
-                        <Lock className="w-2.5 h-2.5" /> Soon
-                      </span>
-                    ) : (
-                      <span className="text-[9px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded font-mono font-bold uppercase">
-                        Available
-                      </span>
-                    )}
-                  </div>
+                  <h3 className="text-xs font-black text-slate-900 dark:text-white">{r.name}</h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">{r.description}</p>
                 </div>
               </button>
