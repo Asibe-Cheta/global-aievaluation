@@ -89,25 +89,6 @@ function applySkillBoosts(
   return updated;
 }
 
-// When a user launches the AI Interview Simulator directly from a job
-// listing, we skip the domain-picker step and pre-select the domain/role
-// that best matches that job's field, so the interview is tailored to the
-// job they're actually going for.
-function mapJobFieldToInterviewRoleId(field: string): string {
-  switch (field) {
-    case "AI Safety":
-      return "safety";
-    case "Coding & SWE":
-      return "coding";
-    case "Medical & Bio":
-      return "domain";
-    case "Consulting":
-      return "reasoning";
-    default:
-      return "evaluator";
-  }
-}
-
 const MODULE_CARD_DESCRIPTION_WORD_LIMIT = 35;
 
 // Truncates on a word boundary so cards in the same grid row settle at a
@@ -1629,7 +1610,13 @@ export default function App({
                   onBack={() => setActiveTab("dashboard")}
                   setActiveTab={setActiveTab}
                   onStartInterviewForJob={(job) => {
-                    setInterviewInitialRoleId(mapJobFieldToInterviewRoleId(job.field));
+                    // Domain ids match Real World Practice's domain list
+                    // (lib/practice-domains.ts) — only "generalist" has
+                    // actually launched there, so every job maps to it for
+                    // now rather than silently running an interview for a
+                    // domain the rest of the app still treats as "Coming
+                    // Soon". Revisit once a given domain goes live.
+                    setInterviewInitialRoleId("generalist");
                     setInterviewJobTitle(job.title);
                   }}
                 />
