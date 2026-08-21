@@ -34,6 +34,17 @@ function priceOnly(priceDisplay: string): string {
   return priceDisplay.replace(/\s*one-time$/i, "");
 }
 
+// Checkout order summary needs an actual description of what's included —
+// tiers' first feature is sometimes just a lead-in ("Everything in Starter,
+// plus:") with no content of its own, so skip those and take the next two
+// real ones.
+function summarizeFeatures(features: string[]): string {
+  return features
+    .filter((f) => !/plus:$/i.test(f.trim()))
+    .slice(0, 2)
+    .join("; ") || "Full access to this tier";
+}
+
 const TIER_ICONS: Record<TierId, React.ElementType> = {
   free: Gift,
   starter: Shield,
@@ -121,7 +132,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
       summary: {
         productName: meta.displayName,
         priceDisplay: meta.priceDisplay,
-        whatYouGet: meta.features[0] ?? "Full access to this tier",
+        whatYouGet: summarizeFeatures(meta.features),
         product: tier,
       },
     });
@@ -136,7 +147,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
       summary: {
         productName: meta.displayName,
         priceDisplay: meta.priceDisplay,
-        whatYouGet: meta.features[0] ?? "Full access to this tier",
+        whatYouGet: summarizeFeatures(meta.features),
         product: "career_accelerator",
       },
     });
