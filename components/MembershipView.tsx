@@ -15,6 +15,8 @@ import {
 } from "../lib/pricing";
 import { isRedirectError } from "../lib/is-redirect-error";
 import TestimonialsSection from "./TestimonialsSection";
+import CheckoutConsentModal, { type CheckoutOrderSummary } from "./CheckoutConsentModal";
+import type { OneTimeCheckoutProduct } from "../lib/actions/billing";
 
 interface MembershipViewProps {
   stats: UserStats;
@@ -86,11 +88,59 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
     }
   };
 
-  const handleGetTier = (tier: "starter" | "professional") =>
-    runAction(tier, () => createOneTimeCheckout(tier));
+  // Every purchase button opens the consent modal rather than checking out
+  // directly — German law requires express, logged consent to immediate
+  // digital delivery (or early service start, for coaching) before the
+  // checkout can proceed. See lib/checkout-consent.ts and
+  // lib/actions/billing.ts's createOneTimeCheckout.
+  interface PendingOrder {
+    key: string;
+    product: OneTimeCheckoutProduct;
+    quantity: number;
+    summary: CheckoutOrderSummary;
+  }
+  const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
 
-  const handleGetAccelerator = () =>
-    runAction("career_accelerator", () => createOneTimeCheckout("career_accelerator"));
+  const handleConfirmOrder = async () => {
+    if (!pendingOrder) return;
+    await runAction(pendingOrder.key, () =>
+      createOneTimeCheckout(pendingOrder.product, pendingOrder.quantity, {
+        termsAccepted: true,
+        secondConsentAccepted: true,
+      }),
+    );
+    setPendingOrder(null);
+  };
+
+  const handleGetTier = (tier: "starter" | "professional") => {
+    const meta = TIERS[tier];
+    setPendingOrder({
+      key: tier,
+      product: tier,
+      quantity: 1,
+      summary: {
+        productName: meta.displayName,
+        priceDisplay: meta.priceDisplay,
+        whatYouGet: meta.features[0] ?? "Full access to this tier",
+        product: tier,
+      },
+    });
+  };
+
+  const handleGetAccelerator = () => {
+    const meta = TIERS.career_accelerator;
+    setPendingOrder({
+      key: "career_accelerator",
+      product: "career_accelerator",
+      quantity: 1,
+      summary: {
+        productName: meta.displayName,
+        priceDisplay: meta.priceDisplay,
+        whatYouGet: meta.features[0] ?? "Full access to this tier",
+        product: "career_accelerator",
+      },
+    });
+  };
 
   const handleManageBilling = () =>
     runAction("manage", () => createPortalSession());
@@ -123,11 +173,36 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
   const setPackQuantity = (packId: string, qty: number) =>
     setPackQuantities((prev) => ({ ...prev, [packId]: Math.min(20, Math.max(1, qty)) }));
 
-  const handleBuyCreditPack = (packId: "credit_pack_a" | "credit_pack_b") =>
-    runAction(packId, () => createOneTimeCheckout(packId, getPackQuantity(packId)));
+  const handleBuyCreditPack = (packId: "credit_pack_a" | "credit_pack_b") => {
+    const pack = CREDIT_PACKS.find((p) => p.id === packId)!;
+    const qty = getPackQuantity(packId);
+    const unitPrice = parseInt(pack.priceDisplay.replace(/\D/g, ""), 10) || 0;
+    setPendingOrder({
+      key: packId,
+      product: packId,
+      quantity: qty,
+      summary: {
+        productName: `${pack.priceDisplay} AI Interview Credit Pack`,
+        priceDisplay: `€${unitPrice * qty}`,
+        whatYouGet: `+${pack.sessions * qty} AI interview sessions, never expires`,
+        product: packId,
+      },
+    });
+  };
 
-  const handleBookCoaching = () =>
-    runAction("coaching", () => createOneTimeCheckout("coaching"));
+  const handleBookCoaching = () => {
+    setPendingOrder({
+      key: "coaching",
+      product: "coaching",
+      quantity: 1,
+      summary: {
+        productName: COACHING_OFFER.title,
+        priceDisplay: COACHING_OFFER.priceDisplay,
+        whatYouGet: COACHING_OFFER.sessionDetails,
+        product: "coaching",
+      },
+    });
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12 animate-fade-in pb-24">
@@ -501,6 +576,14 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
         </div>
       </div>
 
+      {pendingOrder && (
+        <CheckoutConsentModal
+          order={pendingOrder.summary}
+          isSubmitting={pendingAction === pendingOrder.key}
+          onCancel={() => setPendingOrder(null)}
+          onConfirm={handleConfirmOrder}
+        />
+      )}
     </div>
   );
 }

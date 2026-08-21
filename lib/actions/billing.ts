@@ -12,6 +12,12 @@ import {
 } from "@/lib/stripe";
 import { PROFESSIONAL_FOUNDING_LIMIT } from "@/lib/pricing";
 import { handleOneTimePayment, recomputeMembershipTier, syncSubscriptionState } from "@/lib/stripe/sync";
+import {
+  CONSENT_VERSION,
+  TERMS_CONSENT_TEXT,
+  getSecondConsentText,
+  getSecondConsentType,
+} from "@/lib/checkout-consent";
 import type { UserStats } from "@/types";
 
 async function getOrigin(): Promise<string> {
@@ -102,15 +108,33 @@ async function resolveOneTimeProduct(product: OneTimeCheckoutProduct): Promise<O
     : "tier_professional_regular";
 }
 
+// Both checkboxes are required before this action will create a Stripe
+// session — see components/CheckoutConsentModal.tsx for the UI that
+// collects them and legal-source/DEVELOPER_COMPLIANCE.MD §6/§14 for why:
+// German law requires express, logged consent to immediate digital
+// delivery (or, for coaching, early service start) before the statutory
+// 14-day withdrawal right can be considered validly waived. This is
+// re-checked here rather than trusted from the client, since a client that
+// skips the modal is exactly the case this exists to prevent.
+export interface CheckoutConsent {
+  termsAccepted: boolean;
+  secondConsentAccepted: boolean;
+}
+
 export async function createOneTimeCheckout(
   product: OneTimeCheckoutProduct,
   quantity: number = 1,
+  consent?: CheckoutConsent,
 ) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.email) throw new Error("Not authenticated");
+
+  if (!consent?.termsAccepted || !consent?.secondConsentAccepted) {
+    throw new Error("Please accept both checkout agreements before continuing.");
+  }
 
   // Only credit packs can be bought in bulk — tier purchases (starter,
   // professional) are always exactly one. Clamp defensively since this is
@@ -124,6 +148,27 @@ export async function createOneTimeCheckout(
     resolveOneTimeProduct(product),
     resolveAffiliateCode(user.id),
   ]);
+
+  const service = createServiceClient();
+  const { error: consentError } = await service.from("legal_consents").insert([
+    {
+      user_id: user.id,
+      consent_type: "terms",
+      version: CONSENT_VERSION,
+      wording: TERMS_CONSENT_TEXT,
+      accepted: true,
+      order_reference: `checkout:${resolvedProduct}`,
+    },
+    {
+      user_id: user.id,
+      consent_type: getSecondConsentType(product),
+      version: CONSENT_VERSION,
+      wording: getSecondConsentText(product),
+      accepted: true,
+      order_reference: `checkout:${resolvedProduct}`,
+    },
+  ]);
+  if (consentError) throw new Error(`Failed to record checkout consent: ${consentError.message}`);
 
   const session = await getStripe().checkout.sessions.create({
     mode: "payment",
@@ -197,9 +242,18 @@ export async function createSubscriptionCheckout() {
 // replays whichever ones the webhook would have processed, using the exact
 // same idempotent logic so this is always safe to call, including when
 // there's genuinely nothing new to sync.
+export interface LatestPurchase {
+  productType: string;
+  amountCents: number | null;
+  currency: string;
+  orderReference: string;
+  createdAt: string;
+}
+
 export async function syncMyPurchases(): Promise<{
   membershipTier: UserStats["membershipTier"];
   syncedCount: number;
+  latestPurchase: LatestPurchase | null;
 }> {
   const supabase = await createClient();
   const {
@@ -242,7 +296,25 @@ export async function syncMyPurchases(): Promise<{
   // case where a purchase row already exists but a prior tier update failed.
   const membershipTier = await recomputeMembershipTier(service, user.id);
 
-  return { membershipTier: membershipTier as UserStats["membershipTier"], syncedCount };
+  const { data: latestRow } = await service
+    .from("purchases")
+    .select("product_type, amount_cents, currency, stripe_checkout_session_id, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const latestPurchase: LatestPurchase | null = latestRow
+    ? {
+        productType: latestRow.product_type,
+        amountCents: latestRow.amount_cents,
+        currency: latestRow.currency,
+        orderReference: latestRow.stripe_checkout_session_id,
+        createdAt: latestRow.created_at,
+      }
+    : null;
+
+  return { membershipTier: membershipTier as UserStats["membershipTier"], syncedCount, latestPurchase };
 }
 
 export async function createPortalSession() {

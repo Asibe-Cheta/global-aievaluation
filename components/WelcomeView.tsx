@@ -2,19 +2,44 @@
 
 import { PartyPopper, Check, Loader2, AlertTriangle, ArrowRight, BookOpen, Briefcase, MessageSquare } from "lucide-react";
 import { TIERS, type TierId } from "../lib/pricing";
+import type { LatestPurchase } from "../lib/actions/billing";
 
 export type WelcomeSyncStatus = "syncing" | "ready" | "error";
+
+const PRODUCT_LABELS: Record<string, string> = {
+  tier_starter: "Starter",
+  tier_professional_founding: "Professional (Founding price)",
+  tier_professional_regular: "Professional",
+  tier_career_accelerator: "Career Accelerator",
+  credit_pack_a: "AI Interview Credit Pack",
+  credit_pack_b: "AI Interview Credit Pack",
+  coaching_session: "1-to-1 Coaching",
+};
+
+function formatAmount(cents: number | null, currency: string): string {
+  if (cents === null) return "—";
+  return new Intl.NumberFormat("en-DE", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
+}
 
 interface WelcomeViewProps {
   status: WelcomeSyncStatus;
   tier: TierId;
+  latestPurchase: LatestPurchase | null;
   onRetry: () => void;
   onContinue: () => void;
   onGoToPractice: () => void;
   onGoToInterview: () => void;
 }
 
-export default function WelcomeView({ status, tier, onRetry, onContinue, onGoToPractice, onGoToInterview }: WelcomeViewProps) {
+export default function WelcomeView({
+  status,
+  tier,
+  latestPurchase,
+  onRetry,
+  onContinue,
+  onGoToPractice,
+  onGoToInterview,
+}: WelcomeViewProps) {
   if (status === "syncing") {
     return (
       <div className="max-w-lg mx-auto pl-1 py-16 text-center space-y-4 animate-fade-in">
@@ -25,7 +50,7 @@ export default function WelcomeView({ status, tier, onRetry, onContinue, onGoToP
     );
   }
 
-  if (status === "error" || tier === "free") {
+  if (status === "error") {
     return (
       <div className="max-w-lg mx-auto pl-1 py-16 text-center space-y-5 animate-fade-in">
         <div className="inline-flex p-3.5 bg-amber-50 dark:bg-amber-950/30 rounded-full text-amber-600 dark:text-amber-400">
@@ -49,6 +74,8 @@ export default function WelcomeView({ status, tier, onRetry, onContinue, onGoToP
   }
 
   const meta = TIERS[tier];
+  const isDigitalContent = latestPurchase?.productType !== "coaching_session";
+  const productLabel = latestPurchase ? PRODUCT_LABELS[latestPurchase.productType] ?? latestPurchase.productType : meta.displayName;
 
   return (
     <div className="max-w-2xl mx-auto pl-1 py-8 space-y-8 animate-fade-in">
@@ -57,12 +84,48 @@ export default function WelcomeView({ status, tier, onRetry, onContinue, onGoToP
           <PartyPopper className="w-7 h-7" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-          Welcome to {meta.displayName}!
+          Payment successful. Your order has been confirmed.
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Your payment went through and your account is now on the <span className="font-bold text-slate-700 dark:text-slate-300">{meta.label}</span> plan.
+          Your account is now on the <span className="font-bold text-slate-700 dark:text-slate-300">{meta.label}</span> plan.
         </p>
       </div>
+
+      {/* Order confirmation — DEVELOPER_COMPLIANCE.MD §9 */}
+      {latestPurchase && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Product</span>
+            <span className="font-bold text-slate-900 dark:text-white">{productLabel}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Amount paid</span>
+            <span className="font-bold text-slate-900 dark:text-white">
+              {formatAmount(latestPurchase.amountCents, latestPurchase.currency)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Order reference</span>
+            <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">{latestPurchase.orderReference}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Support</span>
+            <a href="mailto:contact@globalready.tech" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+              contact@globalready.tech
+            </a>
+          </div>
+          {isDigitalContent && (
+            <p className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-450 leading-relaxed">
+              You requested immediate access to your digital content and acknowledged the applicable effect on
+              your statutory withdrawal right — see our{" "}
+              <a href="/refunds" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                Refund, Cancellation &amp; Withdrawal Policy
+              </a>
+              .
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3">
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-450">What's unlocked</span>

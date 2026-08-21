@@ -42,7 +42,7 @@ import {
 import { UserStats, Rank, Module, Lesson, PracticeTaskSubmission, Testimonial } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
-import { syncMyPurchases } from "./lib/actions/billing";
+import { syncMyPurchases, type LatestPurchase } from "./lib/actions/billing";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
 import {
   isModuleAccessible,
@@ -293,13 +293,18 @@ export default function App({
   // A successful payment instead lands on a dedicated Welcome page (below).
   const [checkoutResult, setCheckoutResult] = useState<"cancelled" | null>(null);
   const [welcomeSyncStatus, setWelcomeSyncStatus] = useState<WelcomeSyncStatus>("syncing");
+  const [welcomeLatestPurchase, setWelcomeLatestPurchase] = useState<LatestPurchase | null>(null);
 
   const runWelcomeSync = () => {
     setWelcomeSyncStatus("syncing");
     syncMyPurchases()
-      .then(({ membershipTier }) => {
+      .then(({ membershipTier, latestPurchase }) => {
         setStats((prev) => ({ ...prev, membershipTier }));
-        setWelcomeSyncStatus(membershipTier && membershipTier !== "free" ? "ready" : "error");
+        setWelcomeLatestPurchase(latestPurchase);
+        // A free-tier user can validly buy only a credit pack or coaching
+        // session (neither changes membershipTier), so "ready" has to be
+        // "we found a purchase on file", not "the tier changed".
+        setWelcomeSyncStatus(latestPurchase ? "ready" : "error");
       })
       .catch((err) => {
         console.error("syncMyPurchases failed:", err);
@@ -1618,6 +1623,7 @@ export default function App({
                 <WelcomeView
                   status={welcomeSyncStatus}
                   tier={stats.membershipTier || "free"}
+                  latestPurchase={welcomeLatestPurchase}
                   onRetry={runWelcomeSync}
                   onContinue={() => setActiveTab("dashboard")}
                   onGoToPractice={() => setActiveTab("practice_overview")}
