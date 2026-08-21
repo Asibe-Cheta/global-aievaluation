@@ -11,6 +11,8 @@ import {
 import type { Testimonial } from "@/types";
 import Reveal from "./Reveal";
 import TestimonialsSection from "./TestimonialsSection";
+import CookieConsentBanner from "./CookieConsentBanner";
+import { LEGAL_LINKS } from "@/lib/legal-links";
 
 interface LandingViewProps {
   onEnterPlatform: () => void;
@@ -23,6 +25,9 @@ const PRACTICE_PLATFORMS = ["Outlier", "Scale AI", "Alignerr", "Mercor", "Micro1
 export default function LandingView({ onEnterPlatform, onLogin, testimonials }: LandingViewProps) {
   // State for FAQ Accordions
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  // Reopens the cookie-preferences banner from the footer link
+  const [cookieSettingsOpen, setCookieSettingsOpen] = useState(false);
 
   // State for "What You'll Do" interactive tab
   const [activeTaskTab, setActiveTaskTab] = useState<"prompts" | "evaluation" | "verification" | "multimodal">("prompts");
@@ -717,44 +722,59 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Questions before you get started? Reach us anytime at{" "}
-          <a href="mailto:contact@globalready.com" className="font-bold text-[#4F46E5] dark:text-indigo-400 hover:underline">
-            contact@globalready.com
+          <a href="mailto:contact@globalready.tech" className="font-bold text-[#4F46E5] dark:text-indigo-400 hover:underline">
+            contact@globalready.tech
           </a>
         </p>
       </section>
       </Reveal>
 
       {/* 11. FOOTER */}
-      <footer className="border-t border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-900 py-12 px-6 transition-colors">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/assets/images/logos/global-logo.png"
-              alt="Global Ready AIEval"
-              width={20}
-              height={20}
-            />
-            <span className="font-extrabold text-[#3B28CC] dark:text-indigo-455">Global Ready AIEval</span>
-            <span>&bull;</span>
-            <span>Training Elite Evaluators Worldwide</span>
+      <footer className="border-t border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-900 pt-12 pb-8 px-6 transition-colors">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/assets/images/logos/global-logo.png"
+                alt="Global Ready AIEval"
+                width={20}
+                height={20}
+              />
+              <span className="font-extrabold text-[#3B28CC] dark:text-indigo-455">Global Ready AIEval</span>
+              <span>&bull;</span>
+              <span>Independent AI evaluation training and career-preparation platform</span>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 font-semibold">
+              <a href="#what-you-do" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Platform</a>
+              <a href="#who-we-are" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Who We Are</a>
+              <a href="#reviews" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Reviews</a>
+              <a href="#faq" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">FAQ</a>
+              <a href="#contact" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Contact</a>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 font-semibold">
-            <a href="#what-you-do" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Platform</a>
-            <a href="#who-we-are" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Who We Are</a>
-            <a href="#reviews" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Reviews</a>
-            <a href="#faq" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">FAQ</a>
-            <a href="#contact" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Contact</a>
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-850 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-semibold">
+              {LEGAL_LINKS.map((link) => (
+                <a key={link.href} href={link.href} className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                  {link.label}
+                </a>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCookieSettingsOpen(true)}
+                className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer font-semibold"
+              >
+                Cookie Settings
+              </button>
+            </div>
+            <p>&copy; 2026 Global Ready AIEval. All rights reserved.</p>
           </div>
-
-          <p className="flex flex-wrap items-center justify-center gap-x-2">
-            <span>&copy; 2026 Global Ready AIEval. All rights reserved.</span>
-            <a href="/privacy" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors underline">Privacy Policy</a>
-            <span>&bull;</span>
-            <a href="/terms" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors underline">Terms of Service</a>
-          </p>
         </div>
       </footer>
+
+      <CookieConsentBanner open={cookieSettingsOpen} onOpenChange={setCookieSettingsOpen} />
     </div>
   );
 }

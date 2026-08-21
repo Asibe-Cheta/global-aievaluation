@@ -1,14 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
+import { LEGAL_LINKS } from "@/lib/legal-links";
 
 export default function LegalPageShell({
   title,
   effectiveDate,
+  showDraftNotice = false,
   children,
 }: {
   title: string;
   effectiveDate: string;
+  // Only the pages I drafted myself (no source document was supplied) show
+  // this — the 6 real documents from public/legal/ are final content, not a
+  // starting point that needs a lawyer's pass before anyone relies on it.
+  showDraftNotice?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -40,19 +46,37 @@ export default function LegalPageShell({
           </p>
         </div>
 
-        <div className="mb-10 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-4">
-          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-            This document was drafted from Global Ready AIEval&apos;s actual features and data practices as a starting
-            point — it is not legal advice. Have it reviewed by a qualified lawyer, and fill in the bracketed{" "}
-            <code className="font-mono">[placeholders]</code> (legal entity name, registered address, governing
-            jurisdiction) before relying on it.
-          </p>
-        </div>
+        {showDraftNotice && (
+          <div className="mb-10 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-4">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+              This page was drafted from Global Ready AIEval&apos;s actual technical setup as a starting point —
+              it is not legal advice. Have it reviewed alongside the rest of the site&apos;s legal documents before
+              relying on it.
+            </p>
+          </div>
+        )}
 
         <article className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-strong:text-slate-900 dark:prose-strong:text-white text-sm leading-relaxed">
           {children}
         </article>
+
+        <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-450">
+            Related Legal Information
+          </span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
+            {LEGAL_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   User, Check, Trash2, LogOut, X,
   Trophy, Clock, ShieldAlert, Award, Camera, RefreshCw,
-  Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, Briefcase, Gift, Copy
+  Moon, Sun, Mail, Lock, Eye, EyeOff, Shield, Briefcase, Gift, Copy, Scale
 } from "lucide-react";
 import { UserStats, Module } from "../types";
 import { createClient } from "../lib/supabase/client";
@@ -15,6 +16,7 @@ import {
   type AffiliateStatus,
   type AffiliateReferralSummary,
 } from "../lib/actions/affiliates";
+import { LEGAL_LINKS } from "../lib/legal-links";
 
 const DEFAULT_COMMISSION_LABEL = "20%";
 
@@ -752,6 +754,26 @@ export default function ProfileView({
             </button>
           </div>
 
+          {/* Legal & Compliance — must stay reachable for logged-in users too,
+              not just the logged-out landing page footer. */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-3">
+            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Scale className="w-4 h-4" />
+              Legal
+            </h3>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {/* Dangerous Operations Zone */}
           <div className="bg-rose-50/30 dark:bg-rose-950/5 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-6 space-y-4">
             <div className="space-y-1">
@@ -760,7 +782,8 @@ export default function ProfileView({
                 Destructive Account Area
               </h3>
               <p className="text-[11px] text-rose-700/80 dark:text-rose-400/80 leading-relaxed">
-                Permanently delete your account and wipe your completed syllabus achievements. This action is final and irreversible.
+                Deleting your account will remove or anonymise personal information that we are not required to
+                retain. Certain transaction or legal records may need to be retained as required by law.
               </p>
             </div>
 
@@ -800,7 +823,7 @@ export default function ProfileView({
                         Account Deleted
                       </>
                     ) : (
-                      "Delete Account Permanently"
+                      "Confirm Account Deletion"
                     )}
                   </button>
                   <button

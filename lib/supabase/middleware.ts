@@ -10,6 +10,11 @@ const PUBLIC_PATHS = [
   "/jobs",
   "/privacy",
   "/terms",
+  "/refunds",
+  "/ai-transparency",
+  "/third-party-disclosure",
+  "/cookies",
+  "/impressum",
 ];
 
 function isPublicPath(pathname: string) {
@@ -25,9 +30,16 @@ function isPublicPath(pathname: string) {
 // it survives through signup/login and is still readable at checkout time
 // (lib/actions/billing.ts), well past whatever page the link first landed
 // on. Last-click-wins: only overwrite when a "ref" param is actually present.
+// This cookie is not strictly necessary (it benefits the affiliate, not the
+// visitor), so it's gated behind the cookie-consent choice recorded by
+// components/CookieConsentBanner.tsx — no decision yet defaults to not
+// setting it (fail closed), matching the banner's own accept-time fallback
+// that writes this same cookie client-side if consent arrives after the
+// referral click already happened on this request.
 function applyReferralCookie(response: NextResponse, request: NextRequest) {
   const refCode = request.nextUrl.searchParams.get("ref");
-  if (refCode) {
+  const hasConsent = request.cookies.get("gr_consent")?.value === "accepted";
+  if (refCode && hasConsent) {
     response.cookies.set("gr_ref", refCode.slice(0, 32), {
       maxAge: 60 * 60 * 24 * 60,
       path: "/",
