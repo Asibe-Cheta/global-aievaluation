@@ -11,6 +11,8 @@ import {
   type OneTimeProduct,
 } from "@/lib/stripe";
 import { PROFESSIONAL_FOUNDING_LIMIT } from "@/lib/pricing";
+import { handleOneTimePayment, recomputeMembershipTier, syncSubscriptionState } from "@/lib/stripe/sync";
+import type { UserStats } from "@/types";
 
 async function getOrigin(): Promise<string> {
   const hdrs = await headers();
@@ -184,6 +186,63 @@ export async function createSubscriptionCheckout() {
 
   if (!session.url) throw new Error("Stripe did not return a checkout URL");
   redirect(session.url);
+}
+
+// Self-serve fallback for when the Stripe webhook is delayed, misconfigured,
+// or simply never lands (e.g. the webhook secret drifted out of sync with
+// what's configured in the Stripe Dashboard — see app/api/stripe/webhook —
+// which silently failed every event until it was caught) — a user who paid
+// but is still stuck on "free" shouldn't have to wait on us to notice.
+// Re-lists their own recent Checkout Sessions directly from Stripe and
+// replays whichever ones the webhook would have processed, using the exact
+// same idempotent logic so this is always safe to call, including when
+// there's genuinely nothing new to sync.
+export async function syncMyPurchases(): Promise<{
+  membershipTier: UserStats["membershipTier"];
+  syncedCount: number;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const service = createServiceClient();
+  const { data: customerRow } = await service
+    .from("stripe_customers")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  let syncedCount = 0;
+
+  if (customerRow?.stripe_customer_id) {
+    const sessions = await getStripe().checkout.sessions.list({
+      customer: customerRow.stripe_customer_id,
+      limit: 20,
+    });
+
+    for (const session of sessions.data) {
+      if (session.status !== "complete" || session.payment_status !== "paid") continue;
+
+      if (session.mode === "subscription" && session.subscription) {
+        const subscriptionId =
+          typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+        const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
+        await syncSubscriptionState(subscription);
+        syncedCount++;
+      } else if (session.mode === "payment") {
+        await handleOneTimePayment(session);
+        syncedCount++;
+      }
+    }
+  }
+
+  // Always recompute, even with nothing new to sync — cheap, and covers the
+  // case where a purchase row already exists but a prior tier update failed.
+  const membershipTier = await recomputeMembershipTier(service, user.id);
+
+  return { membershipTier: membershipTier as UserStats["membershipTier"], syncedCount };
 }
 
 export async function createPortalSession() {

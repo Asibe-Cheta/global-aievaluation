@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import {
   Check, Lock, Sparkles, Shield, Award,
-  Zap, ArrowLeft, Star, AlertCircle, CheckCircle2, Loader2, Gift, Users,
+  Zap, ArrowLeft, Star, AlertCircle, CheckCircle2, Loader2, Gift, Users, RefreshCw,
 } from "lucide-react";
 import { UserStats, Testimonial } from "../types";
 import {
   createOneTimeCheckout,
   createPortalSession,
+  syncMyPurchases,
 } from "../lib/actions/billing";
 import {
   TIERS, TIER_ORDER, CREDIT_PACKS, PROFESSIONAL_FOUNDING_PRICE_DISPLAY,
@@ -17,11 +18,12 @@ import TestimonialsSection from "./TestimonialsSection";
 
 interface MembershipViewProps {
   stats: UserStats;
-  checkoutResult?: "success" | "cancelled" | null;
+  checkoutResult?: "cancelled" | null;
   onDismissCheckoutResult?: () => void;
   onBack?: () => void;
   onNavigateToTab?: (tabId: string) => void;
   testimonials?: Testimonial[];
+  onSyncComplete?: (tier: UserStats["membershipTier"]) => void;
 }
 
 const TIER_ICONS: Record<TierId, React.ElementType> = {
@@ -58,16 +60,12 @@ const TIER_ACCENT: Record<TierId, { text: string; ring: string; badge: string; b
   },
 };
 
-export default function MembershipView({ stats, checkoutResult, onDismissCheckoutResult, onBack, testimonials }: MembershipViewProps) {
+export default function MembershipView({ stats, checkoutResult, onDismissCheckoutResult, onBack, testimonials, onSyncComplete }: MembershipViewProps) {
   const currentTier: TierId = stats.membershipTier || "free";
   const currentIndex = TIER_ORDER.indexOf(currentTier);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const successMessage =
-    checkoutResult === "success"
-      ? "🎉 Payment successful! Your plan updates as soon as Stripe confirms it — refresh in a few seconds if it isn't reflected yet."
-      : null;
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const runAction = async (key: string, action: () => Promise<void>) => {
     setErrorMessage(null);
@@ -90,6 +88,29 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
 
   const handleManageBilling = () =>
     runAction("manage", () => createPortalSession());
+
+  // Self-serve fallback for when a payment went through on Stripe's side
+  // but the webhook hasn't (yet) reflected it here — re-checks Stripe
+  // directly rather than making the user wait on us to notice.
+  const handleSyncPlan = async () => {
+    setErrorMessage(null);
+    setSyncMessage(null);
+    setPendingAction("sync");
+    try {
+      const { membershipTier, syncedCount } = await syncMyPurchases();
+      onSyncComplete?.(membershipTier);
+      setSyncMessage(
+        syncedCount > 0
+          ? `Found and applied ${syncedCount} recent purchase${syncedCount === 1 ? "" : "s"}. You're now on the ${TIERS[membershipTier || "free"].label} plan.`
+          : `No new purchases found. You're currently on the ${TIERS[membershipTier || "free"].label} plan.`,
+      );
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err instanceof Error ? err.message : "Couldn't sync your plan. Please try again.");
+    } finally {
+      setPendingAction(null);
+    }
+  };
 
   const [packQuantities, setPackQuantities] = useState<Record<string, number>>({});
   const getPackQuantity = (packId: string) => packQuantities[packId] ?? 1;
@@ -115,31 +136,47 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
           Back to AI Career Hub
         </button>
 
-        {currentTier === "career_accelerator" && (
+        <div className="flex items-center gap-4">
           <button
-            onClick={handleManageBilling}
+            onClick={handleSyncPlan}
             disabled={pendingAction !== null}
+            title="Just paid and it's not showing yet? Re-check with Stripe."
             className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {pendingAction === "manage" ? (
+            {pendingAction === "sync" ? (
               <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
             ) : (
-              <Shield className="w-3.5 h-3.5 text-indigo-500" />
+              <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
             )}
-            Manage Billing
+            Sync My Plan
           </button>
-        )}
+
+          {currentTier === "career_accelerator" && (
+            <button
+              onClick={handleManageBilling}
+              disabled={pendingAction !== null}
+              className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {pendingAction === "manage" ? (
+                <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+              ) : (
+                <Shield className="w-3.5 h-3.5 text-indigo-500" />
+              )}
+              Manage Billing
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Notification Banners */}
-      {successMessage && (
+      {syncMessage && (
         <div className="mb-8 p-4 bg-emerald-500/10 border-2 border-emerald-500/20 text-emerald-800 dark:text-emerald-400 rounded-2xl flex items-start gap-3 shadow-md animate-fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-bold my-0 leading-tight">Payment Successful</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 leading-relaxed">{successMessage}</p>
+            <p className="text-sm font-bold my-0 leading-tight">Plan Synced</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 leading-relaxed">{syncMessage}</p>
           </div>
-          <button onClick={onDismissCheckoutResult} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0">×</button>
+          <button onClick={() => setSyncMessage(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0">×</button>
         </div>
       )}
       {checkoutResult === "cancelled" && (

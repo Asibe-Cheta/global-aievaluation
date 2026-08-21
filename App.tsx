@@ -42,6 +42,7 @@ import {
 import { UserStats, Rank, Module, Lesson, PracticeTaskSubmission, Testimonial } from "./types";
 import type { JobOpportunity } from "./data/jobs";
 import { syncUserProgress } from "./lib/actions/user-progress";
+import { syncMyPurchases } from "./lib/actions/billing";
 import { LESSON_SKILL_BOOSTS } from "./data/skill-boosts";
 import {
   isModuleAccessible,
@@ -72,6 +73,7 @@ import Part2Lesson7View from "./components/Part2Lesson7View";
 import MembershipView from "./components/MembershipView";
 import AcceleratorHubView from "./components/AcceleratorHubView";
 import RealWorldPracticeOverview from "./components/RealWorldPracticeOverview";
+import WelcomeView, { type WelcomeSyncStatus } from "./components/WelcomeView";
 import PracticeLevelModal from "./components/PracticeLevelModal";
 import { PRACTICE_DOMAINS, getPracticeDomainLabel, type PracticeDomainId } from "./lib/practice-domains";
 
@@ -288,19 +290,39 @@ export default function App({
 
   // After redirecting back from Stripe Checkout/Billing Portal, land on the
   // Membership tab and surface the result instead of the default dashboard.
-  const [checkoutResult, setCheckoutResult] = useState<
-    "success" | "cancelled" | null
-  >(null);
+  // A successful payment instead lands on a dedicated Welcome page (below).
+  const [checkoutResult, setCheckoutResult] = useState<"cancelled" | null>(null);
+  const [welcomeSyncStatus, setWelcomeSyncStatus] = useState<WelcomeSyncStatus>("syncing");
+
+  const runWelcomeSync = () => {
+    setWelcomeSyncStatus("syncing");
+    syncMyPurchases()
+      .then(({ membershipTier }) => {
+        setStats((prev) => ({ ...prev, membershipTier }));
+        setWelcomeSyncStatus(membershipTier && membershipTier !== "free" ? "ready" : "error");
+      })
+      .catch((err) => {
+        console.error("syncMyPurchases failed:", err);
+        setWelcomeSyncStatus("error");
+      });
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkout = params.get("checkout");
     if (checkout) {
-      setActiveTab("membership");
-      if (checkout === "success" || checkout === "cancelled") {
-        setCheckoutResult(checkout);
+      if (checkout === "success") {
+        setActiveTab("welcome");
+        runWelcomeSync();
+      } else if (checkout === "cancelled") {
+        setActiveTab("membership");
+        setCheckoutResult("cancelled");
+      } else {
+        setActiveTab("membership");
       }
       window.history.replaceState(null, "", window.location.pathname);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Dynamically compute average readiness score index
@@ -932,6 +954,8 @@ export default function App({
                                   ? "Intermediate"
                                   : "Expert"
                             } Practice`
+                          : activeTab === "welcome"
+                          ? "Welcome"
                           : activeTab === "interview"
                           ? "AI Interview Simulator"
                           : activeTab === "membership"
@@ -1590,6 +1614,17 @@ export default function App({
                 </div>
               )}
 
+              {activeTab === "welcome" && (
+                <WelcomeView
+                  status={welcomeSyncStatus}
+                  tier={stats.membershipTier || "free"}
+                  onRetry={runWelcomeSync}
+                  onContinue={() => setActiveTab("dashboard")}
+                  onGoToPractice={() => setActiveTab("practice_overview")}
+                  onGoToInterview={() => setActiveTab("interview")}
+                />
+              )}
+
               {activeTab === "membership" && (
                 <MembershipView
                   stats={stats}
@@ -1598,6 +1633,7 @@ export default function App({
                   onBack={() => setActiveTab("dashboard")}
                   onNavigateToTab={(tabId) => setActiveTab(tabId)}
                   testimonials={testimonials}
+                  onSyncComplete={(tier) => setStats((prev) => ({ ...prev, membershipTier: tier }))}
                 />
               )}
 
