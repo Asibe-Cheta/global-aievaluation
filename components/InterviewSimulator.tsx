@@ -1421,10 +1421,20 @@ Click the button below to generate your report.`
         {/* Drag & Drop Upload Container */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
           <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4">
-            <h3 className="text-sm font-black text-slate-850 dark:text-white flex items-center gap-2">
-              <User className="w-4 h-4 text-indigo-600" /> Professional CV / Resume Upload
-            </h3>
-            
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-slate-850 dark:text-white flex items-center gap-2">
+                <User className="w-4 h-4 text-indigo-600" /> Professional CV / Resume Upload
+              </h3>
+              <p className="text-[10px] text-slate-450 dark:text-slate-500 max-w-md leading-relaxed">
+                Your CV will be processed using AI to provide the analysis or feedback you request. Please upload
+                only information you have the right to provide and avoid unnecessary sensitive personal
+                information. Do not upload another person&apos;s CV without their permission.{" "}
+                <a href="/privacy" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Learn how we process your data
+                </a>
+              </p>
+            </div>
+
             {!uploadedFile && (
               <button
                 type="button"
@@ -1548,7 +1558,14 @@ Click the button below to generate your report.`
             </button>
 
             {isFormExpanded && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mt-4 pt-4 border-t border-slate-50 dark:border-slate-850 animate-fade-in">
+              <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-850 animate-fade-in space-y-4">
+                {uploadedFile && (
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 leading-relaxed">
+                    AI-generated recommendations. Please review all suggested changes before using them. Do not
+                    add qualifications, experience or achievements that are not true.
+                  </p>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
                   <label className="font-bold text-slate-700 dark:text-slate-350">Full Name:</label>
                   <input
@@ -1627,6 +1644,7 @@ Click the button below to generate your report.`
                     onChange={(e) => setProfile({ ...profile, goals: e.target.value })}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-hidden focus:border-indigo-500"
                   />
+                </div>
                 </div>
               </div>
             )}
@@ -1764,6 +1782,18 @@ Click the button below to generate your report.`
               </div>
             )}
 
+            {/* Mandatory pre-interaction AI disclosure (EU AI Act Art. 50) —
+                must appear before the user's first interaction with the AI
+                interviewer, i.e. right before this button. */}
+            <div className="p-4 bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-900/40 rounded-2xl space-y-1 font-sans">
+              <p className="text-xs font-bold text-indigo-900 dark:text-indigo-300">AI Interview Simulator</p>
+              <p className="text-[11px] text-indigo-800/80 dark:text-indigo-300/70 leading-relaxed">
+                You are about to interact with an AI-powered interview simulator. Questions, scores and feedback
+                may be generated using artificial intelligence and may contain errors. This experience is for
+                training and self-assessment only. It is not an official interview or hiring decision.
+              </p>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <button
                 onClick={() => setInterviewStep("setup_profile")}
@@ -1785,7 +1815,7 @@ Click the button below to generate your report.`
                   </>
                 ) : (
                   <>
-                    Enter Virtual Interview Room <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    Start AI Interview <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </>
                 )}
               </button>
@@ -1969,7 +1999,7 @@ Click the button below to generate your report.`
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-center gap-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${isAiSpeaking ? "bg-indigo-500 animate-ping" : voiceMode === "live" ? "bg-emerald-500" : "bg-slate-400"}`}></span>
-                    <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">John &bull; Lead Interviewer</h4>
+                    <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">John &bull; AI Interviewer</h4>
                   </div>
                   <p className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest">
                     {isAiSpeaking
@@ -2382,6 +2412,11 @@ Click the button below to generate your report.`
               </span>
             </div>
           </div>
+          <p className="relative z-10 text-[10px] text-indigo-300/70 font-sans mt-4 max-w-2xl mx-auto md:mx-0 text-center md:text-left leading-relaxed">
+            AI-generated training result. This score and feedback are generated for training and self-assessment.
+            They are not an employment decision, professional qualification or guarantee of success on a
+            third-party assessment. AI-generated feedback may contain errors.
+          </p>
         </div>
 
         {/* Competencies Progress Bars & Platform Fit Grid */}

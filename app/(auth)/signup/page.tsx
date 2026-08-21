@@ -241,6 +241,18 @@ export default function SignupPage() {
         </button>
       </form>
 
+      <p className="text-center text-[10px] text-slate-450 dark:text-slate-500 leading-relaxed">
+        By creating an account, you confirm that you are at least 18 years old and agree to the{" "}
+        <Link href="/terms" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+          Terms of Service
+        </Link>
+        . Please review our{" "}
+        <Link href="/privacy" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+          Privacy Policy
+        </Link>{" "}
+        to understand how we process your personal data.
+      </p>
+
       <p className="text-center text-xs text-slate-500 dark:text-slate-400">
         Already have an account?{" "}
         <Link

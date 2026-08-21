@@ -164,6 +164,11 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
               <span>High-Converting Resume &amp; Profile Keywords</span>
             </div>
           </div>
+
+          <p className="text-[10px] text-slate-400 dark:text-slate-550 pt-1 max-w-lg mx-auto leading-relaxed">
+            Results vary. Global Ready AIEval does not guarantee assessment success, platform acceptance, project
+            allocation, employment or income.
+          </p>
         </div>
       </section>
       </Reveal>
@@ -191,6 +196,11 @@ export default function LandingView({ onEnterPlatform, onLogin, testimonials }: 
             </span>
           ))}
         </div>
+        <p className="text-center text-[10px] text-slate-400 dark:text-slate-550 mt-5 max-w-2xl mx-auto leading-relaxed">
+          Global Ready AIEval is an independent training and career-preparation platform. We are not affiliated
+          with, endorsed by, or acting on behalf of Mercor, Outlier, Alignerr, Micro1 or any other third-party
+          platform referenced on this website.
+        </p>
       </section>
       </Reveal>
 

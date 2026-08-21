@@ -125,6 +125,12 @@ export default function JobsView({ stats, jobs, onBack, backLabel = "Back to AI 
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-normal">
             Transition directly from training to high-paying remote contracts. Click any card to expand details and configure your personal affiliate or referral links.
           </p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-550 mt-2 max-w-2xl leading-relaxed">
+            Global Ready AIEval provides third-party opportunity information for convenience. We are not the
+            employer or recruiter unless expressly stated. Job availability, eligibility, compensation and
+            requirements may change. Always verify an opportunity with the original provider before submitting
+            sensitive information.
+          </p>
         </div>
       </div>
 

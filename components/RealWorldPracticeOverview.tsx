@@ -20,6 +20,10 @@ export default function RealWorldPracticeOverview() {
           Practice realistic, job-style AI evaluation tasks across different domains — the
           same kind of judgment calls you&apos;ll make as a working AI evaluator.
         </p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-550 leading-relaxed">
+          Global Ready AIEval practice exercises are independently created for training purposes and should not
+          be interpreted as official assessment questions from any third-party platform.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

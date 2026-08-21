@@ -26,6 +26,12 @@ interface MembershipViewProps {
   onSyncComplete?: (tier: UserStats["membershipTier"]) => void;
 }
 
+// "€52 one-time" -> "€52" — payment buttons need to state the amount, not
+// repeat the "one-time" qualifier that already appears just above them.
+function priceOnly(priceDisplay: string): string {
+  return priceDisplay.replace(/\s*one-time$/i, "");
+}
+
 const TIER_ICONS: Record<TierId, React.ElementType> = {
   free: Gift,
   starter: Shield,
@@ -287,6 +293,11 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
                       Founding price {PROFESSIONAL_FOUNDING_PRICE_DISPLAY} for the first {PROFESSIONAL_FOUNDING_LIMIT} buyers
                     </div>
                   )}
+                  {tierId !== "free" && (
+                    <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-1">
+                      One-time purchase. No recurring subscription or automatic renewal.
+                    </p>
+                  )}
                 </div>
 
                 {tierId === "free" ? (
@@ -304,7 +315,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
                     }`}
                   >
                     {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {isCurrent ? "Active Plan" : `Get ${meta.label}`}
+                    {isCurrent ? "Active Plan" : `Order and Pay ${priceOnly(meta.priceDisplay)}`}
                   </button>
                 ) : (
                   <button
@@ -317,7 +328,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
                     }`}
                   >
                     {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {isCurrent ? "Active Plan" : isIncluded ? "Included" : `Get ${meta.label}`}
+                    {isCurrent ? "Active Plan" : isIncluded ? "Included" : `Order and Pay ${priceOnly(meta.priceDisplay)}`}
                   </button>
                 )}
 
@@ -386,7 +397,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
                       className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
                     >
                       {pendingAction === pack.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      €{unitPrice * qty}
+                      Order and Pay &euro;{unitPrice * qty}
                     </button>
                   </div>
                 </div>
@@ -432,7 +443,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
               className="w-full px-5 py-3 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
             >
               {pendingAction === "coaching" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Book Your Session
+              Order and Pay {COACHING_OFFER.priceDisplay}
             </button>
           </div>
         </div>

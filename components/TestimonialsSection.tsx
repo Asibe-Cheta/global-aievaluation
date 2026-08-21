@@ -128,6 +128,10 @@ export default function TestimonialsSection({
               ))}
             </div>
           )}
+
+          <p className="text-center text-[10px] text-slate-400 dark:text-slate-550">
+            Testimonials reflect individual experiences. Results vary and are not guaranteed.
+          </p>
         </>
       )}
     </section>
