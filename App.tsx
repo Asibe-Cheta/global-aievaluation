@@ -56,7 +56,6 @@ import DashboardView from "./components/DashboardView";
 import LessonView from "./components/LessonView";
 import PracticeTaskRunner from "./components/PracticeTaskRunner";
 import ReadinessView from "./components/ReadinessView";
-import FailReasonsView from "./components/FailReasonsView";
 import ProfileView from "./components/ProfileView";
 import JobsView from "./components/JobsView";
 import { renderFormattedText } from "./components/LessonContentRenderer";
@@ -969,9 +968,7 @@ export default function App({
                               ? "Career Accelerator Hub"
                               : activeTab === "readiness"
                                 ? "Readiness Scores"
-                                : activeTab === "fail_reasons"
-                                  ? "Why Evaluators Fail"
-                                  : activeTab === "jobs"
+                                : activeTab === "jobs"
                                     ? "Explore Opportunities"
                                     : activeTab === "profile"
                                       ? "Account Settings"
@@ -1655,13 +1652,6 @@ export default function App({
                 <ReadinessView
                   stats={stats}
                   overallScore={overallReadinessScore}
-                  onBack={() => setActiveTab("dashboard")}
-                />
-              )}
-
-              {activeTab === "fail_reasons" && (
-                <FailReasonsView
-                  stats={stats}
                   onBack={() => setActiveTab("dashboard")}
                 />
               )}

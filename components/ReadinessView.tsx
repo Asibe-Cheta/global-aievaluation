@@ -1,6 +1,6 @@
 import React from "react";
 import { 
-  Gauge, TrendingUp, Briefcase, Sparkles, CheckCircle, 
+  Gauge, TrendingUp, Sparkles, CheckCircle,
   ChevronRight, Compass, ShieldAlert, Award, ArrowLeft
 } from "lucide-react";
 import { UserStats } from "../types";
@@ -56,38 +56,6 @@ export default function ReadinessView({ stats, overallScore, onBack }: Readiness
       score: stats.skills.instructionFollowing, 
       desc: "Ensuring output adheres to formal length, negative keywords, headers and formatting constraint systems.",
       key: "instructionFollowing"
-    }
-  ];
-
-  // Dynamically populated remote job listings matching overall score
-  const MATCHING_JOBS = [
-    {
-      title: "Outlier generalist RLHF Annotator",
-      platform: "Outlier.ai",
-      rate: "$25.00/Hour",
-      reqScore: 60,
-      linkText: "Onboard Generalist Pool"
-    },
-    {
-      title: "Alignerr System Evaluation Expert",
-      platform: "Alignerr",
-      rate: "$32.50/Hour",
-      reqScore: 75,
-      linkText: "Apply Assessment Gate"
-    },
-    {
-      title: "Mercor Sr. Red-Teamer (Legal/Code/Sci)",
-      platform: "Mercor",
-      rate: "$45.00/Hour",
-      reqScore: 85,
-      linkText: "Direct Lead Review Interview"
-    },
-    {
-      title: "DataAnnotation Premium Chat rater",
-      platform: "DataAnnotation.tech",
-      rate: "$28.00/Hour",
-      reqScore: 70,
-      linkText: "Launch Entry Exam link"
     }
   ];
 
@@ -171,56 +139,6 @@ export default function ReadinessView({ stats, overallScore, onBack }: Readiness
           </div>
         </div>
 
-        {/* Remote Job Matching List */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="border-b pb-2">
-            <h4 id="job-board-title" className="font-bold text-sm text-slate-909 dark:text-white flex items-center gap-1.5">
-              <Briefcase className="w-4 h-4 text-indigo-650" />
-              Onboarding Job Board Matching
-            </h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Live contracts currently looking for vetted Global Ready AIEval graduates</p>
-          </div>
-
-          <div className="space-y-3">
-            {MATCHING_JOBS.map((job, idx) => {
-              const matched = overallScore >= job.reqScore;
-              return (
-                <div 
-                  key={idx} 
-                  className={`p-3 rounded-xl border border-dashed transition-all ${
-                    matched 
-                      ? "bg-slate-50 dark:bg-slate-850 border-slate-200 hover:border-indigo-400" 
-                      : "bg-slate-50/20 dark:bg-slate-900/50 border-slate-100 opacity-60"
-                  }`}
-                >
-                  <div className="flex justify-between items-start text-xs">
-                    <div>
-                      <p className="font-bold text-slate-800 dark:text-white">{job.title}</p>
-                      <p className="text-[10px] text-slate-450 mt-0.5">{job.platform} &bull; {job.rate}</p>
-                    </div>
-                    {matched ? (
-                      <span className="bg-emerald-450 text-white font-mono text-[9px] px-1.5 py-0.5 rounded font-bold">
-                        MATCHED
-                      </span>
-                    ) : (
-                      <span className="bg-slate-200 text-slate-500 font-mono text-[8px] px-1.5 py-0.5 rounded font-bold">
-                        LOCK ({job.reqScore}%)
-                      </span>
-                    )}
-                  </div>
-                  {matched && (
-                    <button 
-                      onClick={() => alert(`Redirecting simulation gate for ${job.platform}. In production context, this integrates directly via OAuth credentials.`)}
-                      className="text-[10px] text-indigo-650 dark:text-indigo-400 font-bold block mt-2 hover:underline cursor-pointer"
-                    >
-                      {job.linkText} &rarr;
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* RHS Detailed skills bars listing */}

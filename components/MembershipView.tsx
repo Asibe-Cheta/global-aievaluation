@@ -79,6 +79,16 @@ const TIER_ACCENT: Record<TierId, { text: string; ring: string; badge: string; b
   },
 };
 
+// Starter is no longer sold — removed from the pricing grid entirely. Kept
+// out of TIER_ORDER itself (rather than filtered only here) would break
+// index math for anyone still on that tier from before, so this filters
+// only what renders, not the shared order used for index comparisons.
+const VISIBLE_TIER_ORDER = TIER_ORDER.filter((id) => id !== "starter");
+
+// Temporarily hidden per request — flip back to true to restore the
+// 1-to-1 Coaching add-on card.
+const SHOW_COACHING_OFFER = false;
+
 export default function MembershipView({ stats, checkoutResult, onDismissCheckoutResult, onBack, testimonials, onSyncComplete }: MembershipViewProps) {
   const currentTier: TierId = stats.membershipTier || "free";
   const currentIndex = TIER_ORDER.indexOf(currentTier);
@@ -332,8 +342,8 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
       </div>
 
       {/* Pricing Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch mb-16">
-        {TIER_ORDER.map((tierId) => {
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch mb-16">
+        {VISIBLE_TIER_ORDER.map((tierId) => {
           const meta = TIERS[tierId];
           const Icon = TIER_ICONS[tierId];
           const accent = TIER_ACCENT[tierId];
@@ -494,7 +504,10 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
       )}
 
       {/* 1-to-1 Coaching add-on — a paid service, not a membership tier;
-          available to everyone regardless of current plan. */}
+          available to everyone regardless of current plan.
+          Temporarily hidden per request — flip SHOW_COACHING_OFFER back on
+          to restore it, nothing else needs to change. */}
+      {SHOW_COACHING_OFFER && (
       <div className="relative bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/10 dark:to-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-amber-200 dark:border-amber-900/40 mb-8 overflow-hidden">
         <div className="absolute right-0 top-0 w-40 h-40 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -534,58 +547,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
           </div>
         </div>
       </div>
-
-      {/* Feature Lock Notice */}
-      <div className="bg-slate-50 dark:bg-slate-900/40 rounded-3xl p-6 sm:p-8 border border-slate-150 dark:border-slate-850">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0 mb-4 flex items-center gap-2">
-          <Lock className="w-5 h-5 text-indigo-500" />
-          Feature Lock Policy
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-2">
-            <span className="text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase font-mono tracking-wider block">
-              Professional+
-            </span>
-            <h4 className="text-sm font-bold text-slate-850 dark:text-white my-0">
-              Full Task-Simulation Bank
-            </h4>
-            <p className="text-xs text-slate-550 dark:text-slate-400 leading-relaxed my-0">
-              Real-platform-style simulation tasks, data annotation practice, and exam practice. Requires Professional or Career Accelerator.
-            </p>
-            {currentIndex < TIER_ORDER.indexOf("professional") ? (
-              <span className="inline-flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-450 text-[10px] font-bold px-2.5 py-0.5 rounded mt-2 uppercase">
-                <Lock className="w-3 h-3" /> Currently Locked
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-2.5 py-0.5 rounded mt-2 uppercase">
-                <Check className="w-3 h-3" /> Fully Unlocked
-              </span>
-            )}
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-2">
-            <span className="text-amber-600 dark:text-amber-500 text-xs font-bold uppercase font-mono tracking-wider block">
-              Career Accelerator
-            </span>
-            <h4 className="text-sm font-bold text-slate-850 dark:text-white my-0">
-              Private Community & Live Calls
-            </h4>
-            <p className="text-xs text-slate-550 dark:text-slate-400 leading-relaxed my-0">
-              Private community server, biweekly live Q&A calls, and CV/LinkedIn feedback reviewed live. Requires Career Accelerator.
-            </p>
-            {currentTier !== "career_accelerator" ? (
-              <span className="inline-flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-450 text-[10px] font-bold px-2.5 py-0.5 rounded mt-2 uppercase">
-                <Lock className="w-3 h-3" /> Currently Locked
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-2.5 py-0.5 rounded mt-2 uppercase">
-                <Check className="w-3 h-3" /> Fully Unlocked
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+      )}
 
       {pendingOrder && (
         <CheckoutConsentModal
