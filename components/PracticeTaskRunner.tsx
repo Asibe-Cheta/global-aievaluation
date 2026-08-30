@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Clock, CheckCircle2, XCircle, Lock, Sparkles, ChevronRight, RefreshCw,
+  ArrowLeft, ArrowRight, Clock, CheckCircle2, XCircle, Lock, Sparkles, ChevronRight, RefreshCw,
 } from "lucide-react";
 import type { PracticeTask, PracticeTaskSubmission, UserStats } from "@/types";
 import { renderFormattedText } from "./LessonContentRenderer";
@@ -262,6 +262,7 @@ export default function PracticeTaskRunner({
   domainLabel,
   filter,
   isUnlocked,
+  onAdvanceLevel,
 }: {
   tasks: PracticeTask[];
   existingSubmissions: Record<string, PracticeTaskSubmission>;
@@ -273,6 +274,9 @@ export default function PracticeTaskRunner({
   domainLabel: string;
   filter: "beginner" | "intermediate" | "expert";
   isUnlocked: boolean;
+  // Present only when a next level exists (i.e. filter isn't "expert") —
+  // advances practiceLevel and jumps straight into it.
+  onAdvanceLevel?: () => void;
 }) {
   const filtered = tasks.filter((t) => t.domain === domain && t.difficulty === filter);
 
@@ -302,6 +306,11 @@ export default function PracticeTaskRunner({
       description: "Advanced, exam-style tasks — some are timed.",
     },
   } as const;
+
+  const NEXT_LEVEL_LABEL: Partial<Record<"beginner" | "intermediate" | "expert", string>> = {
+    beginner: "Intermediate",
+    intermediate: "Expert",
+  };
 
   if (!isPaidUser) {
     return (
@@ -370,11 +379,23 @@ export default function PracticeTaskRunner({
           No practice tasks available yet.
         </div>
       ) : !currentTask ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center space-y-2">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center space-y-4">
           <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
           <p className="text-sm font-bold text-slate-900 dark:text-white">
             All {filtered.length} tasks in this section are complete!
           </p>
+          {onAdvanceLevel ? (
+            <button
+              onClick={onAdvanceLevel}
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
+            >
+              Move to {NEXT_LEVEL_LABEL[filter]} <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              You&apos;ve completed every level in {domainLabel}.
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-5">

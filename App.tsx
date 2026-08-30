@@ -1539,6 +1539,13 @@ export default function App({
                   domainLabel={getPracticeDomainLabel(selectedPracticeDomain)}
                   filter={practiceLevel}
                   isUnlocked={isDomainLevelUnlocked(selectedPracticeDomain, practiceLevel)}
+                  onAdvanceLevel={
+                    practiceLevel === "beginner"
+                      ? () => setPracticeLevel("intermediate")
+                      : practiceLevel === "intermediate"
+                        ? () => setPracticeLevel("expert")
+                        : undefined
+                  }
                 />
               )}
 

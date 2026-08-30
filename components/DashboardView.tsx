@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  BookOpen, Play, Lock, Gauge
+  BookOpen, Play, Lock, Gauge, Users
 } from "lucide-react";
 import { UserStats, Rank, Module } from "../types";
 
@@ -132,6 +132,13 @@ export default function DashboardView({
           >
             <Gauge className="w-3.5 h-3.5" />
             Readiness Scores
+          </button>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Become an Affiliate
           </button>
         </div>
       </div>
