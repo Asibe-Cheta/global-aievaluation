@@ -2,12 +2,15 @@ import type { UserStats } from "@/types";
 
 export type MembershipTier = UserStats["membershipTier"];
 
-// TEMP: every payment gate in the app is disabled while testing. Flip back
-// to false to restore real tier gating. This is the single source of truth
-// for the bypass — App.tsx's two direct membershipTier checks (lesson lock
-// interception, interview simulator paywall) import and check it too, so
-// there's exactly one flag to flip back.
-export const TEMP_DISABLE_ALL_PAYMENT_GATES = true;
+// Every payment gate in the app is now enforced for real. This was `true`
+// during content-building/testing — flipped back to `false` once the
+// comp'd accounts (asibechetachukwu@gmail.com, junioraloysius4@gmail.com,
+// chiatiibimi@gmail.com) were given permanent Career Accelerator access via
+// a real `purchases` row, so real tier gating applies to everyone else.
+// This is the single source of truth for the bypass — App.tsx's two direct
+// membershipTier checks (lesson lock interception, interview simulator
+// paywall) import and check it too, so there's exactly one flag to flip.
+export const TEMP_DISABLE_ALL_PAYMENT_GATES = false;
 
 // Any tier above the free preview tier — Starter, Professional, or Career
 // Accelerator all count as "paid" (Starter is a one-time purchase, not a

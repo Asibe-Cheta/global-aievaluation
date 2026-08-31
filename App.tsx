@@ -56,6 +56,7 @@ import DashboardView from "./components/DashboardView";
 import LessonView from "./components/LessonView";
 import PracticeTaskRunner from "./components/PracticeTaskRunner";
 import ReadinessView from "./components/ReadinessView";
+import AffiliateView from "./components/AffiliateView";
 import ProfileView from "./components/ProfileView";
 import JobsView from "./components/JobsView";
 import { renderFormattedText } from "./components/LessonContentRenderer";
@@ -805,6 +806,23 @@ export default function App({
               </span>
             </button>
 
+            <button
+              id="tab-btn-affiliate"
+              onClick={() => {
+                setActiveTab("affiliate");
+                setActiveLessonId(null);
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer ${
+                activeTab === "affiliate"
+                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+              }`}
+            >
+              <Gift className={`w-4 h-4 shrink-0 ${activeTab === "affiliate" ? "text-white" : "text-indigo-500"}`} />
+              Become an Affiliate
+            </button>
+
           </nav>
         </div>
 
@@ -968,6 +986,8 @@ export default function App({
                               ? "Career Accelerator Hub"
                               : activeTab === "readiness"
                                 ? "Readiness Scores"
+                                : activeTab === "affiliate"
+                                  ? "Affiliate Program"
                                 : activeTab === "jobs"
                                     ? "Explore Opportunities"
                                     : activeTab === "profile"
@@ -1661,6 +1681,10 @@ export default function App({
                   overallScore={overallReadinessScore}
                   onBack={() => setActiveTab("dashboard")}
                 />
+              )}
+
+              {activeTab === "affiliate" && (
+                <AffiliateView onBack={() => setActiveTab("dashboard")} />
               )}
 
               {activeTab === "jobs" && (
