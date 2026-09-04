@@ -114,6 +114,11 @@ function mapJobFieldToInterviewDomainId(field: string): string {
 
 const MODULE_CARD_DESCRIPTION_WORD_LIMIT = 35;
 
+// Temporary: hide the affiliate program entry point from the sidebar until
+// it's ready to launch. The /affiliate-terms page and the affiliate tab
+// itself are untouched — flip this back to true to relaunch it.
+const SHOW_AFFILIATE_NAV = false;
+
 // Truncates on a word boundary so cards in the same grid row settle at a
 // consistent height instead of stretching to whatever the longest module
 // description happens to be.
@@ -806,22 +811,24 @@ export default function App({
               </span>
             </button>
 
-            <button
-              id="tab-btn-affiliate"
-              onClick={() => {
-                setActiveTab("affiliate");
-                setActiveLessonId(null);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer ${
-                activeTab === "affiliate"
-                  ? "bg-[#4F46E5] text-white shadow-sm font-bold"
-                  : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
-              }`}
-            >
-              <Gift className={`w-4 h-4 shrink-0 ${activeTab === "affiliate" ? "text-white" : "text-indigo-500"}`} />
-              Become an Affiliate
-            </button>
+            {SHOW_AFFILIATE_NAV && (
+              <button
+                id="tab-btn-affiliate"
+                onClick={() => {
+                  setActiveTab("affiliate");
+                  setActiveLessonId(null);
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 transition-colors cursor-pointer ${
+                  activeTab === "affiliate"
+                    ? "bg-[#4F46E5] text-white shadow-sm font-bold"
+                    : "text-slate-600 hover:text-indigo-655 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850"
+                }`}
+              >
+                <Gift className={`w-4 h-4 shrink-0 ${activeTab === "affiliate" ? "text-white" : "text-indigo-500"}`} />
+                Become an Affiliate
+              </button>
+            )}
 
           </nav>
         </div>
