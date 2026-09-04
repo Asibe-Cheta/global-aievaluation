@@ -31,6 +31,13 @@ export default async function AdminLayout({
     .from("profiles")
     .select("*", { count: "exact", head: true });
 
+  const { count: freeCount } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("membership_tier", "free");
+
+  const paidCount = (userCount ?? 0) - (freeCount ?? 0);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <aside className="w-60 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 min-h-screen p-5 space-y-6">
@@ -43,13 +50,33 @@ export default async function AdminLayout({
           </h1>
         </div>
 
-        <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 px-3 py-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
-            Total Users
-          </p>
-          <p className="text-lg font-black text-slate-900 dark:text-white">
-            {userCount ?? 0}
-          </p>
+        <div className="grid grid-cols-1 gap-2">
+          <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 px-3 py-2.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
+              Total Users
+            </p>
+            <p className="text-lg font-black text-slate-900 dark:text-white">
+              {userCount ?? 0}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-150 dark:border-slate-800 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-450">
+                Free
+              </p>
+              <p className="text-base font-black text-slate-900 dark:text-white">
+                {freeCount ?? 0}
+              </p>
+            </div>
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Paid
+              </p>
+              <p className="text-base font-black text-slate-900 dark:text-white">
+                {paidCount}
+              </p>
+            </div>
+          </div>
         </div>
 
         <nav className="space-y-1">

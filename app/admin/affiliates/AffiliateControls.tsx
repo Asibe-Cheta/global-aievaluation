@@ -5,9 +5,12 @@ import { Loader2 } from "lucide-react";
 import {
   updateAffiliateCommissionRate,
   setAffiliateStatus,
-  markReferralPaid,
+  setReferralStatus,
   markAllReferralsPaid,
+  type AffiliateReferralStatus,
 } from "@/lib/actions/admin-affiliates";
+
+const REFERRAL_STATUSES: AffiliateReferralStatus[] = ["pending", "approved", "paid", "reversed", "cancelled"];
 
 export function RateForm({
   userId,
@@ -80,19 +83,34 @@ export function StatusToggleButton({
   );
 }
 
-export function MarkPaidButton({ referralId }: { referralId: string }) {
+export function ReferralStatusSelect({
+  referralId,
+  status,
+}: {
+  referralId: string;
+  status: AffiliateReferralStatus;
+}) {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <button
-      type="button"
-      onClick={() => startTransition(async () => { await markReferralPaid(referralId); })}
-      disabled={isPending}
-      className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline disabled:opacity-60 cursor-pointer inline-flex items-center gap-1"
-    >
-      {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-      Mark Paid
-    </button>
+    <div className="flex items-center gap-1.5 justify-end">
+      {isPending && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+      <select
+        value={status}
+        disabled={isPending}
+        onChange={(e) => {
+          const next = e.target.value as AffiliateReferralStatus;
+          startTransition(async () => { await setReferralStatus(referralId, next); });
+        }}
+        className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg px-2 py-1 text-xs font-bold text-slate-900 dark:text-white disabled:opacity-60 cursor-pointer"
+      >
+        {REFERRAL_STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 

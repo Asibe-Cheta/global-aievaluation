@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getAdminAffiliate, getAdminAffiliateReferrals } from "@/lib/admin/queries";
-import { MarkPaidButton, MarkAllPaidButton } from "../AffiliateControls";
+import { ReferralStatusSelect, MarkAllPaidButton } from "../AffiliateControls";
 
 function formatCents(cents: number): string {
   return `€${(cents / 100).toFixed(2)}`;
@@ -21,7 +21,7 @@ export default async function AdminAffiliateLedgerPage({
 
   if (!affiliate) notFound();
 
-  const hasPending = referrals.some((r) => r.status === "pending");
+  const hasPending = referrals.some((r) => r.status === "pending" || r.status === "approved");
 
   return (
     <div className="space-y-6">
@@ -72,14 +72,22 @@ export default async function AdminAffiliateLedgerPage({
                   {formatCents(r.commission_cents)}
                 </td>
                 <td className="px-4 py-3">
-                  {r.status === "paid" ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Paid</span>
-                  ) : (
-                    <span className="text-amber-600 dark:text-amber-400 font-bold">Pending</span>
-                  )}
+                  <span
+                    className={`font-bold ${
+                      r.status === "paid"
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : r.status === "approved"
+                          ? "text-sky-600 dark:text-sky-400"
+                          : r.status === "reversed" || r.status === "cancelled"
+                            ? "text-rose-600 dark:text-rose-450"
+                            : "text-amber-600 dark:text-amber-400"
+                    }`}
+                  >
+                    {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {r.status === "pending" && <MarkPaidButton referralId={r.id} />}
+                  <ReferralStatusSelect referralId={r.id} status={r.status} />
                 </td>
               </tr>
             ))}

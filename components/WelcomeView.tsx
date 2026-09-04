@@ -1,6 +1,6 @@
 "use client";
 
-import { PartyPopper, Check, Loader2, AlertTriangle, ArrowRight, BookOpen, Briefcase, MessageSquare } from "lucide-react";
+import { PartyPopper, Check, Loader2, AlertTriangle, ArrowRight, BookOpen, Briefcase, MessageSquare, Users } from "lucide-react";
 import { TIERS, type TierId } from "../lib/pricing";
 import type { LatestPurchase } from "../lib/actions/billing";
 
@@ -124,6 +124,31 @@ export default function WelcomeView({
               .
             </p>
           )}
+        </div>
+      )}
+
+      {latestPurchase?.productType === "tier_career_accelerator" && (
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-2 border-amber-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-amber-500/15 rounded-xl text-amber-600 dark:text-amber-400 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white my-0">Your Accelerator community is ready</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 leading-relaxed">
+                Join the private group for live coaching, Q&amp;A calls, and other Accelerator members.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://www.skool.com/ai-hustle-skuul-5237/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 px-5 py-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Users className="w-4 h-4" />
+            Access Community on Skool
+          </a>
         </div>
       )}
 

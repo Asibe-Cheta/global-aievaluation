@@ -337,7 +337,7 @@ export interface AdminAffiliateReferralRow {
   sale_amount_cents: number;
   commission_cents: number;
   currency: string;
-  status: "pending" | "paid";
+  status: "pending" | "approved" | "paid" | "reversed" | "cancelled";
   created_at: string;
 }
 

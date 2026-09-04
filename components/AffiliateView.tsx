@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ArrowLeft, Gift, Link2, Share2, TrendingUp, Wallet, Check, Copy,
-  ShieldAlert, RefreshCw, CheckCircle2, Megaphone, Sparkles,
+  ShieldAlert, RefreshCw, CheckCircle2, Megaphone, Sparkles, FileText, CalendarClock,
 } from "lucide-react";
 import {
   becomeAffiliate,
   getMyAffiliateStatus,
   getMyReferralSummary,
+  AFFILIATE_TERMS_VERSION,
   type AffiliateStatus,
   type AffiliateReferralSummary,
 } from "../lib/actions/affiliates";
 
-const DEFAULT_COMMISSION_LABEL = "20%";
+const DEFAULT_COMMISSION_LABEL = "30%";
 
 function formatCents(cents: number): string {
   return `€${(cents / 100).toFixed(2)}`;
@@ -26,61 +28,6 @@ const PROMOTE_ITEMS = [
   "Discover AI training opportunities",
 ];
 
-const TERMS_SECTIONS: { title: string; body: string }[] = [
-  {
-    title: "1. Eligibility",
-    body: "Anyone with a Global Ready AIEval account can join the Affiliate Program. There is no application fee and no approval wait — your referral link is active as soon as you join.",
-  },
-  {
-    title: "2. Commission & Qualifying Sales",
-    body: "You earn your commission rate on the sale price of any paid plan or credit pack purchased by someone who used your referral link, on their first purchase through that link.",
-  },
-  {
-    title: "3. Commission Payments",
-    body: "Approved commissions are tracked in your dashboard as Pending until reviewed, then marked Paid Out once settled. Payment timing and method are communicated directly by the Global Ready AIEval team — this program does not currently run on a fixed automatic payout schedule.",
-  },
-  {
-    title: "4. Refunds & Chargebacks",
-    body: "If a referred purchase is refunded or charged back, any commission tied to that sale is voided, including if it was already marked as paid — it will be deducted from a future payout.",
-  },
-  {
-    title: "5. No Self-Referrals",
-    body: "You may not use your own referral link to purchase a plan for yourself, or create accounts to generate artificial referrals. Commissions from self-referrals will be voided.",
-  },
-  {
-    title: "6. Affiliate Disclosure",
-    body: "Whenever you share your referral link, you must clearly disclose that you may earn a commission — see the disclosure notice above for suggested wording.",
-  },
-  {
-    title: "7. No Spam & No Fake Claims",
-    body: "Do not use unsolicited bulk messaging (email, DM, or comment spam) to share your link, and do not make false or exaggerated claims about outcomes, earnings, or guarantees.",
-  },
-  {
-    title: "8. Third-Party Platforms",
-    body: "Global Ready AIEval is an independent training platform. Do not tell people we are officially affiliated with Mercor, Outlier, Alignerr, Micro1, or any other third-party platform unless we expressly state otherwise.",
-  },
-  {
-    title: "9. Brand Use",
-    body: "You may reference the Global Ready AIEval name and describe the product accurately, but may not imply you are an employee or official representative of the company, and may not modify our logo or branding.",
-  },
-  {
-    title: "10. Program Abuse",
-    body: "We reserve the right to disable an affiliate account and void pending commissions if we find evidence of fraud, self-referral, or any other abuse of the program.",
-  },
-  {
-    title: "11. Changes to the Program",
-    body: "Commission rates and program terms may change going forward. Changes apply to new referrals only — commission already earned on a completed sale is not affected retroactively.",
-  },
-  {
-    title: "12. Ending Participation",
-    body: "You may stop participating at any time by no longer sharing your link. We may also disable an affiliate account at our discretion. Commission already earned on valid, non-refunded sales prior to disabling remains payable.",
-  },
-  {
-    title: "13. Contact",
-    body: "Questions about the Affiliate Program can be sent to contact@globalready.tech.",
-  },
-];
-
 export default function AffiliateView({ onBack }: { onBack: () => void }) {
   const [affiliateStatus, setAffiliateStatus] = useState<AffiliateStatus | null>(null);
   const [referralSummary, setReferralSummary] = useState<AffiliateReferralSummary | null>(null);
@@ -88,6 +35,7 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
   const [isBecomingAffiliate, setIsBecomingAffiliate] = useState(false);
   const [affiliateError, setAffiliateError] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,7 +64,7 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
   const handleBecomeAffiliate = async () => {
     setAffiliateError("");
     setIsBecomingAffiliate(true);
-    const result = await becomeAffiliate();
+    const result = await becomeAffiliate(termsAccepted);
     setIsBecomingAffiliate(false);
 
     if (result.error) {
@@ -167,8 +115,8 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
             <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Your link — ready to share</span>
           </div>
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl px-3.5 py-2">
-            <TrendingUp className="w-4 h-4 text-indigo-500 shrink-0" />
-            <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Track referrals & earnings live</span>
+            <CalendarClock className="w-4 h-4 text-indigo-500 shrink-0" />
+            <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Payouts processed weekly</span>
           </div>
         </div>
       </div>
@@ -183,7 +131,7 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
             { icon: Link2, label: "Copy Your Link", desc: "Grab your unique affiliate link below." },
             { icon: Share2, label: "Share It", desc: "Share it with your audience on any platform." },
             { icon: Sparkles, label: `Earn ${rateLabel}`, desc: "You earn commission when someone makes a qualifying purchase." },
-            { icon: Wallet, label: "Track Earnings", desc: "Watch pending and paid commissions in your dashboard." },
+            { icon: Wallet, label: "Get Paid Weekly", desc: "Approved commissions are paid out every week." },
           ].map((step) => (
             <div key={step.label} className="text-center space-y-2">
               <div className="inline-flex p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
@@ -201,16 +149,33 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
         {isLoading ? (
           <p className="text-xs text-slate-400">Loading...</p>
         ) : !affiliateStatus ? (
-          <div className="text-center space-y-4 py-4">
+          <div className="text-center space-y-4 py-4 max-w-md mx-auto">
             <div className="inline-flex p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400">
               <Gift className="w-7 h-7" />
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-black text-slate-900 dark:text-white">Ready to start earning?</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Get your own referral link and earn {rateLabel} of every qualifying sale you bring in — no application needed.
               </p>
             </div>
+
+            <label className="flex items-start gap-2.5 text-left bg-slate-50 dark:bg-slate-850 border border-slate-150 dark:border-slate-800 rounded-xl p-3.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 shrink-0"
+              />
+              <span className="text-[11px] text-slate-600 dark:text-slate-350 leading-relaxed">
+                I have read and agree to the Global Ready AIEval{" "}
+                <Link href="/affiliate-terms" target="_blank" className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
+                  Affiliate Program Terms
+                </Link>
+                .
+              </span>
+            </label>
+
             {affiliateError && (
               <p className="text-[11px] text-rose-600 dark:text-rose-405 font-bold flex items-center justify-center gap-1">
                 <ShieldAlert className="w-3.5 h-3.5" /> {affiliateError}
@@ -219,8 +184,8 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
             <button
               type="button"
               onClick={handleBecomeAffiliate}
-              disabled={isBecomingAffiliate}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-1.5"
+              disabled={isBecomingAffiliate || !termsAccepted}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
             >
               {isBecomingAffiliate && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               Become an Affiliate
@@ -248,14 +213,15 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
                   {copySuccess ? "Copied" : "Copy Link"}
                 </button>
               </div>
-              <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-1.5">
-                Share this link and earn {rateLabel} commission on qualifying sales.
+              <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-1.5 flex items-center gap-1">
+                <Megaphone className="w-3 h-3 shrink-0" />
+                Share this link and earn {rateLabel} commission — always disclose that it&apos;s an affiliate link.
               </p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-slate-50 dark:bg-slate-850 px-3 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider leading-none">Rate</span>
+                <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider leading-none">Commission</span>
                 <span className="text-sm font-black text-slate-900 dark:text-white mt-1.5 block">{rateLabel}</span>
               </div>
               <div className="bg-slate-50 dark:bg-slate-850 px-3 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
@@ -271,6 +237,10 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
                 <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1.5 block">{formatCents(referralSummary?.paidCommissionCents ?? 0)}</span>
               </div>
             </div>
+
+            <p className="text-[10px] text-slate-450 dark:text-slate-500">
+              {rateLabel} commission on qualifying sales · Payouts processed weekly
+            </p>
 
             {affiliateStatus.status === "disabled" && (
               <p className="text-[11px] text-rose-600 dark:text-rose-405 font-bold flex items-center gap-1">
@@ -317,28 +287,20 @@ export default function AffiliateView({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* Terms */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-1">
-        <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3">
-          Affiliate Program Terms
-        </h3>
-        {TERMS_SECTIONS.map((section) => (
-          <details key={section.title} className="group border-b border-slate-100 dark:border-slate-850 last:border-0 py-2">
-            <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 select-none">
-              {section.title}
-              <span className="text-slate-400 transition-transform group-open:rotate-180 shrink-0 ml-2">▾</span>
-            </summary>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-2">{section.body}</p>
-          </details>
-        ))}
-        <p className="text-[10px] text-slate-450 dark:text-slate-500 pt-3">
-          Questions about the program? Reach out anytime at{" "}
-          <a href="mailto:contact@globalready.tech" className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
-            contact@globalready.tech
-          </a>
-          .
-        </p>
-      </div>
+      {/* Full terms link */}
+      <Link
+        href="/affiliate-terms"
+        target="_blank"
+        className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors group"
+      >
+        <span className="flex items-center gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+          <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+          Read the full Affiliate Program Terms
+        </span>
+        <span className="text-[10px] text-slate-400 group-hover:text-indigo-500 transition-colors">
+          Version {AFFILIATE_TERMS_VERSION} &rarr;
+        </span>
+      </Link>
 
       {affiliateStatus && (
         <div className="bg-indigo-600 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">

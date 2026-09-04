@@ -2,6 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+// Bump this whenever the Affiliate Program Terms (app/affiliate-terms/page.tsx)
+// materially change — becomeAffiliate() stamps whichever version was current
+// at acceptance, so there's a durable record of what each affiliate agreed to.
+export const AFFILIATE_TERMS_VERSION = "2026-09-01";
+
+export type AffiliateReferralStatus = "pending" | "approved" | "paid" | "reversed" | "cancelled";
+
 export interface AffiliateStatus {
   code: string;
   commissionRate: number;
@@ -14,7 +21,7 @@ export interface AffiliateReferral {
   saleAmountCents: number;
   commissionCents: number;
   currency: string;
-  status: "pending" | "paid";
+  status: AffiliateReferralStatus;
   createdAt: string;
 }
 
@@ -45,7 +52,13 @@ export async function getMyAffiliateStatus(): Promise<AffiliateStatus | null> {
   return { code: data.code, commissionRate: data.commission_rate, status: data.status };
 }
 
-export async function becomeAffiliate(): Promise<{ error?: string; code?: string }> {
+export async function becomeAffiliate(
+  termsAccepted: boolean,
+): Promise<{ error?: string; code?: string }> {
+  if (!termsAccepted) {
+    return { error: "You must accept the Affiliate Program Terms to join." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -55,11 +68,14 @@ export async function becomeAffiliate(): Promise<{ error?: string; code?: string
   const existing = await getMyAffiliateStatus();
   if (existing) return { code: existing.code };
 
+  const acceptedAt = new Date().toISOString();
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateCode();
     const { error } = await supabase.from("affiliates").insert({
       user_id: user.id,
       code,
+      terms_accepted_at: acceptedAt,
+      terms_version: AFFILIATE_TERMS_VERSION,
     });
     if (!error) return { code };
     if (error.code !== "23505") return { error: error.message };
@@ -94,8 +110,12 @@ export async function getMyReferralSummary(): Promise<AffiliateReferralSummary> 
 
   return {
     referrals,
+    // "Approved" still shows as Pending to the affiliate — it means the
+    // sale is confirmed and queued for the next payout, not that it's been
+    // paid yet. Reversed/cancelled commissions are voided and excluded
+    // from both totals entirely.
     pendingCommissionCents: referrals
-      .filter((r) => r.status === "pending")
+      .filter((r) => r.status === "pending" || r.status === "approved")
       .reduce((sum, r) => sum + r.commissionCents, 0),
     paidCommissionCents: referrals
       .filter((r) => r.status === "paid")
