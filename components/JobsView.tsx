@@ -134,6 +134,24 @@ export default function JobsView({ stats, jobs, onBack, backLabel = "Back to AI 
         </div>
       </div>
 
+      {/* Referral Link Disclosure */}
+      <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-start gap-3">
+        <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-xs font-black text-slate-700 dark:text-slate-300 my-0">Referral Link Disclosure</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-450 leading-relaxed my-0">
+            Some job opportunities listed on this platform may contain referral links. If you apply through one of
+            these links and are successfully hired or accepted onto a project, our platform may receive a referral
+            fee or commission from the hiring company.
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-450 leading-relaxed my-0">
+            This does not affect the amount you earn, the application process, or the hiring decision. We curate
+            opportunities we believe may be relevant to our community, but final recruitment decisions are made
+            entirely by the respective companies.
+          </p>
+        </div>
+      </div>
+
       {/* Practice Boost Alert Banner */}
       {setActiveTab && (
         <div className="bg-gradient-to-r from-indigo-500/10 to-emerald-500/10 dark:from-indigo-500/5 dark:to-emerald-500/5 border border-indigo-500/15 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
