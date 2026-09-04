@@ -598,7 +598,7 @@ export default function App({
       {/* ================= SIDEBAR MODULE (PERSISTENT ON DESKTOP) ================= */}
       <aside
         id="sidebar-navigation"
-        className={`bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 w-64 fixed lg:static h-screen z-50 flex flex-col justify-between transition-transform duration-300 ${
+        className={`bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 w-64 fixed lg:static h-dvh lg:h-screen z-50 flex flex-col justify-between transition-transform duration-300 ${
           mobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0"
@@ -829,7 +829,7 @@ export default function App({
         {/* Profile details at bottom of Sidebar */}
         <div
           id="sidebar-bottom-block"
-          className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2"
+          className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0"
         >
           {isAdmin && (
             <Link

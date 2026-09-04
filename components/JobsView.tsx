@@ -275,12 +275,7 @@ export default function JobsView({ stats, jobs, onBack, backLabel = "Back to AI 
                         </h2>
                       </div>
                       
-                      {/* Entire Job Description displayed directly on the card */}
-                      <p className="text-xs text-slate-650 dark:text-slate-300 my-2 leading-relaxed">
-                        {renderFormattedText(job.description)}
-                      </p>
-
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium mt-1">
                         <span className="font-bold text-indigo-650 dark:text-indigo-400">{job.field}</span>
                         <span className="text-slate-300 dark:text-slate-750">•</span>
                         <span>{job.payRate}</span>
