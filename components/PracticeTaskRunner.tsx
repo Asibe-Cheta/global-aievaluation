@@ -435,14 +435,14 @@ export default function PracticeTaskRunner({
             onSubmit={(submission) => onSubmit(currentTask.id, submission)}
           />
 
-          {isCurrentSubmitted && !isLastTask && (
+          {isCurrentSubmitted && (
             <div className="flex justify-end">
               <button
                 type="button"
                 onClick={() => setCurrentIndex((i) => i + 1)}
                 className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer flex items-center gap-1.5"
               >
-                Next Task
+                {isLastTask ? "Finish Level" : "Next Task"}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
