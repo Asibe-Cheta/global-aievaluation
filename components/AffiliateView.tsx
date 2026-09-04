@@ -10,10 +10,10 @@ import {
   becomeAffiliate,
   getMyAffiliateStatus,
   getMyReferralSummary,
-  AFFILIATE_TERMS_VERSION,
   type AffiliateStatus,
   type AffiliateReferralSummary,
 } from "../lib/actions/affiliates";
+import { AFFILIATE_TERMS_VERSION } from "../lib/affiliate-terms";
 
 const DEFAULT_COMMISSION_LABEL = "30%";
 

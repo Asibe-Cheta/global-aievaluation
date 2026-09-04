@@ -1,11 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-
-// Bump this whenever the Affiliate Program Terms (app/affiliate-terms/page.tsx)
-// materially change — becomeAffiliate() stamps whichever version was current
-// at acceptance, so there's a durable record of what each affiliate agreed to.
-export const AFFILIATE_TERMS_VERSION = "2026-09-01";
+import { AFFILIATE_TERMS_VERSION } from "@/lib/affiliate-terms";
 
 export type AffiliateReferralStatus = "pending" | "approved" | "paid" | "reversed" | "cancelled";
 
