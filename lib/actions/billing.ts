@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   getStripe,
-  getOneTimePriceId,
   getAcceleratorPriceId,
+  oneTimeCheckoutLineItem,
   type OneTimeProduct,
 } from "@/lib/stripe";
 import { PROFESSIONAL_FOUNDING_LIMIT } from "@/lib/pricing";
@@ -18,6 +18,7 @@ import {
   getSecondConsentText,
   getSecondConsentType,
 } from "@/lib/checkout-consent";
+import { isRedirectError } from "@/lib/is-redirect-error";
 import type { UserStats } from "@/types";
 
 async function getOrigin(): Promise<string> {
@@ -125,79 +126,87 @@ export async function createOneTimeCheckout(
   product: OneTimeCheckoutProduct,
   quantity: number = 1,
   consent?: CheckoutConsent,
-) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) throw new Error("Not authenticated");
+): Promise<{ error: string } | void> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.email) return { error: "Not authenticated" };
 
-  if (!consent?.termsAccepted || !consent?.secondConsentAccepted) {
-    throw new Error("Please accept both checkout agreements before continuing.");
-  }
+    if (!consent?.termsAccepted || !consent?.secondConsentAccepted) {
+      return { error: "Please accept both checkout agreements before continuing." };
+    }
 
-  // Only credit packs can be bought in bulk — tier purchases (starter,
-  // professional) are always exactly one. Clamp defensively since this is
-  // a public-callable action taking a client-supplied number.
-  const isCreditPack = product === "credit_pack_a" || product === "credit_pack_b";
-  const safeQuantity = isCreditPack ? Math.min(20, Math.max(1, Math.floor(quantity) || 1)) : 1;
+    // Only credit packs can be bought in bulk — tier purchases (starter,
+    // professional) are always exactly one. Clamp defensively since this is
+    // a public-callable action taking a client-supplied number.
+    const isCreditPack = product === "credit_pack_a" || product === "credit_pack_b";
+    const safeQuantity = isCreditPack ? Math.min(20, Math.max(1, Math.floor(quantity) || 1)) : 1;
 
-  const [origin, customerId, resolvedProduct, affiliateCode] = await Promise.all([
-    getOrigin(),
-    getOrCreateStripeCustomerId(user.id, user.email),
-    resolveOneTimeProduct(product),
-    resolveAffiliateCode(user.id),
-  ]);
+    const [origin, customerId, resolvedProduct, affiliateCode] = await Promise.all([
+      getOrigin(),
+      getOrCreateStripeCustomerId(user.id, user.email),
+      resolveOneTimeProduct(product),
+      resolveAffiliateCode(user.id),
+    ]);
 
-  const service = createServiceClient();
-  const { error: consentError } = await service.from("legal_consents").insert([
-    {
-      user_id: user.id,
-      consent_type: "terms",
-      version: CONSENT_VERSION,
-      wording: TERMS_CONSENT_TEXT,
-      accepted: true,
-      order_reference: `checkout:${resolvedProduct}`,
-    },
-    {
-      user_id: user.id,
-      consent_type: getSecondConsentType(product),
-      version: CONSENT_VERSION,
-      wording: getSecondConsentText(product),
-      accepted: true,
-      order_reference: `checkout:${resolvedProduct}`,
-    },
-  ]);
-  if (consentError) throw new Error(`Failed to record checkout consent: ${consentError.message}`);
+    const service = createServiceClient();
+    const { error: consentError } = await service.from("legal_consents").insert([
+      {
+        user_id: user.id,
+        consent_type: "terms",
+        version: CONSENT_VERSION,
+        wording: TERMS_CONSENT_TEXT,
+        accepted: true,
+        order_reference: `checkout:${resolvedProduct}`,
+      },
+      {
+        user_id: user.id,
+        consent_type: getSecondConsentType(product),
+        version: CONSENT_VERSION,
+        wording: getSecondConsentText(product),
+        accepted: true,
+        order_reference: `checkout:${resolvedProduct}`,
+      },
+    ]);
+    if (consentError) return { error: `Failed to record checkout consent: ${consentError.message}` };
 
-  const session = await getStripe().checkout.sessions.create({
-    mode: "payment",
-    customer: customerId,
-    client_reference_id: user.id,
-    line_items: [{ price: getOneTimePriceId(resolvedProduct), quantity: safeQuantity }],
-    success_url: `${origin}/?checkout=success`,
-    cancel_url: `${origin}/?checkout=cancelled`,
-    // Lets the Stripe-hosted checkout page show a "Add promotion code" field
-    // (e.g. for the Career Accelerator discount coupon).
-    allow_promotion_codes: true,
-    payment_intent_data: {
+    const lineItem = await oneTimeCheckoutLineItem(resolvedProduct, safeQuantity);
+
+    const session = await getStripe().checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      client_reference_id: user.id,
+      line_items: [lineItem],
+      success_url: `${origin}/?checkout=success`,
+      cancel_url: `${origin}/?checkout=cancelled`,
+      // Lets the Stripe-hosted checkout page show a "Add promotion code" field
+      // (e.g. for the Career Accelerator discount coupon).
+      allow_promotion_codes: true,
+      payment_intent_data: {
+        metadata: {
+          supabase_user_id: user.id,
+          product_type: resolvedProduct,
+          quantity: String(safeQuantity),
+          ...(affiliateCode && { affiliate_code: affiliateCode }),
+        },
+      },
       metadata: {
         supabase_user_id: user.id,
         product_type: resolvedProduct,
         quantity: String(safeQuantity),
         ...(affiliateCode && { affiliate_code: affiliateCode }),
       },
-    },
-    metadata: {
-      supabase_user_id: user.id,
-      product_type: resolvedProduct,
-      quantity: String(safeQuantity),
-      ...(affiliateCode && { affiliate_code: affiliateCode }),
-    },
-  });
+    });
 
-  if (!session.url) throw new Error("Stripe did not return a checkout URL");
-  redirect(session.url);
+    if (!session.url) return { error: "Stripe did not return a checkout URL" };
+    redirect(session.url);
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    console.error("createOneTimeCheckout", err);
+    return { error: err instanceof Error ? err.message : "Checkout failed. Please try again." };
+  }
 }
 
 export async function createSubscriptionCheckout() {

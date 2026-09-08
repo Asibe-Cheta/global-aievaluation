@@ -124,12 +124,13 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
 
   const handleConfirmOrder = async () => {
     if (!pendingOrder) return;
-    await runAction(pendingOrder.key, () =>
-      createOneTimeCheckout(pendingOrder.product, pendingOrder.quantity, {
+    await runAction(pendingOrder.key, async () => {
+      const result = await createOneTimeCheckout(pendingOrder.product, pendingOrder.quantity, {
         termsAccepted: true,
         secondConsentAccepted: true,
-      }),
-    );
+      });
+      if (result?.error) throw new Error(result.error);
+    });
     setPendingOrder(null);
   };
 
