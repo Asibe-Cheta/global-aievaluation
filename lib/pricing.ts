@@ -76,9 +76,6 @@ export const TIERS: Record<TierId, TierMeta> = {
 
 export const TIER_ORDER: TierId[] = ["free", "starter", "professional", "career_accelerator"];
 
-export const PROFESSIONAL_FOUNDING_PRICE_DISPLAY = "€34";
-export const PROFESSIONAL_FOUNDING_LIMIT = 150;
-
 export interface CreditPack {
   id: "credit_pack_a" | "credit_pack_b";
   priceDisplay: string;

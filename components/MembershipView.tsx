@@ -10,8 +10,7 @@ import {
   syncMyPurchases,
 } from "../lib/actions/billing";
 import {
-  TIERS, TIER_ORDER, CREDIT_PACKS, PROFESSIONAL_FOUNDING_PRICE_DISPLAY,
-  PROFESSIONAL_FOUNDING_LIMIT, COACHING_OFFER, type TierId,
+  TIERS, TIER_ORDER, CREDIT_PACKS, COACHING_OFFER, type TierId,
 } from "../lib/pricing";
 import { isRedirectError } from "../lib/is-redirect-error";
 import TestimonialsSection from "./TestimonialsSection";
@@ -360,11 +359,6 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
                   <span className="text-3xl font-extrabold text-slate-900 dark:text-white">
                     {meta.priceDisplay}
                   </span>
-                  {tierId === "professional" && (
-                    <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 mt-1 font-bold">
-                      Founding price {PROFESSIONAL_FOUNDING_PRICE_DISPLAY} for the first {PROFESSIONAL_FOUNDING_LIMIT} buyers
-                    </div>
-                  )}
                   {tierId !== "free" && (
                     <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-1">
                       One-time purchase. No recurring subscription or automatic renewal.

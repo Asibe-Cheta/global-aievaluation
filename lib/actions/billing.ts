@@ -10,7 +10,6 @@ import {
   oneTimeCheckoutLineItem,
   type OneTimeProduct,
 } from "@/lib/stripe";
-import { PROFESSIONAL_FOUNDING_LIMIT } from "@/lib/pricing";
 import { handleOneTimePayment, recomputeMembershipTier, syncSubscriptionState } from "@/lib/stripe/sync";
 import {
   CONSENT_VERSION,
@@ -90,23 +89,15 @@ export type OneTimeCheckoutProduct =
   | "coaching";
 
 async function resolveOneTimeProduct(product: OneTimeCheckoutProduct): Promise<OneTimeProduct> {
-  if (product !== "professional") {
-    if (product === "starter") return "tier_starter";
-    if (product === "career_accelerator") return "tier_career_accelerator";
-    if (product === "coaching") return "coaching_session";
-    return product;
-  }
-
-  const service = createServiceClient();
-  const { count } = await service
-    .from("purchases")
-    .select("*", { count: "exact", head: true })
-    .eq("product_type", "tier_professional_founding")
-    .eq("status", "completed");
-
-  return (count ?? 0) < PROFESSIONAL_FOUNDING_LIMIT
-    ? "tier_professional_founding"
-    : "tier_professional_regular";
+  if (product === "starter") return "tier_starter";
+  // Founding price retired — everyone now pays the regular Professional
+  // price. tier_professional_founding stays a valid historical product_type
+  // (past buyers' purchases/tier computation still reference it) but is no
+  // longer resolved to for new checkouts.
+  if (product === "professional") return "tier_professional_regular";
+  if (product === "career_accelerator") return "tier_career_accelerator";
+  if (product === "coaching") return "coaching_session";
+  return product;
 }
 
 // Both checkboxes are required before this action will create a Stripe
