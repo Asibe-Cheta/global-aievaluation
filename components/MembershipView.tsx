@@ -78,11 +78,12 @@ const TIER_ACCENT: Record<TierId, { text: string; ring: string; badge: string; b
   },
 };
 
-// Starter is no longer sold — removed from the pricing grid entirely. Kept
-// out of TIER_ORDER itself (rather than filtered only here) would break
-// index math for anyone still on that tier from before, so this filters
-// only what renders, not the shared order used for index comparisons.
-const VISIBLE_TIER_ORDER = TIER_ORDER.filter((id) => id !== "starter");
+// Starter and Professional are no longer sold — removed from the pricing
+// grid entirely. Kept out of TIER_ORDER itself (rather than filtered only
+// here) would break index math for anyone still on one of those tiers from
+// before, so this filters only what renders, not the shared order used for
+// index comparisons.
+const VISIBLE_TIER_ORDER = TIER_ORDER.filter((id) => id !== "starter" && id !== "professional");
 
 // Temporarily hidden per request — flip back to true to restore the
 // 1-to-1 Coaching add-on card.
@@ -317,7 +318,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
       </div>
 
       {/* Pricing Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch mb-16">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch mb-16 max-w-3xl mx-auto">
         {VISIBLE_TIER_ORDER.map((tierId) => {
           const meta = TIERS[tierId];
           const Icon = TIER_ICONS[tierId];
@@ -334,7 +335,7 @@ export default function MembershipView({ stats, checkoutResult, onDismissCheckou
                 isCurrent ? accent.ring : "border-slate-100 dark:border-slate-850"
               } hover:border-slate-300 dark:hover:border-slate-700 shadow-xs hover:shadow-md`}
             >
-              {tierId === "professional" && (
+              {tierId === "career_accelerator" && (
                 <div className="absolute top-0 right-6 -translate-y-1/2 bg-indigo-600 text-white text-[9px] uppercase font-mono font-black px-3 py-1 rounded-full tracking-widest shadow-sm flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> Popular
                 </div>
